@@ -87,9 +87,19 @@ Status follows the PRD. Check an item only after evidence exists in the reposito
 
 **Exit condition:** PASSED. System can autonomously identify missing relationships, propose prioritized learning tasks, execute bounded research against permitted sources, and emit verifiable research artifacts.
 
+## Phase 6 — Continual Learning & Catastrophic Forgetting Prevention
+
+- [x] Experience replay buffer with balanced domain sampling (`aarohan/continual.py:ReplayBuffer`).
+- [x] Continual candidate training pipeline with target-masked blended replay batches (`train_continual_candidate`).
+- [x] Regression gate framework re-evaluating historical benchmarks and computing delta regression (`RegressionGate`).
+- [x] Rollback manager supporting atomic deployment tracking and safe reversal (`RollbackManager`).
+- [x] Continual learning CLI (`scripts/continual_cli.py`).
+- [x] Automated unit and integration tests (4 tests passed, 51 total suite tests passed).
+
+**Exit condition:** PASSED. Continual learning candidate can learn from new approved examples with experience replay without exceeding regression thresholds on previous benchmarks; atomic rollback verified.
+
 ## Later phases
 
-- [ ] Continual learning with replay, regression gates and rollback (Phase 6)
 - [ ] Autonomous learning scheduler (Phase 7)
 - [ ] API, web interface, audits and integrated release evaluation (Phase 15/16)
 
