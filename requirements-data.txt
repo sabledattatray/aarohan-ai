@@ -1,0 +1,4 @@
+# Optional dependencies for pinned WikiText-2 Parquet intake.
+huggingface_hub>=0.25,<1.0
+pyarrow>=18,<25
+pypdf>=6.21,<8.0

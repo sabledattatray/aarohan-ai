@@ -1,0 +1,28 @@
+{
+"privacy_reviewed": true,  
+"dataset_name": "WikiText-2 raw v1",
+  "repository": "Salesforce/wikitext",
+  "source_url": "https://huggingface.co/datasets/Salesforce/wikitext",
+  "subset": "wikitext-2-raw-v1",
+  "splits": {
+    "train_examples": 36718,
+    "validation_examples": 3760,
+    "test_examples": 4358
+  },
+  "license_review": {
+    "status": "reviewed_approved",
+    "dataset_card_section": "CC BY-SA 4.0",
+    "repository_license_tags": ["CC-BY-SA-3.0", "GFDL"],
+    "reviewer": {
+      "role": "trusted_adult",
+      "name": "not recorded",
+      "review_date": "2026-11-26"
+    },
+    "decision_note": "User reports that a trusted adult reviewed the Salesforce WikiText dataset page and approved local model training. Preserve the source citation, attribution, and applicable share-alike notices. Reviewer identity was not recorded.",
+    "note": "The dataset card states CC BY-SA 4.0; repository tags also list CC-BY-SA-3.0 and GFDL. Retain all source notices and attribution with the downloaded files and derived artifacts."
+  },
+  "training_allowed": true,
+  "intended_use": "Potential small language-model research corpus after license review",
+  "preserve_official_splits": true,
+  "downloaded": true
+}

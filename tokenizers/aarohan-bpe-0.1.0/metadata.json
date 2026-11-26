@@ -1,0 +1,25 @@
+{
+  "tokenizer_name": "AAROHAN-BPE",
+  "version": "0.1.0",
+  "algorithm": "ByteLevel BPE",
+  "vocab_size_target": 256,
+  "vocab_size_note": "ByteLevel's 256 required byte symbols plus special tokens can make the actual vocabulary exceed the requested merge target.",
+  "vocab_size_actual": 265,
+  "special_tokens": [
+    "<|pad|>",
+    "<|unk|>",
+    "<|bos|>",
+    "<|eos|>",
+    "<|system|>",
+    "<|user|>",
+    "<|assistant|>",
+    "<|tool|>",
+    "<|separator|>"
+  ],
+  "training_file": "corpus.txt",
+  "training_file_sha256": "650622074b4ae08d0511a296f0df21c3ec76b556c3253923f781b7b2587ce745",
+  "provenance_manifest": "D:\\Datta Sable\\AAROHAN\\data\\corpora\\original\\manifest.json",
+  "provenance_manifest_sha256": "612bc7c0dcc3375bb7722d2d14acf1f9ab323a0f5799e0be41078ecfd8b44a53",
+  "validation_data_used_for_training": false,
+  "unicode_handling": "UTF-8 input with byte-level pre-tokenization"
+}
