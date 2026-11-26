@@ -12,6 +12,8 @@ from aarohan.tools.analytics import AnalyticsEngine
 from aarohan.tools.sandbox import CodeSandbox
 from aarohan.documents.generator import PDFGenerator
 from aarohan.tools.sql_executor import SQLExecutor
+from aarohan.tools.sql_validator import SQLValidator
+from aarohan.tools.math_verifier import MathVerifier
 
 
 class ToolRegistry:
@@ -24,6 +26,8 @@ class ToolRegistry:
         self.dataset_generator = DatasetGenerator()
         self.pdf_generator = PDFGenerator()
         self.sql_executor = SQLExecutor()
+        self.sql_validator = SQLValidator()
+        self.math_verifier = MathVerifier()
         self._register_default_tools()
 
     def _register_default_tools(self) -> None:
@@ -97,6 +101,32 @@ class ToolRegistry:
             handler=self._tool_execute_sql,
         )
 
+        self.register_tool(
+            name="validate_sql",
+            description="Validate SQL query for SQL Server, PostgreSQL, MySQL, and SQLite, check for destructive operations, or explain JOIN vs UNION.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "SQL query to validate."},
+                },
+                "required": ["query"],
+            },
+            handler=self._tool_validate_sql,
+        )
+
+        self.register_tool(
+            name="verify_math",
+            description="Perform mathematical calculation with independent multi-method verification and edge case analysis.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "expression": {"type": "string", "description": "Mathematical expression to evaluate and verify."},
+                },
+                "required": ["expression"],
+            },
+            handler=self._tool_verify_math,
+        )
+
     def register_tool(self, name: str, description: str, parameters: Dict[str, Any], handler: Callable) -> None:
         self.tools[name] = {
             "name": name,
@@ -146,3 +176,19 @@ class ToolRegistry:
 
     def _tool_execute_sql(self, query: str, max_rows: int = 100) -> Dict[str, Any]:
         return self.sql_executor.execute_query(query=query, max_rows=max_rows)
+
+    def _tool_validate_sql(self, query: str) -> Dict[str, Any]:
+        report = self.sql_validator.validate_query(query)
+        return {
+            "is_valid": report.is_valid,
+            "dialect": report.dialect,
+            "destructive": report.destructive,
+            "syntax_errors": report.syntax_errors,
+            "warnings": report.warnings,
+            "ast_summary": report.ast_summary,
+            "status": "VALIDATED" if report.is_valid else "FAILED",
+        }
+
+    def _tool_verify_math(self, expression: str) -> Dict[str, Any]:
+        res = self.math_verifier.evaluate_and_verify(expression)
+        return res.to_execution_result().to_dict()

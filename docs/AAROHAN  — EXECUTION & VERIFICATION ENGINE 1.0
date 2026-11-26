@@ -1,0 +1,138 @@
+# AAROHAN AI — EXECUTION & VERIFICATION ENGINE 1.0
+
+## Objective
+
+Upgrade the existing AAROHAN AI application from a text-response-oriented assistant into a tool-using AI application capable of executing tasks, verifying results, and returning real outputs.
+
+IMPORTANT: First audit the existing repository and identify existing functionality. Do not rebuild working modules, replace the model, redesign the UI, or introduce duplicate APIs.
+
+## 1. Task Understanding and Routing
+
+Create a task classification and routing layer.
+
+Identify whether the user's request requires:
+
+- Text generation
+- Mathematical calculations
+- Python execution
+- SQL generation or execution
+- CSV/Excel dataset creation
+- Data analysis
+- Chart generation
+- PDF/DOCX generation
+- Image generation
+- Web research
+- Knowledge retrieval
+
+Route each task to the appropriate implemented tool.
+
+## 2. Python Execution Engine
+
+Implement actual Python execution in a secure isolated environment.
+
+Requirements:
+- Execute generated Python code.
+- Capture standard output and errors.
+- Apply execution time and memory limits.
+- Validate expected outputs.
+- Support pandas, numpy and matplotlib where installed.
+- Never execute arbitrary code directly inside the main application process.
+- Do not claim execution unless execution succeeds.
+
+## 3. SQL Validation Engine
+
+Support SQL Server, PostgreSQL, MySQL and SQLite according to actual configured connections.
+
+Requirements:
+- Detect the database dialect.
+- Validate generated queries.
+- Use actual database schema metadata.
+- Execute read-only queries in a safe test environment.
+- Preserve duplicate records unless the user explicitly requests otherwise.
+- Require explicit approval for destructive operations.
+- Return actual query results and execution errors.
+
+## 4. Dataset Generation Engine
+
+Implement real CSV and Excel generation.
+
+Requirements:
+- Respect the exact number of requested rows.
+- Respect the exact requested columns.
+- Use correct numeric, date and text data types.
+- Validate headers and record counts.
+- Reopen and inspect the saved file after generation.
+- Generate unique filenames.
+- Store outputs in the existing managed dataset storage.
+- Provide working download endpoints.
+- Support previewing generated data.
+
+Never return an unrelated existing dataset as if it were newly generated.
+
+## 5. Mathematical Verification
+
+For mathematical questions:
+- Calculate the answer.
+- Independently verify the result.
+- Check edge cases.
+- Explain assumptions.
+- Detect contradictions in the final explanation.
+
+For statistical analysis, clearly state the method used.
+
+## 6. Output Verification
+
+Every tool must return a structured execution result containing:
+
+- Task ID
+- Tool used
+- Execution status
+- Output location, when applicable
+- Validation status
+- Error details, when applicable
+
+Distinguish between:
+- Generated
+- Executed
+- Validated
+- Failed
+- Not supported
+
+Never report an operation as successful if the tool failed.
+
+## 7. Testing
+
+Create automated integration tests for:
+
+1. Generate exactly 5 CSV records with 4 columns.
+2. Verify the CSV can be reopened.
+3. Verify numeric data types.
+4. Verify date formats.
+5. Execute a Python calculation.
+6. Validate a SQL Server query.
+7. Detect duplicate account numbers.
+8. Distinguish JOIN from UNION.
+9. Verify mathematical results.
+10. Return a real downloadable file.
+
+## 8. UI Integration
+
+Integrate the execution engine into the existing AAROHAN chat interface.
+
+Show:
+- Tool being used
+- Execution progress
+- Success or failure
+- Actual output preview
+- Download links
+- Validation details
+
+Keep the existing visual design and navigation.
+
+## 9. Final Acceptance Criteria
+
+Do not mark this project complete merely because the code was generated.
+
+Run the integration tests, inspect actual outputs, verify download links, and provide a concise implementation report.
+
+The goal is reliable execution, not convincing-looking responses.

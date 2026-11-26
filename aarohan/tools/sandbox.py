@@ -11,7 +11,9 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+
+from aarohan.tools.verification import ExecutionResult, ExecutionStatus
 
 
 class CodeSandbox:
@@ -20,6 +22,34 @@ class CodeSandbox:
     def __init__(self, timeout_seconds: int = 10, max_output_chars: int = 20000) -> None:
         self.timeout_seconds = timeout_seconds
         self.max_output_chars = max_output_chars
+
+    def execute_and_verify(self, code: str, expected_output: Optional[str] = None) -> ExecutionResult:
+        """Execute Python code in an isolated subprocess and return a structured ExecutionResult."""
+        res = self.execute_python(code)
+        if not res["success"]:
+            return ExecutionResult.create(
+                tool_used="code_sandbox",
+                status=ExecutionStatus.FAILED,
+                validation_status="FAILED",
+                error_details=res.get("stderr") or "Subprocess exited with non-zero status",
+                validation_details={"exit_code": res.get("exit_code"), "execution_time_ms": res.get("execution_time_ms")},
+            )
+
+        output = res.get("stdout", "")
+        is_validated = True
+        validation_notes = "Execution succeeded with exit code 0."
+        if expected_output:
+            is_validated = expected_output.strip() in output
+            validation_notes = f"Expected output match: {is_validated}"
+
+        return ExecutionResult.create(
+            tool_used="code_sandbox",
+            status=ExecutionStatus.VALIDATED if is_validated else ExecutionStatus.FAILED,
+            validation_status="VALIDATED" if is_validated else "FAILED",
+            output_preview={"stdout": output, "execution_time_ms": res.get("execution_time_ms")},
+            validation_details={"exit_code": 0, "notes": validation_notes, "matched_expected": is_validated},
+            metadata={"code_length": len(code)},
+        )
 
     def execute_python(self, code: str) -> Dict[str, Any]:
         """Execute a Python snippet in an isolated subprocess with strict timeouts."""

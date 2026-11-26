@@ -36,9 +36,13 @@ from aarohan.documents.generator import PDFGenerator
 from aarohan.tools.analytics import AnalyticsEngine
 from aarohan.tools.sandbox import CodeSandbox
 from aarohan.tools.sql_executor import SQLExecutor
+from aarohan.tools.sql_validator import SQLValidator
+from aarohan.tools.math_verifier import MathVerifier
+from aarohan.tools.verification import ExecutionResult, ExecutionStatus
 from aarohan.tools.registry import ToolRegistry
 from aarohan.memory import MemoryStore
 from aarohan.capabilities import get_capability_registry, resolve_capability_query
+from aarohan.nlp.task_router import TaskRouter, TaskType
 from aarohan.nlp import ContextResolver, Intent, IntentClassifier, TextNormalizer, resolve_identity_query, resolve_scientific_law
 from aarohan.research import BoundedResearchEngine, KnowledgeGapDetector, LearningQueue
 from aarohan.safety import AuditLogger, SafetyFilter
@@ -223,6 +227,20 @@ class SQLExecuteRequest(BaseModel):
     read_only: bool = Field(True, description="Enforce read-only execution")
 
 
+class SQLValidateRequest(BaseModel):
+    query: str = Field(..., min_length=1, description="SQL query to validate")
+    allow_destructive: bool = Field(False, description="Whether to allow destructive operations")
+
+
+class DetectDuplicatesRequest(BaseModel):
+    records: List[Dict[str, Any]] = Field(..., description="List of record dictionaries")
+    key_column: str = Field("Account_Number", description="Column to inspect for duplicates")
+
+
+class MathVerifyRequest(BaseModel):
+    expression: str = Field(..., min_length=1, description="Mathematical expression")
+
+
 
 def get_current_user(authorization: str | None = Header(None)) -> dict[str, Any]:
     """Optional bearer auth helper - falls back to default researcher if omitted for local UI."""
@@ -270,6 +288,9 @@ def create_app(
     document_extractor = DocumentExtractor()
     pdf_generator = PDFGenerator()
     sql_executor = SQLExecutor(default_db=database_path)
+    sql_validator = SQLValidator()
+    math_verifier = MathVerifier()
+    task_router = TaskRouter()
     capability_registry = get_capability_registry()
     tool_registry = ToolRegistry()
 
@@ -389,15 +410,35 @@ def create_app(
                 num_val = int(row_match.group(1))
                 if row_match.group(2) in ("k", "thousand"):
                     num_val *= 1000
-                rows = min(max(num_val, 10), 10000)
+                rows = min(max(num_val, 1), 10000)
 
-            ds = dataset_generator.generate(domain=domain, rows=rows, fmt=fmt, include_analytics=True)
+            col_match = re.search(r"(\d+)\s*col", combined_q)
+            cols = int(col_match.group(1)) if col_match else None
+
+            ds = dataset_generator.generate(domain=domain, rows=rows, fmt=fmt, columns=cols, include_analytics=True)
+
+            # Build preview table
+            preview_md = ""
+            if ds.preview_rows:
+                headers = ds.columns
+                header_row = "| " + " | ".join(headers) + " |"
+                sep_row = "| " + " | ".join(["---"] * len(headers)) + " |"
+                row_lines = []
+                for pr in ds.preview_rows[:5]:
+                    vals = [str(pr.get(h, "")) for h in headers]
+                    row_lines.append("| " + " | ".join(vals) + " |")
+                preview_md = "\n" + header_row + "\n" + sep_row + "\n" + "\n".join(row_lines) + "\n"
+
+            val_status = ds.get("validation_status", "VALIDATED")
             return (
-                f"\n\n---\n### 📊 Aarohan Dataset Generated\n"
+                f"\n\n---\n### 📊 Aarohan Dataset Generated & Validated\n"
+                f"- **Status:** `{val_status}` (Reopened & inspected on disk)\n"
                 f"- **Domain:** {domain.title()}\n"
                 f"- **File:** `{ds['filename']}` ({ds['rows']} records, {ds['column_count']} fields)\n"
                 f"- **Format:** {fmt.upper()}\n"
-                f"- **Download:** [📥 Click here to download {ds['filename']}](/api/datasets/download/{ds['filename']})\n\n"
+                f"- **Download:** [📥 Click here to download {ds['filename']}](/api/datasets/download/{ds['filename']})\n"
+                f"\n**Data Preview (First {len(ds.preview_rows[:5])} records):**\n"
+                f"{preview_md}\n"
             )
         except Exception as e:
             logger.warning("Auto dataset generation error: %s", e)
@@ -1706,6 +1747,39 @@ def create_app(
         else:
             audit.log("sql_executed", actor=user["username"], target="database", details={"row_count": res.get("row_count")})
         return res
+
+    @app.post("/api/sql/validate")
+    def sql_validate_endpoint(
+        req: SQLValidateRequest,
+        user: dict[str, Any] = Depends(get_current_user),
+    ) -> dict[str, Any]:
+        report = sql_validator.validate_query(req.query, allow_destructive=req.allow_destructive)
+        return {
+            "is_valid": report.is_valid,
+            "dialect": report.dialect,
+            "is_read_only": report.is_read_only,
+            "destructive": report.destructive,
+            "syntax_errors": report.syntax_errors,
+            "warnings": report.warnings,
+            "ast_summary": report.ast_summary,
+            "status": "VALIDATED" if report.is_valid else "FAILED",
+        }
+
+    @app.get("/api/sql/join-vs-union")
+    def sql_join_vs_union_endpoint() -> dict[str, Any]:
+        return sql_validator.explain_join_vs_union()
+
+    @app.post("/api/sql/detect-duplicates")
+    def sql_detect_duplicates_endpoint(req: DetectDuplicatesRequest) -> dict[str, Any]:
+        return sql_validator.detect_duplicate_accounts(req.records, key_column=req.key_column)
+
+    # -------------------------------------------------------------------------
+    # Mathematical Calculation & Verification Engine
+    # -------------------------------------------------------------------------
+    @app.post("/api/math/verify")
+    def math_verify_endpoint(req: MathVerifyRequest) -> dict[str, Any]:
+        res = math_verifier.evaluate_and_verify(req.expression)
+        return res.to_execution_result().to_dict()
 
     # -------------------------------------------------------------------------
     # Capability Registry & Truthful Honesty Engine

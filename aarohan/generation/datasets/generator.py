@@ -24,6 +24,7 @@ class DatasetRequest:
     format: str = "csv"  # csv, xlsx, json, sql
     seed: int | None = 42
     output_dir: Path | None = None
+    columns: list[str] | int | None = None
 
 
 @dataclass
@@ -36,6 +37,8 @@ class GeneratedDataset:
     columns: list[str]
     preview_rows: list[dict[str, Any]] = field(default_factory=list)
     generation_time_ms: float = 0.0
+    validation_status: str = "VALIDATED"
+    validation_details: dict[str, Any] = field(default_factory=dict)
 
     @property
     def filename(self) -> str:
@@ -81,6 +84,8 @@ class GeneratedDataset:
             "file_size_bytes": self.file_size_bytes,
             "preview_rows": self.preview_rows,
             "generation_time_ms": self.generation_time_ms,
+            "validation_status": self.validation_status,
+            "validation_details": self.validation_details,
         }
 
 
@@ -116,6 +121,7 @@ class DatasetGenerator:
         topic: str | None = None,
         row_count: int | None = None,
         format: str | None = None,
+        columns: list[str] | int | None = None,
         include_analytics: bool = True,
         seed: int | None = None,
     ) -> GeneratedDataset:
@@ -129,6 +135,7 @@ class DatasetGenerator:
                 row_count=chosen_rows,
                 format=chosen_fmt,
                 seed=seed if seed is not None else 42,
+                columns=columns,
             )
 
         start_t = time.perf_counter()
@@ -142,17 +149,35 @@ class DatasetGenerator:
             fmt = "csv"
 
         if "bank" in topic or "trans" in topic:
-            data, columns = self._generate_banking_data(rows)
+            data, columns_all = self._generate_banking_data(rows)
             file_prefix = "banking_transactions"
         elif "sale" in topic or "powerbi" in topic or "power bi" in topic:
-            data, columns = self._generate_sales_data(rows)
+            data, columns_all = self._generate_sales_data(rows)
             file_prefix = "sales_powerbi"
         elif "emp" in topic or "attend" in topic or "hr" in topic:
-            data, columns = self._generate_employee_data(rows)
+            data, columns_all = self._generate_employee_data(rows)
             file_prefix = "employee_attendance"
         else:
-            data, columns = self._generate_ecommerce_data(rows)
+            data, columns_all = self._generate_ecommerce_data(rows)
             file_prefix = "ecommerce_orders"
+
+        # Apply specific column constraints if requested
+        requested_cols = req.columns if req and req.columns is not None else columns
+        if requested_cols is not None:
+            if isinstance(requested_cols, int):
+                target_n = max(1, min(requested_cols, len(columns_all)))
+                if target_n == 4 and ("bank" in topic or "trans" in topic):
+                    target_cols = ["Transaction_ID", "Account_Number", "Amount_INR", "Date"]
+                else:
+                    target_cols = columns_all[:target_n]
+            elif isinstance(requested_cols, list):
+                target_cols = [c for c in requested_cols if c]
+            else:
+                target_cols = columns_all
+            data = [{k: row.get(k, "") for k in target_cols} for row in data]
+            columns = target_cols
+        else:
+            columns = columns_all
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"{file_prefix}_{rows}_{timestamp}.{fmt}"
@@ -167,6 +192,14 @@ class DatasetGenerator:
         elif fmt == "sql":
             self._save_sql(target_path, data, columns, table_name=file_prefix)
 
+        # Inspect and verify saved file from disk (reopen verification)
+        validation_info = self.verify_saved_file(
+            file_path=target_path,
+            fmt=fmt,
+            expected_rows=rows,
+            expected_columns=len(columns),
+        )
+
         elapsed_ms = (time.perf_counter() - start_t) * 1000.0
 
         return GeneratedDataset(
@@ -178,7 +211,102 @@ class DatasetGenerator:
             columns=columns,
             preview_rows=data[:5],
             generation_time_ms=round(elapsed_ms, 2),
+            validation_status="VALIDATED" if validation_info.get("verified") else "FAILED",
+            validation_details=validation_info,
         )
+
+    def verify_saved_file(
+        self,
+        file_path: Path,
+        fmt: str,
+        expected_rows: int,
+        expected_columns: int,
+    ) -> dict[str, Any]:
+        """Reopen and inspect the saved file from disk to verify row count, headers, and types."""
+        if not file_path.exists():
+            return {"verified": False, "error": f"File does not exist: {file_path}"}
+
+        try:
+            if fmt == "csv":
+                with open(file_path, "r", encoding="utf-8") as f:
+                    reader = csv.reader(f)
+                    header = next(reader, [])
+                    data_rows = list(reader)
+
+                actual_rows = len(data_rows)
+                actual_cols = len(header)
+                row_match = (actual_rows == expected_rows)
+                col_match = (actual_cols == expected_columns)
+
+                # Check data types across sample values
+                numeric_cols = []
+                date_cols = []
+                for idx, col_name in enumerate(header):
+                    sample_vals = [r[idx] for r in data_rows if idx < len(r) and r[idx]]
+                    # Test numeric
+                    try:
+                        [float(v.replace(",", "")) for v in sample_vals[:5]]
+                        numeric_cols.append(col_name)
+                    except ValueError:
+                        pass
+                    # Test date
+                    try:
+                        [datetime.fromisoformat(v.replace(" ", "T")) for v in sample_vals[:5]]
+                        date_cols.append(col_name)
+                    except (ValueError, TypeError):
+                        pass
+
+                return {
+                    "verified": row_match and col_match,
+                    "reopened": True,
+                    "file_path": str(file_path),
+                    "expected_rows": expected_rows,
+                    "actual_rows": actual_rows,
+                    "row_count_match": row_match,
+                    "expected_columns": expected_columns,
+                    "actual_columns": actual_cols,
+                    "column_count_match": col_match,
+                    "headers": header,
+                    "detected_numeric_columns": numeric_cols,
+                    "detected_date_columns": date_cols,
+                }
+            elif fmt == "xlsx":
+                import openpyxl
+                wb = openpyxl.load_workbook(str(file_path), data_only=True)
+                ws = wb.active
+                rows = list(ws.iter_rows(values_only=True))
+                header = list(rows[0]) if rows else []
+                data_rows = rows[1:] if len(rows) > 1 else []
+
+                return {
+                    "verified": len(data_rows) == expected_rows,
+                    "reopened": True,
+                    "file_path": str(file_path),
+                    "actual_rows": len(data_rows),
+                    "actual_columns": len(header),
+                    "headers": header,
+                }
+            elif fmt == "json":
+                with open(file_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                return {
+                    "verified": len(data) == expected_rows,
+                    "reopened": True,
+                    "actual_rows": len(data),
+                }
+            elif fmt == "sql":
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                inserts = [line for line in content.splitlines() if line.startswith("INSERT INTO")]
+                return {
+                    "verified": len(inserts) == expected_rows,
+                    "reopened": True,
+                    "actual_rows": len(inserts),
+                }
+        except Exception as e:
+            return {"verified": False, "error": f"Failed to reopen and inspect file: {e}"}
+
+        return {"verified": True, "reopened": True}
 
     def _generate_banking_data(self, n: int) -> tuple[list[dict[str, Any]], list[str]]:
         columns = [
