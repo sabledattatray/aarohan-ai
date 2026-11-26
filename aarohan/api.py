@@ -1258,7 +1258,7 @@ def get_dashboard_html() -> str:
 
     <!-- ChatGPT Floating Bottom Input Container -->
     <div class="p-4 bg-gradient-to-t from-black via-black/95 to-transparent z-20 flex-shrink-0">
-      <form id="chat-form" onsubmit="handleChatSubmit(event)" class="max-w-[48rem] w-full mx-auto">
+      <form id="chat-form" onsubmit="handleChatSubmit(event); return false;" class="max-w-[48rem] w-full mx-auto">
         <div class="relative rounded-[26px] bg-[#212121] border border-[#383838] focus-within:border-[#555555] shadow-2xl p-3 pl-4 pr-3 flex items-end space-x-2 transition-all">
 
           <!-- Tools / Attachment Button with Dropdown -->
@@ -1499,20 +1499,24 @@ def get_dashboard_html() -> str:
       if (el) el.classList.toggle('hidden');
     }
 
-    // Auto-resizing textarea
-    const chatInput = document.getElementById('chat-input');
-    if (chatInput) {
-      chatInput.addEventListener('input', () => {
-        chatInput.style.height = 'auto';
-        chatInput.style.height = Math.min(chatInput.scrollHeight, 180) + 'px';
-      });
-      chatInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          handleChatSubmit(e);
-        }
-      });
+    // Auto-resizing textarea & submission listeners
+    function setupChatInput() {
+      const chatInput = document.getElementById('chat-input');
+      if (chatInput && !chatInput.dataset.bound) {
+        chatInput.dataset.bound = 'true';
+        chatInput.addEventListener('input', () => {
+          chatInput.style.height = 'auto';
+          chatInput.style.height = Math.min(chatInput.scrollHeight, 180) + 'px';
+        });
+        chatInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleChatSubmit(e);
+          }
+        });
+      }
     }
+    setupChatInput();
 
     function toggleSidebar() {
       const sidebar = document.getElementById('chat-sidebar');
@@ -1616,6 +1620,7 @@ def get_dashboard_html() -> str:
     }
 
     async function initSystem() {
+      setupChatInput();
       loadRecentHistory();
     }
 
@@ -1651,19 +1656,21 @@ def get_dashboard_html() -> str:
 
     function renderMarkdownWithMath(el, text) {
       if (!el || !text) return;
-      // Convert raw bracketed LaTeX formulas like "[ T_3 = \frac{3}{2} T_1 ]" into "$$ ... $$"
-      let processed = text.replace(/\\[\\s*([^\\]]*\\[a-zA-Z]+[^\\]]*?)\\s*\\]/g, function(match, formula) {
-        return '$$\n' + formula.trim() + '\n$$';
-      });
+      let processed = text;
+      try {
+        processed = text.replace(/\\[\\s*([^\\]]*?\\\\[a-zA-Z]+[^\\]]*?)\\s*\\]/g, function(match, formula) {
+          return '$$ ' + formula.trim() + ' $$';
+        });
+      } catch (e) {}
       el.innerHTML = marked.parse(processed);
       if (window.renderMathInElement) {
         try {
           renderMathInElement(el, {
             delimiters: [
               {left: '$$', right: '$$', display: true},
-              {left: '\\[', right: '\\]', display: true},
+              {left: '\\\\[', right: '\\\\]', display: true},
               {left: '$', right: '$', display: false},
-              {left: '\\(', right: '\\)', display: false},
+              {left: '\\\\(', right: '\\\\)', display: false}
             ],
             throwOnError: false
           });
