@@ -19,7 +19,7 @@ import json
 import logging
 import secrets
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,10 +32,13 @@ from aarohan.foundation_engine import FoundationEngine
 from aarohan.generation.datasets import DatasetGenerator
 from aarohan.generation.images import ImageStudioManager, PromptEnhancer, ImageEditor
 from aarohan.documents.extractor import DocumentExtractor
+from aarohan.documents.generator import PDFGenerator
 from aarohan.tools.analytics import AnalyticsEngine
 from aarohan.tools.sandbox import CodeSandbox
+from aarohan.tools.sql_executor import SQLExecutor
 from aarohan.tools.registry import ToolRegistry
 from aarohan.memory import MemoryStore
+from aarohan.capabilities import get_capability_registry, resolve_capability_query
 from aarohan.nlp import ContextResolver, Intent, IntentClassifier, TextNormalizer, resolve_identity_query, resolve_scientific_law
 from aarohan.research import BoundedResearchEngine, KnowledgeGapDetector, LearningQueue
 from aarohan.safety import AuditLogger, SafetyFilter
@@ -206,6 +209,20 @@ class DocumentExtractRequest(BaseModel):
     file_path: str = Field(...)
 
 
+class PDFGenerateRequest(BaseModel):
+    title: str = Field(..., description="Document title")
+    sections: List[Dict[str, Any]] = Field(..., description="List of section dictionaries")
+    author: Optional[str] = Field("Datta Sable / AAROHAN AI", description="Author attribution")
+    filename: Optional[str] = Field(None, description="Optional custom filename")
+
+
+class SQLExecuteRequest(BaseModel):
+    query: str = Field(..., min_length=1, description="SQL query string")
+    db_path: Optional[str] = Field(None, description="Optional path to SQLite database")
+    max_rows: int = Field(100, ge=1, le=1000, description="Max rows to return")
+    read_only: bool = Field(True, description="Enforce read-only execution")
+
+
 
 def get_current_user(authorization: str | None = Header(None)) -> dict[str, Any]:
     """Optional bearer auth helper - falls back to default researcher if omitted for local UI."""
@@ -251,6 +268,9 @@ def create_app(
     image_manager = ImageStudioManager(db_path=database_path)
     image_engine = image_manager
     document_extractor = DocumentExtractor()
+    pdf_generator = PDFGenerator()
+    sql_executor = SQLExecutor(default_db=database_path)
+    capability_registry = get_capability_registry()
     tool_registry = ToolRegistry()
 
     # Initialize active deployment pointer if none set
@@ -532,8 +552,9 @@ def create_app(
         else:
             retrieved = store.search(resolved_query, limit=req.memory_limit * 2)
 
-        # Canonical Identity & Scientific Law Resolution
+        # Canonical Identity, Capability & Scientific Law Resolution
         identity_reply = resolve_identity_query(processed_query, engine=req.engine)
+        capability_reply = resolve_capability_query(processed_query)
         science_law = resolve_scientific_law(processed_query)
 
         # Exclude raw user chat logs from factual evidence
@@ -589,6 +610,11 @@ def create_app(
             response_text = identity_reply
             generated_tokens = len(identity_reply.split())
             checkpoint_name = f"aarohan_{req.engine}"
+            warning_msg = None
+        elif capability_reply:
+            response_text = capability_reply
+            generated_tokens = len(capability_reply.split())
+            checkpoint_name = "aarohan_capabilities_engine"
             warning_msg = None
         elif science_law:
             response_text = science_law.detailed_markdown
@@ -725,6 +751,7 @@ def create_app(
             retrieved = store.search(resolved_query, limit=req.memory_limit * 2)
 
         identity_reply = resolve_identity_query(processed_query, engine=req.engine)
+        capability_reply = resolve_capability_query(processed_query)
         science_law = resolve_scientific_law(processed_query)
 
         is_science_query = bool(science_law or primary_intent in (Intent.SCIENTIFIC_LAW, Intent.MATHEMATICAL_CALCULATION))
@@ -795,6 +822,30 @@ def create_app(
                 yield f"data: {json.dumps(done_event)}\n\n"
 
             return StreamingResponse(identity_stream(), media_type="text/event-stream")
+
+        if capability_reply:
+            def capability_stream():
+                init_event = {
+                    "type": "context",
+                    "engine": req.engine,
+                    "intent": "CAPABILITY_INQUIRY",
+                    "normalized_query": processed_query,
+                    "retrieved_memory": [],
+                    "safety": {"pii_redacted": pii_detected, "injection_scan": "passed"},
+                }
+                yield f"data: {json.dumps(init_event)}\n\n"
+                words = capability_reply.split(" ")
+                for i, w in enumerate(words):
+                    token = w + (" " if i < len(words) - 1 else "")
+                    yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
+                done_event = {
+                    "type": "done",
+                    "generated_tokens": len(words),
+                    "checkpoint": "aarohan_capabilities_engine",
+                }
+                yield f"data: {json.dumps(done_event)}\n\n"
+
+            return StreamingResponse(capability_stream(), media_type="text/event-stream")
 
         if science_law:
             def science_stream():
@@ -1592,6 +1643,80 @@ def create_app(
             },
             "pages": data["pages"][:15],
             "chunks": chunks[:10],
+        }
+
+    @app.post("/api/documents/generate-pdf")
+    def document_generate_pdf_endpoint(
+        req: PDFGenerateRequest,
+        user: dict[str, Any] = Depends(get_current_user),
+    ) -> dict[str, Any]:
+        author_attr = req.author or "Datta Sable / AAROHAN AI"
+        res = pdf_generator.generate_report(
+            title=req.title,
+            sections=req.sections,
+            author=author_attr,
+            filename=req.filename,
+        )
+        if not res.get("success"):
+            logger.error("Failed to generate PDF: %s", res.get("error"))
+            audit.log("pdf_generation_failed", actor=user["username"], target="documents", details=res)
+            raise HTTPException(status_code=500, detail=res.get("error", "PDF generation failed"))
+
+        audit.log("pdf_generated", actor=user["username"], target="documents", details={"filename": res["filename"]})
+        return res
+
+    @app.get("/api/documents/download/{filename}")
+    def document_download_endpoint(filename: str):
+        target = Path("artifacts/documents") / filename
+        if not target.is_file():
+            raise HTTPException(status_code=404, detail=f"PDF document not found: {filename}")
+        return FileResponse(
+            str(target),
+            filename=filename,
+            media_type="application/pdf",
+        )
+
+    @app.get("/api/documents/view/{filename}")
+    def document_view_endpoint(filename: str):
+        target = Path("artifacts/documents") / filename
+        if not target.is_file():
+            raise HTTPException(status_code=404, detail=f"PDF document not found: {filename}")
+        return FileResponse(
+            str(target),
+            media_type="application/pdf",
+        )
+
+    # -------------------------------------------------------------------------
+    # SQL Execution Engine
+    # -------------------------------------------------------------------------
+    @app.post("/api/sql/execute")
+    def sql_execute_endpoint(
+        req: SQLExecuteRequest,
+        user: dict[str, Any] = Depends(get_current_user),
+    ) -> dict[str, Any]:
+        res = sql_executor.execute_query(
+            query=req.query,
+            db_path=req.db_path,
+            max_rows=req.max_rows,
+            read_only=req.read_only,
+        )
+        if not res.get("success"):
+            logger.warning("SQL execution failed: %s | Query: %s", res.get("error"), req.query)
+            audit.log("sql_execution_failed", actor=user["username"], target="database", details=res)
+        else:
+            audit.log("sql_executed", actor=user["username"], target="database", details={"row_count": res.get("row_count")})
+        return res
+
+    # -------------------------------------------------------------------------
+    # Capability Registry & Truthful Honesty Engine
+    # -------------------------------------------------------------------------
+    @app.get("/api/capabilities")
+    def capabilities_endpoint() -> dict[str, Any]:
+        reg = get_capability_registry()
+        return {
+            "status": "ok",
+            "capabilities": [c.to_dict() for c in reg.list_all()],
+            "summary_markdown": reg.generate_summary_markdown(),
         }
 
     # -------------------------------------------------------------------------

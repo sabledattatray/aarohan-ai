@@ -10,6 +10,8 @@ from typing import Any, Callable, Dict, List, Optional
 from aarohan.generation.datasets.generator import DatasetGenerator
 from aarohan.tools.analytics import AnalyticsEngine
 from aarohan.tools.sandbox import CodeSandbox
+from aarohan.documents.generator import PDFGenerator
+from aarohan.tools.sql_executor import SQLExecutor
 
 
 class ToolRegistry:
@@ -20,6 +22,8 @@ class ToolRegistry:
         self.analytics = AnalyticsEngine()
         self.sandbox = CodeSandbox()
         self.dataset_generator = DatasetGenerator()
+        self.pdf_generator = PDFGenerator()
+        self.sql_executor = SQLExecutor()
         self._register_default_tools()
 
     def _register_default_tools(self) -> None:
@@ -62,6 +66,35 @@ class ToolRegistry:
                 "required": ["file_path"],
             },
             handler=self._tool_profile_data,
+        )
+
+        self.register_tool(
+            name="generate_pdf",
+            description="Generate a formatted downloadable PDF document with headings, paragraphs, and tables.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "Title of the document."},
+                    "sections": {"type": "array", "description": "List of section objects with heading and content."},
+                    "author": {"type": "string", "default": "Datta Sable / AAROHAN AI"},
+                },
+                "required": ["title", "sections"],
+            },
+            handler=self._tool_generate_pdf,
+        )
+
+        self.register_tool(
+            name="execute_sql",
+            description="Execute read-only SQL query against local SQLite databases.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "SQL query to execute."},
+                    "max_rows": {"type": "integer", "default": 100},
+                },
+                "required": ["query"],
+            },
+            handler=self._tool_execute_sql,
         )
 
     def register_tool(self, name: str, description: str, parameters: Dict[str, Any], handler: Callable) -> None:
@@ -107,3 +140,9 @@ class ToolRegistry:
 
     def _tool_profile_data(self, file_path: str) -> Dict[str, Any]:
         return self.analytics.profile_dataframe(file_path)
+
+    def _tool_generate_pdf(self, title: str, sections: List[Dict[str, Any]], author: str = "Datta Sable / AAROHAN AI") -> Dict[str, Any]:
+        return self.pdf_generator.generate_report(title=title, sections=sections, author=author)
+
+    def _tool_execute_sql(self, query: str, max_rows: int = 100) -> Dict[str, Any]:
+        return self.sql_executor.execute_query(query=query, max_rows=max_rows)

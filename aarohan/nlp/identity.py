@@ -20,25 +20,31 @@ def resolve_identity_query(query: str, engine: str = "foundation") -> Optional[s
     Returns the canonical truthful response, or None if the query is not an identity question.
     """
     q = query.lower().strip()
+    # Normalize common contractions before stripping punctuation
+    q = re.sub(r"\'s\b", " is", q)
+    q = re.sub(r"\'re\b", " are", q)
+    q = re.sub(r"\'m\b", " am", q)
     # Normalize punctuation and whitespace
     q_clean = re.sub(r"[^\w\s]", " ", q)
     q_clean = " ".join(q_clean.split())
 
-    # 1. Name questions: "what's your name", "what is your name", "who are you", "tell me your name"
+    # 1. Name & Identity questions: "who are you", "what's your name", "what is your name", "what is aarohan"
     name_patterns = [
-        r"^what\s+(is|\'s)\s+your\s+name$",
+        r"^what\s+(is|\'s|s)\s+your\s+name$",
         r"^whats\s+your\s+name$",
         r"^what\s+is\s+your\s+name\s+please$",
         r"^who\s+are\s+you$",
         r"^what\s+are\s+you\s+called$",
         r"^tell\s+me\s+your\s+name$",
         r"^your\s+name$",
+        r"^what\s+is\s+aarohan$",
+        r"^who\s+is\s+aarohan$",
     ]
     for pat in name_patterns:
         if re.search(pat, q_clean):
             return "My name is AAROHAN, an AI assistant created by Datta Sable."
 
-    # 2. Creator questions: "who is your creator", "who created you", "who made you", "who developed you"
+    # 2. Creator questions: "who is your creator", "who created you", "who made you", "who developed you", "who created aarohan"
     creator_patterns = [
         r"^who\s+(is|\'s)\s+your\s+creator$",
         r"^who\s+created\s+you$",
@@ -49,12 +55,18 @@ def resolve_identity_query(query: str, engine: str = "foundation") -> Optional[s
         r"^who\s+is\s+your\s+maker$",
         r"^who\s+is\s+your\s+developer$",
         r"^who\s+is\s+your\s+author$",
+        r"^who\s+(is|\'s)\s+the\s+creator\s+of\s+aarohan$",
+        r"^who\s+created\s+aarohan$",
+        r"^who\s+made\s+aarohan$",
+        r"^who\s+developed\s+aarohan$",
+        r"^who\s+built\s+aarohan$",
+        r"^tell\s+me\s+who\s+created\s+you$",
     ]
     for pat in creator_patterns:
         if re.search(pat, q_clean):
             return "I was created and developed by Datta Sable."
 
-    # 3. Ownership questions: "who owns aarohan", "who owns you", "who is the owner"
+    # 3. Ownership & Creator bio: "who owns aarohan", "who owns you", "who is datta sable"
     owner_patterns = [
         r"^who\s+owns\s+aarohan$",
         r"^who\s+owns\s+you$",
@@ -66,15 +78,20 @@ def resolve_identity_query(query: str, engine: str = "foundation") -> Optional[s
         if re.search(pat, q_clean):
             return "AAROHAN is an independent AI project developed by Datta Sable."
 
-    # 4. Third-party creator inquiries (Anthropic, OpenAI, etc.)
-    # "are you created by anthropic or openai", "are you made by openai", "are you claude", "are you chatgpt"
+    if re.search(r"^who\s+(is|\'s)\s+datta\s+sable$", q_clean):
+        return (
+            "Datta Sable is the creator and lead developer of AAROHAN AI, "
+            "an independent sovereign AI assistant project (https://github.com/sabledattatray/aarohan-ai)."
+        )
+
+    # 4. Third-party creator inquiries (Anthropic, OpenAI, Google, etc.)
     third_party_patterns = [
-        r"^are\s+you\s+created\s+by\s+(anthropic|openai)(\s+or\s+(anthropic|openai))?$",
-        r"^are\s+you\s+made\s+by\s+(anthropic|openai)(\s+or\s+(anthropic|openai))?$",
-        r"^were\s+you\s+created\s+by\s+(anthropic|openai)(\s+or\s+(anthropic|openai))?$",
-        r"^were\s+you\s+made\s+by\s+(anthropic|openai)(\s+or\s+(anthropic|openai))?$",
-        r"^(did|have)\s+(anthropic|openai)\s+(create|make|develop)\s+you$",
-        r"^are\s+you\s+(chatgpt|claude|gpt4|gpt3)$",
+        r"^are\s+you\s+created\s+by\s+(anthropic|openai|google)(\s+or\s+(anthropic|openai|google))?$",
+        r"^are\s+you\s+made\s+by\s+(anthropic|openai|google)(\s+or\s+(anthropic|openai|google))?$",
+        r"^were\s+you\s+created\s+by\s+(anthropic|openai|google)(\s+or\s+(anthropic|openai|google))?$",
+        r"^were\s+you\s+made\s+by\s+(anthropic|openai|google)(\s+or\s+(anthropic|openai|google))?$",
+        r"^(did|have)\s+(anthropic|openai|google)\s+(create|make|develop)\s+you$",
+        r"^are\s+you\s+(chatgpt|claude|gemini|gpt4|gpt3)$",
     ]
     for pat in third_party_patterns:
         if re.search(pat, q_clean):
@@ -83,7 +100,7 @@ def resolve_identity_query(query: str, engine: str = "foundation") -> Optional[s
                 "It may use third-party AI models or APIs as underlying technology, depending on its configuration."
             )
 
-    # 5. Model inquiries: "what model powers you", "which model are you using", "what is your underlying model"
+    # 5. Model inquiries: "what model powers you", "which model powers you", "what model are you using", "which model powers you"
     model_patterns = [
         r"^what\s+model\s+powers\s+you$",
         r"^which\s+model\s+powers\s+you$",
@@ -92,6 +109,7 @@ def resolve_identity_query(query: str, engine: str = "foundation") -> Optional[s
         r"^which\s+model\s+are\s+you$",
         r"^what\s+llm\s+powers\s+you$",
         r"^what\s+architecture\s+powers\s+you$",
+        r"^which\s+model\s+is\s+powering\s+you$",
     ]
     for pat in model_patterns:
         if re.search(pat, q_clean):
