@@ -1609,22 +1609,6 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
               try {
                 const ev = JSON.parse(line.slice(6));
                 if (ev.type === 'context') {
-                  // Render distinct model and source badges
-                  const isFoundation = ev.engine === 'foundation' || ev.response_source === 'foundation_model';
-                  const isCustom = ev.engine === 'scratch' || ev.response_source === 'custom_neural_model';
-                  let modelBadge = '';
-                  if (isFoundation) {
-                    modelBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 flex items-center space-x-1"><span>🤖</span><span>Aarohan Foundation (Qwen2.5)</span></span>`;
-                  } else if (isCustom) {
-                    modelBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-950/80 text-amber-300 border border-amber-800/60 flex items-center space-x-1"><span>🔬</span><span>Aarohan Checkpoint (Custom)</span></span>`;
-                  } else if (ev.response_source === 'scientific_grounding_engine') {
-                    modelBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 flex items-center space-x-1"><span>⚛️</span><span>Scientific Grounding</span></span>`;
-                  }
-
-                  const srcLabel = ev.response_source || (isFoundation ? 'model_weights' : 'custom_weights');
-                  const sourceBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-[#212121] text-slate-300 border border-[#303030]">Source: ${escapeHtml(srcLabel)}</span>`;
-                  const verifyBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-950/60 text-emerald-300 border border-emerald-800/40">✓ Grounded</span>`;
-
                   let contextBtn = '';
                   if (ev.retrieved_memory && ev.retrieved_memory.length > 0) {
                     contextBtn = `<button type="button" onclick="toggleElement('${drawerId}')" class="px-2 py-0.5 rounded-full text-[10px] bg-[#262626] hover:bg-[#333333] text-indigo-300 border border-indigo-900/50 flex items-center space-x-1 transition cursor-pointer"><span>📚</span><span>${ev.retrieved_memory.length} Context Records</span></button>`;
@@ -1646,7 +1630,7 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
                     `;
                   }
 
-                  metaEl.innerHTML = modelBadge + sourceBadge + verifyBadge + contextBtn;
+                  metaEl.innerHTML = contextBtn;
                 } else if (ev.type === 'token') {
                   rawAccumulatedText += ev.token;
                   currentLastResponse = rawAccumulatedText;
@@ -2598,19 +2582,12 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
 
           // Render Assistant Message
           const astId = 'msg-' + Math.random().toString(36).substring(2, 9);
-          const isCustom = turn.engine === 'scratch';
           chatBox.innerHTML += `
             <div class="flex justify-start space-x-4 max-w-full">
               <div class="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5 shadow">
                 ▲
               </div>
               <div class="flex-1 space-y-2 min-w-0">
-                <div class="flex flex-wrap items-center gap-1.5 text-xs">
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-medium ${isCustom ? 'bg-amber-950/80 text-amber-300 border border-amber-800/60' : 'bg-indigo-950/80 text-indigo-300 border border-indigo-800/60'} flex items-center space-x-1">
-                    <span>${isCustom ? '🔬 Aarohan Checkpoint' : '🤖 Aarohan Foundation'}</span>
-                  </span>
-                  <span class="px-2 py-0.5 rounded-full text-[10px] bg-[#212121] text-slate-300 border border-[#303030]">Saved Turn</span>
-                </div>
                 <div id="${astId}" class="markdown-body text-[15px] text-[#ececec] leading-relaxed font-normal select-text"></div>
                 <div class="flex items-center space-x-2 text-xs text-[#8e8e8e] pt-1">
                   <button type="button" onclick="copyMessageText(this, decodeURIComponent('${encodeURIComponent(turn.assistant)}'))" class="p-1.5 rounded-md hover:bg-[#212121] hover:text-white transition" title="Copy response">
