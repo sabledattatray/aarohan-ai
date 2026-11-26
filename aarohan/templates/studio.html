@@ -141,6 +141,52 @@
       color: #0D0D0D !important;
     }
 
+    /* Sidebar Conversation Item Rows & Hover in Light Theme */
+    html.light .conversation-item-row,
+    html.light #recent-history-list .group {
+      color: #4B5563 !important;
+    }
+    html.light .conversation-item-row:hover,
+    html.light #recent-history-list .group:hover,
+    html.light #recent-history-list div[class*="group"]:hover {
+      background-color: #ECECEC !important;
+      color: #0D0D0D !important;
+    }
+    html.light .conversation-item-row:hover button,
+    html.light #recent-history-list .group:hover button,
+    html.light .conversation-item-row:hover span,
+    html.light #recent-history-list .group:hover span {
+      color: #0D0D0D !important;
+    }
+    html.light .conversation-item-row.is-active,
+    html.light #recent-history-list .group.is-active {
+      background-color: #E4E4E7 !important;
+      color: #0D0D0D !important;
+      font-weight: 600 !important;
+    }
+    html.light .conversation-item-row.is-active button,
+    html.light .conversation-item-row.is-active span {
+      color: #0D0D0D !important;
+    }
+    html.light .conversation-item-row button[title*="Rename"] svg,
+    html.light .conversation-item-row button[title*="Delete"] svg {
+      color: #71717A !important;
+    }
+    html.light .conversation-item-row button[title*="Rename"]:hover svg {
+      color: #0D0D0D !important;
+    }
+    html.light .conversation-item-row button[title*="Delete"]:hover svg {
+      color: #EF4444 !important;
+    }
+    html.light .count-badge {
+      background-color: #E4E4E7 !important;
+      color: #4B5563 !important;
+    }
+    html.light .conversation-item-row:hover .count-badge {
+      background-color: #D4D4D8 !important;
+      color: #0D0D0D !important;
+    }
+
     /* Active Nav Item */
     html.light .nav-item-active {
       background-color: #E4E4E7 !important;
@@ -3506,10 +3552,10 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
       const rawTitle = c.title || (c.content ? c.content.replace(/^User:\s*/, '').split(' | AAROHAN:')[0] : 'Conversation');
       const cleanTitle = rawTitle.slice(0, 24);
       const countBadge = (c.turns_count && c.turns_count > 1)
-        ? `<span class="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#383838] text-[10px] text-[#A1A1AA] font-mono shrink-0">${c.turns_count}</span>`
+        ? `<span class="count-badge ml-1.5 px-1.5 py-0.2 rounded-full bg-[#383838] text-[10px] text-[#A1A1AA] font-mono shrink-0">${c.turns_count}</span>`
         : '';
       return `
-        <div class="group flex items-center justify-between px-2 py-1.5 rounded-lg transition text-xs ${isActive ? 'bg-[#2F2F2F] text-white font-medium shadow-sm' : 'text-[#A1A1AA] hover:text-[#ECECEC] hover:bg-[#212121]'}">
+        <div class="conversation-item-row group flex items-center justify-between px-2 py-1.5 rounded-lg transition text-xs ${isActive ? 'is-active bg-[#2F2F2F] text-white font-medium shadow-sm' : 'text-[#A1A1AA] hover:text-[#ECECEC] hover:bg-[#212121]'}">
           <button onclick="loadConversationSession('${escapeJsString(sid)}')" class="truncate text-left flex-1 flex items-center pr-1 min-w-0" title="${escapeHtml(rawTitle)}">
             <span class="truncate">${escapeHtml(cleanTitle)}</span>
             ${countBadge}
