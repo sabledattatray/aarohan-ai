@@ -25,9 +25,7 @@
 
 ---
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/sabledattatray/aarohan-ai/master/docs/assets/screenshots/aarohan_chat_studio.png" alt="AAROHAN AI Ultra-Premium Chat Studio" width="100%" />
-</p>
+![AAROHAN AI Ultra-Premium Chat Studio](./assets/screenshots/aarohan_chat_studio.png)
 
 </div>
 
@@ -61,11 +59,11 @@ Conceived, designed, and developed by **[Datta Sable](https://dattasable.com/)**
 
 | Minimalist Chat Interface | Verified Rule Decisions & Grounding |
 | :---: | :---: |
-| <img src="https://raw.githubusercontent.com/sabledattatray/aarohan-ai/master/docs/assets/screenshots/aarohan_dark_interface.png" width="450" alt="AAROHAN Dark UI" /> | <img src="https://raw.githubusercontent.com/sabledattatray/aarohan-ai/master/docs/assets/screenshots/aarohan_reasoning_verification.jpg" width="450" alt="AAROHAN Reasoning" /> |
+| ![AAROHAN Dark UI](./assets/screenshots/aarohan_dark_interface.png) | ![AAROHAN Reasoning](./assets/screenshots/aarohan_reasoning_verification.jpg) |
 
 | Multi-Modal Tooling & Generation | Clean Typography & SSE Streaming |
 | :---: | :---: |
-| <img src="https://raw.githubusercontent.com/sabledattatray/aarohan-ai/master/docs/assets/screenshots/aarohan_multimodal_studio.jpg" width="450" alt="AAROHAN Multimodal" /> | <img src="https://raw.githubusercontent.com/sabledattatray/aarohan-ai/master/docs/assets/screenshots/aarohan_chat_studio.png" width="450" alt="AAROHAN Studio" /> |
+| ![AAROHAN Multimodal](./assets/screenshots/aarohan_multimodal_studio.jpg) | ![AAROHAN Studio](./assets/screenshots/aarohan_chat_studio.png) |
 
 </div>
 
