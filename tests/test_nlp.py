@@ -34,6 +34,10 @@ def test_spelling_and_typo_normalization():
     res5 = normalizer.normalize("make excel and give download")
     assert "Create an Excel file and provide a download link" in res5.normalized
 
+    # 6. Scientific law typo
+    res6 = normalizer.normalize("tell me the formula of third low of thermodynamics")
+    assert "third law of thermodynamics" in res6.normalized
+
 
 def test_technical_terminology_protection():
     normalizer = TextNormalizer()

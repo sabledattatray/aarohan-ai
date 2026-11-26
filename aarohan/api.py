@@ -67,7 +67,8 @@ class ChatRequest(BaseModel):
         "2. Data & File Generation: When asked to create datasets, tables, CSV, or code, do NOT ask the user to share the data. "
         "Directly generate realistic, complete examples, formatted markdown tables, copyable CSV blocks, or a complete Python script to generate the dataset.\n"
         "3. Image Generation: As a text model, if asked to create an image, proactively generate clean SVG code, a Python Pillow/matplotlib script to draw it, or detailed image-generation prompts.\n"
-        "4. Output Structure: Use rich Markdown formatting with tables, bullet lists, and syntax-highlighted code blocks.",
+        "4. Output Structure: Use rich Markdown formatting with tables, bullet lists, and syntax-highlighted code blocks.\n"
+        "5. Scientific & Mathematical Rigor: When providing scientific laws or physical formulas, provide the exact established scientific formulation (e.g. for the Third Law of Thermodynamics: as temperature T approaches absolute zero (0 K), the entropy S of a pure crystalline substance approaches zero: lim_{T->0} S = 0 or S = k_B ln Ω). Use standard LaTeX math notation ($...$ for inline and $$...$$ for display equations).",
         description="System instruction",
     )
     memory_limit: int = Field(3, ge=1, le=10)
@@ -1027,6 +1028,10 @@ def get_dashboard_html() -> str:
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- KaTeX Math Typesetting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
@@ -1637,6 +1642,28 @@ def get_dashboard_html() -> str:
       return str.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'").replace(/"/g, '&quot;');
     }
 
+    function renderMarkdownWithMath(el, text) {
+      if (!el || !text) return;
+      // Convert raw bracketed LaTeX formulas like "[ T_3 = \frac{3}{2} T_1 ]" into "$$ ... $$"
+      let processed = text.replace(/\\[\\s*([^\\]]*\\[a-zA-Z]+[^\\]]*?)\\s*\\]/g, function(match, formula) {
+        return '$$\n' + formula.trim() + '\n$$';
+      });
+      el.innerHTML = marked.parse(processed);
+      if (window.renderMathInElement) {
+        try {
+          renderMathInElement(el, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '\\[', right: '\\]', display: true},
+              {left: '$', right: '$', display: false},
+              {left: '\\(', right: '\\)', display: false},
+            ],
+            throwOnError: false
+          });
+        } catch(e) {}
+      }
+    }
+
     // Chat Submission Handler
     async function handleChatSubmit(e) {
       if (e) e.preventDefault();
@@ -1720,14 +1747,14 @@ def get_dashboard_html() -> str:
                 if (ev.type === 'token') {
                   rawAccumulatedText += ev.token;
                   currentLastResponse = rawAccumulatedText;
-                  outputEl.innerHTML = marked.parse(rawAccumulatedText);
+                  renderMarkdownWithMath(outputEl, rawAccumulatedText);
                 } else if (ev.type === 'context') {
                   // Cognitive memory retrieved quietly; no visual pills cluttering response
                 } else if (ev.type === 'done') {
                   currentLastResponse = rawAccumulatedText;
                   activeConversationTurns.push({role: 'user', content: text});
                   activeConversationTurns.push({role: 'assistant', content: rawAccumulatedText});
-                  outputEl.innerHTML = marked.parse(rawAccumulatedText);
+                  renderMarkdownWithMath(outputEl, rawAccumulatedText);
                   loadRecentHistory();
                 }
               } catch(err) {}
