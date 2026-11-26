@@ -44,8 +44,10 @@ def test_correction_marks_old_record_and_delete_removes_search_result(tmp_path) 
     store = MemoryStore(tmp_path / "memory.sqlite")
     old = store.add("The count is eleven.", source="old note", verification_status="verified", verified_by="reviewer")
     corrected = store.correct(old["id"], "The count is twelve.", source="checked source", corrected_by="reviewer")
-    assert store.get(old["id"])["verification_status"] == "superseded"
-    assert store.get(old["id"])["superseded_by"] == corrected["id"]
+    old_record = store.get(old["id"])
+    assert old_record is not None
+    assert old_record["verification_status"] == "superseded"
+    assert old_record["superseded_by"] == corrected["id"]
     assert [row["id"] for row in store.search("count", verified_only=True)] == [corrected["id"]]
     assert store.delete(corrected["id"]) is True
     assert store.search("twelve") == []

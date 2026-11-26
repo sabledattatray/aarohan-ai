@@ -3,9 +3,9 @@ import json
 import torch
 
 from aarohan.tokenizer import train_bpe
+from scripts.evaluate_checkpoints import evaluate_many
 from scripts.prepare_tokenized_data import prepare
 from scripts.train_tiny_corpus import train
-from scripts.evaluate_checkpoints import evaluate_many
 
 
 def test_evaluator_scores_checkpoint_on_held_out_stream(tmp_path) -> None:

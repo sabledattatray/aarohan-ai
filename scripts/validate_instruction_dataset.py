@@ -26,7 +26,7 @@ def sha256_file(path: Path) -> str:
 def validate_instruction_file(file_path: Path) -> dict[str, object]:
     if not file_path.is_file():
         raise FileNotFoundError(f"Instruction file not found: {file_path}")
-    
+
     records = []
     categories: dict[str, int] = {}
     total_messages = 0
@@ -40,12 +40,12 @@ def validate_instruction_file(file_path: Path) -> dict[str, object]:
                 record = json.loads(line)
             except json.JSONDecodeError as err:
                 raise ValueError(f"Invalid JSON at line {line_num} in {file_path}: {err}") from err
-            
+
             if "id" not in record or not isinstance(record["id"], str):
                 raise ValueError(f"Missing or invalid 'id' at line {line_num}")
             if "messages" not in record or not isinstance(record["messages"], list):
                 raise ValueError(f"Missing or invalid 'messages' list at line {line_num}")
-            
+
             validate_dialogue(record["messages"])
             category = record.get("category", "unspecified")
             categories[category] = categories.get(category, 0) + 1

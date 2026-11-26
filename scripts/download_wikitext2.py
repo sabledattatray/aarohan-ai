@@ -6,7 +6,7 @@ import argparse
 import hashlib
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -48,8 +48,8 @@ def download(review_path: Path, output_dir: Path) -> dict:
     review_path, output_dir = review_path.resolve(), output_dir.resolve()
     review = check_human_review(review_path)
     try:
-        import pyarrow.parquet as parquet
         from huggingface_hub import hf_hub_download
+        from pyarrow import parquet
     except ImportError as error:
         raise RuntimeError("Install optional intake dependencies with: python -m pip install -r requirements-data.txt") from error
 
@@ -84,7 +84,7 @@ def download(review_path: Path, output_dir: Path) -> dict:
             "repository_license_tags": review["license_review"]["repository_license_tags"],
             "decision_note": review["license_review"]["decision_note"],
         },
-        "downloaded_at_utc": datetime.now(timezone.utc).isoformat(),
+        "downloaded_at_utc": datetime.now(UTC).isoformat(),
         "splits": split_metadata,
         "test_split_used_for_training": False,
         "processing": "Original Parquet split files copied unchanged; text extraction is a later step.",

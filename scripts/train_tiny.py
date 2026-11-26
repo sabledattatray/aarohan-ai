@@ -17,7 +17,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from aarohan.model import AAROHANConfig, AAROHANLM
+from aarohan.model import AAROHANLM, AAROHANConfig
 
 
 def make_batch(batch_size: int, sequence_length: int, vocab_size: int, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:

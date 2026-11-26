@@ -9,7 +9,6 @@ from typing import Any
 
 from tokenizers import Tokenizer, decoders, models, pre_tokenizers, trainers
 
-
 SPECIAL_TOKENS = [
     "<|pad|>", "<|unk|>", "<|bos|>", "<|eos|>", "<|system|>",
     "<|user|>", "<|assistant|>", "<|tool|>", "<|separator|>",

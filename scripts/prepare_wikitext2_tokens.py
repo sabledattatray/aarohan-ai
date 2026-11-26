@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import torch
+
 from aarohan.tokenizer import load_tokenizer
 
 

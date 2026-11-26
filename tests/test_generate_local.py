@@ -1,7 +1,7 @@
 import torch
 
-from aarohan.model import AAROHANConfig, AAROHANLM
-from aarohan.tokenizer import load_tokenizer, train_bpe, sha256_file
+from aarohan.model import AAROHANLM, AAROHANConfig
+from aarohan.tokenizer import load_tokenizer, sha256_file, train_bpe
 from scripts.generate_local import generate
 
 
@@ -25,7 +25,7 @@ def test_local_generation_loads_matching_checkpoint_and_tokenizer(tmp_path) -> N
     result = generate(checkpoint_path, tokenizer_path, "A little", max_new_tokens=3)
     assert result["generated_token_count"] == 3
     assert result["prompt"] == "A little"
-    assert "tiny AI-generated toy corpus" in result["warning"]
+    assert "tiny AI-generated toy corpus" in str(result["warning"])
 
 
 def test_local_generation_rejects_tokenizer_mismatch(tmp_path) -> None:

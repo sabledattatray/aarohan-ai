@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-from html.parser import HTMLParser
 import json
 import re
 import sys
+from html.parser import HTMLParser
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -16,15 +16,14 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from aarohan.memory import MemoryStore
 
-
 MAX_DOCUMENT_BYTES = 5 * 1024 * 1024
 MAX_PDF_PAGES = 100
 ALLOWED_SUFFIXES = {".txt", ".md", ".markdown", ".html", ".htm", ".pdf"}
 
 
 class _VisibleTextParser(HTMLParser):
-    _BLOCK_TAGS = {"address", "article", "br", "div", "footer", "h1", "h2", "h3", "h4", "li", "main", "p", "section", "tr"}
-    _SKIP_TAGS = {"script", "style", "noscript", "template"}
+    _BLOCK_TAGS = frozenset({"address", "article", "br", "div", "footer", "h1", "h2", "h3", "h4", "li", "main", "p", "section", "tr"})
+    _SKIP_TAGS = frozenset({"script", "style", "noscript", "template"})
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)

@@ -15,13 +15,13 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from aarohan.chat_template import (
-    SYSTEM_TOKEN,
-    USER_TOKEN,
     ASSISTANT_TOKEN,
     EOS_TOKEN,
+    SYSTEM_TOKEN,
+    USER_TOKEN,
     validate_dialogue,
 )
-from aarohan.model import AAROHANConfig, AAROHANLM
+from aarohan.model import AAROHANLM, AAROHANConfig
 from aarohan.tokenizer import load_tokenizer, sha256_file
 
 

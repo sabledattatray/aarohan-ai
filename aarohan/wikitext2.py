@@ -6,7 +6,6 @@ import hashlib
 import json
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_DATASET = "Salesforce/wikitext"
 EXPECTED_REVISION = "6231e49f19a707241d6b84d9cff60a3a86b85a85"

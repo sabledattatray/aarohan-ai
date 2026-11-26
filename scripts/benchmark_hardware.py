@@ -6,7 +6,7 @@ import argparse
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import torch
@@ -15,8 +15,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from aarohan.model import AAROHANConfig, AAROHANLM
-
+from aarohan.model import AAROHANLM, AAROHANConfig
 
 BENCHMARK_CONFIGS = {
     "tiny_pipeline": AAROHANConfig(vocab_size=265, context_length=32, layers=2, heads=2, width=64),
@@ -41,15 +40,15 @@ def benchmark_one(config: AAROHANConfig, *, device_name: str = "cuda", batch_siz
     x = torch.randint(0, config.vocab_size, (batch_size, config.context_length), device=device)
     y = torch.randint(0, config.vocab_size, (batch_size, config.context_length), device=device)
 
-    def step() -> float:
-        model.train()
-        optimizer.zero_grad(set_to_none=True)
-        _, loss = model(x, y)
+    def step(m=model, opt=optimizer, batch_x=x, batch_y=y) -> float:
+        m.train()
+        opt.zero_grad(set_to_none=True)
+        _, loss = m(batch_x, batch_y)
         if loss is None or not torch.isfinite(loss):
             raise RuntimeError("Benchmark produced non-finite loss")
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        optimizer.step()
+        torch.nn.utils.clip_grad_norm_(m.parameters(), 1.0)
+        opt.step()
         return float(loss.detach().cpu())
 
     try:
@@ -107,7 +106,7 @@ def run_benchmarks(*, device_name: str = "cuda", batch_size: int = 2,
         for name, config in BENCHMARK_CONFIGS.items()
     }
     return {
-        "benchmark_time_utc": datetime.now(timezone.utc).isoformat(),
+        "benchmark_time_utc": datetime.now(UTC).isoformat(),
         "torch_version": torch.__version__,
         "cuda_version": torch.version.cuda,
         "results": results,

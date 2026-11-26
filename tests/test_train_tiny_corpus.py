@@ -4,9 +4,9 @@ import pytest
 import torch
 
 from aarohan.tokenizer import train_bpe
+from scripts.evaluate_checkpoints import evaluate_checkpoint
 from scripts.prepare_tokenized_data import prepare
 from scripts.train_tiny_corpus import train
-from scripts.evaluate_checkpoints import evaluate_checkpoint
 
 
 def test_tiny_corpus_training_saves_reloadable_checkpoint(tmp_path) -> None:
@@ -37,9 +37,10 @@ def test_tiny_corpus_training_saves_reloadable_checkpoint(tmp_path) -> None:
                    steps=2, context=16, batch_size=2)
     payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
     assert result["steps"] == 2
-    assert result["validation_loss"] > 0
+    assert isinstance(result["validation_loss"], (int, float)) and result["validation_loss"] > 0
     assert result["checkpoint_reload_max_logit_difference"] == 0.0
-    assert result["validation_tokens_scored"] == result["validation_tokens"] - 1
+    val_tokens = result["validation_tokens"]
+    assert isinstance(val_tokens, int) and result["validation_tokens_scored"] == val_tokens - 1
     assert payload["completed_steps"] == 2
     assert payload["optimizer_state"]
     evaluation = evaluate_checkpoint(checkpoint, tokenized_dir,
@@ -70,9 +71,15 @@ def test_training_resume_matches_uninterrupted_run(tmp_path) -> None:
 
     full_path = tmp_path / "full.pt"
     split_path = tmp_path / "split.pt"
-    common = dict(corpus_dir=corpus_dir, tokenizer_dir=tokenizer_dir,
-                  tokenized_dir=tokenized_dir, device_name="cpu", seed=91,
-                  context=16, batch_size=2)
+    common = {
+        "corpus_dir": corpus_dir,
+        "tokenizer_dir": tokenizer_dir,
+        "tokenized_dir": tokenized_dir,
+        "device_name": "cpu",
+        "seed": 91,
+        "context": 16,
+        "batch_size": 2,
+    }
     train(**common, output=full_path, steps=4)
     train(**common, output=split_path, steps=2)
     train(**common, output=split_path, steps=4, resume_from=split_path)

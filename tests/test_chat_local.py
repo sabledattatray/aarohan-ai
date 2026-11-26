@@ -1,7 +1,7 @@
 import torch
 
 from aarohan.memory import MemoryStore
-from aarohan.model import AAROHANConfig, AAROHANLM
+from aarohan.model import AAROHANLM, AAROHANConfig
 from aarohan.tokenizer import load_tokenizer, sha256_file, train_bpe
 from scripts.chat_local import run_query
 
@@ -27,8 +27,12 @@ def test_local_query_shows_retrieval_and_model_output_separately(tmp_path) -> No
     MemoryStore(database).add("Causal attention uses prior tokens.", source="model notes")
     result = run_query("causal attention", checkpoint_path, tokenizer_path, database,
                        max_new_tokens=2)
-    assert result["retrieved_memory"][0]["source"] == "model notes"
-    assert result["retrieved_memory"][0]["verification_status"] == "unverified"
-    assert result["model_output"]["checkpoint"] == str(checkpoint_path.resolve())
-    assert "not inserted into the model prompt" in result["note"]
+    retrieved = result["retrieved_memory"]
+    assert isinstance(retrieved, list)
+    assert retrieved[0]["source"] == "model notes"
+    assert retrieved[0]["verification_status"] == "unverified"
+    model_output = result["model_output"]
+    assert isinstance(model_output, dict)
+    assert model_output["checkpoint"] == str(checkpoint_path.resolve())
+    assert "not inserted into the model prompt" in str(result["note"])
 

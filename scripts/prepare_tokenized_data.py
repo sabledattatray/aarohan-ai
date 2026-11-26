@@ -23,7 +23,9 @@ def prepare(corpus_dir: Path, tokenizer_dir: Path, output_dir: Path) -> dict[str
     output_dir = output_dir.resolve()
     result = validate(corpus_dir)
     if not result["ready"]:
-        raise ValueError("Corpus validation failed: " + "; ".join(result["errors"]))
+        raw_errors = result.get("errors")
+        errors = [str(err) for err in raw_errors] if isinstance(raw_errors, list) else []
+        raise ValueError("Corpus validation failed: " + "; ".join(errors))
 
     manifest = json.loads((corpus_dir / "manifest.json").read_text(encoding="utf-8"))
     train_path = corpus_dir / manifest["train_file"]

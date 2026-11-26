@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import os
@@ -14,14 +13,13 @@ from pathlib import Path
 from typing import Any
 
 import torch
-import torch.nn.functional as F
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from aarohan.chat_template import prepare_dialogue_tokens_with_mask, IGNORE_INDEX
-from aarohan.model import AAROHANConfig, AAROHANLM
+from aarohan.chat_template import prepare_dialogue_tokens_with_mask
+from aarohan.model import AAROHANLM, AAROHANConfig
 from aarohan.tokenizer import load_tokenizer, sha256_file
 from scripts.validate_instruction_dataset import validate_instruction_file
 
@@ -124,7 +122,7 @@ def train_sft(
         for i in range(0, len(train_data), batch_size):
             batch_items = train_data[i : i + batch_size]
             x, y = prepare_batch(batch_items)
-            logits, loss = model(x, y)
+            _, loss = model(x, y)
             assert loss is not None
 
             optimizer.zero_grad(set_to_none=True)

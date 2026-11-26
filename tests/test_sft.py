@@ -1,18 +1,16 @@
 import json
-import torch
 
 from aarohan.chat_template import (
-    SYSTEM_TOKEN,
-    USER_TOKEN,
     ASSISTANT_TOKEN,
     EOS_TOKEN,
     IGNORE_INDEX,
-    validate_dialogue,
+    SYSTEM_TOKEN,
+    USER_TOKEN,
     format_dialogue,
     prepare_dialogue_tokens_with_mask,
+    validate_dialogue,
 )
-from aarohan.model import AAROHANConfig, AAROHANLM
-from aarohan.tokenizer import train_bpe, load_tokenizer, sha256_file
+from aarohan.tokenizer import load_tokenizer, train_bpe
 from scripts.chat_sft import generate_chat_response
 from scripts.train_sft import train_sft
 

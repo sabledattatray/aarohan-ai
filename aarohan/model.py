@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from dataclasses import asdict, dataclass
 
 import torch
@@ -49,6 +48,8 @@ def _rotate_half(x: Tensor) -> Tensor:
 
 
 class CausalSelfAttention(nn.Module):
+    inv_freq: Tensor
+
     def __init__(self, config: AAROHANConfig) -> None:
         super().__init__()
         self.heads = config.heads

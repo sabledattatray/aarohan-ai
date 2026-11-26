@@ -1,6 +1,6 @@
 import torch
 
-from aarohan.model import AAROHANConfig, AAROHANLM
+from aarohan.model import AAROHANLM, AAROHANConfig
 
 
 def test_forward_backward_and_parameter_count() -> None:

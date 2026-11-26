@@ -6,7 +6,7 @@ import hashlib
 import re
 import sqlite3
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -90,7 +90,7 @@ class MemoryStore:
         if verification_status == "verified" and (not source or not verified_by):
             raise ValueError("Verified memories require a source and verified_by")
         digest = self._digest(content)
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         memory_id = str(uuid.uuid4())
         with self._connect() as connection:
             existing = connection.execute("SELECT * FROM memories WHERE content_sha256 = ?", (digest,)).fetchone()
@@ -147,14 +147,14 @@ class MemoryStore:
                 except sqlite3.OperationalError:
                     pass
             predicates = " OR ".join("content LIKE ?" for _ in terms)
-            params: list[Any] = [f"%{term}%" for term in terms]
+            fallback_params: list[Any] = [f"%{term}%" for term in terms]
             verification = " AND verification_status = 'verified'" if verified_only else ""
             if source_contains:
                 verification += " AND source LIKE ?"
-                params.append(f"%{source_contains}%")
+                fallback_params.append(f"%{source_contains}%")
             rows = connection.execute(
                 f"SELECT * FROM memories WHERE ({predicates}){verification} ORDER BY importance DESC, created_at DESC LIMIT ?",
-                (*params, limit),
+                (*fallback_params, limit),
             ).fetchall()
             return [self._record(row) for row in rows]
 
@@ -166,7 +166,7 @@ class MemoryStore:
                                confidence=1.0, verification_status="verified", verified_by=corrected_by,
                                privacy_classification=old["privacy_classification"],
                                importance=old["importance"])
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         with self._connect() as connection:
             connection.execute("UPDATE memories SET verification_status='superseded', updated_at=?, superseded_by=? WHERE id=?",
                                (now, replacement["id"], memory_id))

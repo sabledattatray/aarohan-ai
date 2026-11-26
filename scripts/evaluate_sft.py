@@ -6,19 +6,18 @@ import argparse
 import json
 import math
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import torch
-import torch.nn.functional as F
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from aarohan.chat_template import prepare_dialogue_tokens_with_mask, IGNORE_INDEX
-from aarohan.model import AAROHANConfig, AAROHANLM
+from aarohan.chat_template import prepare_dialogue_tokens_with_mask
+from aarohan.model import AAROHANLM, AAROHANConfig
 from aarohan.tokenizer import load_tokenizer, sha256_file
 from scripts.chat_sft import generate_chat_response
 from scripts.validate_instruction_dataset import validate_instruction_file
@@ -71,7 +70,7 @@ def evaluate_sft_model(
             x = tokens[:-1].unsqueeze(0).to(device)
             y = labels[1:].unsqueeze(0).to(device)
 
-            logits, loss = model(x, y)
+            _, loss = model(x, y)
             loss_val = float(loss.detach().cpu()) if loss is not None else float("nan")
             if not math.isnan(loss_val):
                 total_loss += loss_val
@@ -103,7 +102,7 @@ def evaluate_sft_model(
     avg_ppl = math.exp(avg_loss) if avg_loss < 20 else float("inf")
 
     report: dict[str, Any] = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "checkpoint": str(checkpoint_path),
         "checkpoint_sha256": sha256_file(checkpoint_path),
         "tokenizer_sha256": tok_sha256,

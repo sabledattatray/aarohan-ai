@@ -16,7 +16,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from aarohan.model import AAROHANConfig, AAROHANLM
+from aarohan.model import AAROHANLM, AAROHANConfig
 from aarohan.tokenizer import sha256_file
 from aarohan.wikitext2 import validate_wikitext2
 from scripts.validate_corpus import validate
@@ -70,7 +70,9 @@ def train(
     else:
         readiness = validate(corpus_dir)
     if not readiness["ready"]:
-        raise ValueError("Corpus validation failed: " + "; ".join(readiness["errors"]))
+        raw_errors = readiness.get("errors")
+        errors = [str(err) for err in raw_errors] if isinstance(raw_errors, list) else []
+        raise ValueError("Corpus validation failed: " + "; ".join(errors))
 
     tokenizer_path = tokenizer_dir / "tokenizer.json"
     metadata_path = tokenized_dir / "metadata.json"

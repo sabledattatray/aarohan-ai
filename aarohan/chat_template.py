@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from typing import Any
-import torch
 
-from aarohan.tokenizer import SPECIAL_TOKENS
+import torch
 
 SYSTEM_TOKEN = "<|system|>"
 USER_TOKEN = "<|user|>"
@@ -52,7 +51,7 @@ def prepare_dialogue_tokens_with_mask(
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Tokenize dialogue and produce input_ids, labels (target-masked), and attention_mask.
-    
+
     Tokens corresponding to system messages, user queries, and role headers are masked
     with IGNORE_INDEX (-100) so that loss is computed ONLY on assistant responses and <|eos|>.
     """

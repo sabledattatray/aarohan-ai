@@ -1,5 +1,5 @@
-from scripts.benchmark_hardware import BENCHMARK_CONFIGS, benchmark_one
 from aarohan.model import AAROHANConfig
+from scripts.benchmark_hardware import BENCHMARK_CONFIGS, benchmark_one
 
 
 def test_architecture_benchmark_config_is_in_aarohan_001_parameter_range() -> None:
