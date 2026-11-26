@@ -16,6 +16,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from aarohan.generation.datasets.geography import (
+    get_all_countries_flat,
+)
+
 
 @dataclass
 class DatasetRequest:
@@ -160,6 +164,9 @@ class DatasetGenerator:
         elif "emp" in topic or "attend" in topic or "hr" in topic:
             data, columns_all = self._generate_employee_data(rows)
             file_prefix = "employee_attendance"
+        elif "countr" in topic or "geograph" in topic or "continent" in topic or "nation" in topic:
+            data, columns_all = self._generate_country_data(rows)
+            file_prefix = "countries_by_continent"
         else:
             data, columns_all = self._generate_ecommerce_data(rows)
             file_prefix = "ecommerce_orders"
@@ -485,6 +492,13 @@ class DatasetGenerator:
                 "Plant_Location": random.choice(plants),
             })
         return data, columns
+
+    def _generate_country_data(self, n: int) -> tuple[list[dict[str, Any]], list[str]]:
+        columns = ["Continent", "Country", "Capital", "ISO_Code", "ISO_Alpha3", "Region", "Population_Est"]
+        flat = get_all_countries_flat()
+        if n >= len(flat):
+            return flat, columns
+        return flat[:n], columns
 
     def _save_csv(self, path: Path, data: list[dict[str, Any]], columns: list[str]) -> None:
         with open(path, "w", newline="", encoding="utf-8") as f:
