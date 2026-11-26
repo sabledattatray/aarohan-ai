@@ -513,6 +513,22 @@ def resolve_capability_query(query: str) -> Optional[str]:
                 "You can ask AAROHAN to generate a summary report, analysis brief, or technical document as a PDF at any time."
             )
 
+    # 5b. Specific: PDF / Document Analysis & Resume Review ("can you analyze my pdf resume", "can you read a pdf", "can you analyze pdf")
+    doc_patterns = [
+        r"^can\s+you\s+(analyze|analyse|read|parse|extract|review)\s+(my\s+)?(pdf|docx?|document|resume|cv)(\s+resume|\s+file|\s+document)?$",
+        r"^can\s+you\s+(check|inspect|evaluate)\s+(my\s+)?(resume|cv)$",
+    ]
+    for pat in doc_patterns:
+        if re.search(pat, q_clean):
+            return (
+                "**Yes, AAROHAN can analyze PDF, DOCX, and text resumes.**\n\n"
+                "AAROHAN includes a dedicated **Document Intelligence Engine** (`aarohan/documents/extractor.py`) that extracts and analyzes multi-page documents:\n\n"
+                "- **Attachment Upload:** Click the paperclip (📎) icon in the chat bar to attach and upload your `.pdf`, `.docx`, or `.txt` resume.\n"
+                "- **Direct Text Pasting:** You can also paste the full text of your resume directly into the chat.\n"
+                "- **Comprehensive Analysis:** AAROHAN evaluates your professional profile, technical stack, key achievements, ATS compatibility, and provides actionable recommendations.\n\n"
+                "Feel free to attach your PDF file or paste your resume text right here, and I will analyze it for you!"
+            )
+
     # 6. Specific: Web Research ("can you do web research", "can you search the web")
     web_patterns = [
         r"^can\s+you\s+(do|perform|conduct)\s+web\s+research$",

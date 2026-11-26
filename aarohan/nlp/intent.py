@@ -68,14 +68,13 @@ class IntentClassifier:
 
     INTENT_PATTERNS: dict[Intent, list[str]] = {
         Intent.DATASET_GENERATION: [
-            r"\b(create|generate|make|synthesize|build)\b.*\b(dataset|data set|dummy data|mock data|records|sample data)\b",
-            r"\b\d+k?\s+(rows|records|transactions|customers|orders)\b",
-            r"\b(banking|ecommerce|sales|employee|loan)\s+(data|dataset)\b",
+            r"\b(create|generate|make|synthesize|build|give\s+me)\b.*\b(dataset|data\s*set|dummy\s+data|mock\s+data|sample\s+data)\b",
+            r"\b(generate|create|make|build)\b.*\b\d+k?\s+(rows|records|transactions|customers|orders)\b",
+            r"\b(generate|create|build)\b.*\b(banking|ecommerce|sales|employee|loan)\s+(data|dataset)\b",
         ],
         Intent.EXCEL_GENERATION: [
-            r"\b(excel|xlsx|spreadsheet|csv file|workbook)\b",
-            r"\b(export|download|save|convert)\b.*\b(excel|xlsx|spreadsheet|csv)\b",
-            r"\b(pivot table|worksheets?)\b",
+            r"\b(create|generate|make|build|export|download)\b.*\b(excel|xlsx|spreadsheet|csv\s*file|workbook)\b",
+            r"\b(excel|xlsx|spreadsheet|csv)\b.*\b(generator|generation|download|export)\b",
         ],
         Intent.IMAGE_GENERATION: [
             r"\b(create|generate|make|draw|render|produce)\b.*\b(image|picture|photo|illustration|drawing|visual|wallpaper|portrait|artwork)\b",

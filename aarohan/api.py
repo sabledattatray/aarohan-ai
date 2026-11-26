@@ -95,13 +95,15 @@ class ChatRequest(BaseModel):
         "5. Factual Grounding: For factual and general knowledge questions, provide accurate, truthful facts. Do not invent geographical or historical falsehoods (for example: India is located in South Asia, has 28 states and 8 union territories, and its capital is New Delhi).\n"
         "6. Data & File Generation: When asked to create datasets, tables, CSV, or code, directly generate realistic, complete examples or scripts.\n"
         "7. Output Structure: Use rich Markdown formatting with tables, bullet lists, and syntax-highlighted code blocks.\n"
-        "8. Scientific & Mathematical Rigor: When providing scientific laws or physical formulas, provide exact established scientific formulations using standard LaTeX math notation ($...$ for inline and $$...$$ for display equations).",
+        "8. Scientific & Mathematical Rigor: When providing scientific laws or physical formulas, provide exact established scientific formulations using standard LaTeX math notation ($...$ for inline and $$...$$ for display equations).\n"
+        "9. Document & Resume Analysis: When a user shares a resume, CV, or document for analysis or review, do NOT simply repeat or parrot back the document text. Instead, provide a structured, in-depth evaluation: (1) Professional Profile & Strengths, (2) Technical & Domain Competency (e.g. BI, SQL, Analytics), (3) High-Impact Recommendations to strengthen achievements and quantifiable metrics, and (4) ATS & Executive Presentation tips.\n"
+        "10. File & Document Capabilities: You CAN analyze and process documents including PDF, DOCX, TXT, CSV, and code files. Users can attach or upload files via the attachment icon in the chat input or paste document text directly into the chat. When asked if you can analyze a PDF or document, respond affirmatively and encourage the user to upload or paste the content.",
         description="System instruction",
     )
     memory_limit: int = Field(3, ge=1, le=10)
     retrieval_mode: str = Field("hybrid", pattern="^(keyword|vector|hybrid)$")
     engine: str = Field("foundation", pattern="^(foundation|scratch)$")
-    max_new_tokens: int = Field(1024, ge=1, le=2048)
+    max_new_tokens: int = Field(1536, ge=1, le=2048)
     temperature: float = Field(0.4, ge=0.01, le=2.0)
     messages: list[dict[str, str]] = Field(default_factory=list, description="Recent conversation turns")
     session_id: Optional[str] = Field(None, description="Conversation session ID for grouping turns")
@@ -523,12 +525,32 @@ def create_app(
         resolved_query: str,
         intent_res: Any,
     ) -> str:
+        q_lower = processed_query.lower()
+        # Explicit guard: Never generate synthetic datasets when analyzing documents, resumes, or conversational queries
+        is_document_or_resume = any(
+            kw in q_lower
+            for kw in ["resume", "curriculum vitae", "professional summary", "technical skills", "experience", "education", "analyze my", "review my"]
+        )
+        if is_document_or_resume and not any(kw in q_lower for kw in ["generate dataset", "create dataset", "create spreadsheet"]):
+            return ""
+
         primary_intent = intent_res.primary_intent
         is_dataset_req = (
             primary_intent in (Intent.DATASET_GENERATION, Intent.EXCEL_GENERATION)
             or any(m.intent in (Intent.DATASET_GENERATION, Intent.EXCEL_GENERATION) for m in intent_res.intents)
         )
         if not is_dataset_req:
+            return ""
+
+        # Guard: Require an explicit imperative generation verb directed at creating data files
+        has_explicit_dataset_action = any(
+            kw in q_lower
+            for kw in [
+                "generate", "create", "make", "build", "synthesize", "export", "download",
+                "sample data", "dummy data", "mock data", "give me a dataset", "sample dataset"
+            ]
+        )
+        if not has_explicit_dataset_action:
             return ""
 
         try:
@@ -780,6 +802,33 @@ def create_app(
         system_content = req.system_prompt
         if fact_snippets:
             system_content += "\n[Verified Reference Context]: " + " ".join(fact_snippets)
+
+        is_resume_review = (
+            any(kw in processed_query.lower() for kw in ["professional summary", "technical skills", "selected technical projects", "professional experience", "curriculum vitae"])
+            or (
+                any(kw in processed_query.lower() for kw in ["resume", "cv", "experience", "education", "mis manager", "dbs mintek"])
+                and len(processed_query) > 250
+            )
+            or (
+                bool(req.messages) and any(
+                    "resume" in m.get("content", "").lower() or "cv" in m.get("content", "").lower()
+                    for m in req.messages[-3:]
+                )
+                and len(processed_query) > 150
+            )
+        )
+        if is_resume_review:
+            system_content += (
+                "\n[Resume Review & Analysis Directive]: "
+                "The user provided their professional resume for review. "
+                "Do NOT parrot, copy, or format the resume back to the user line-by-line. "
+                "Provide an expert, professional analysis structured into: "
+                "1. Profile Assessment & Target Alignment: Identify target roles (Senior BI / MIS Manager, Analytics Lead). "
+                "2. Core Technical Strengths: Highlight mastery in Power BI, SQL Server, Advanced Excel, DAX, Fabric, and BFSI collections portfolio oversight. "
+                "3. Key Portfolio Assets: Emphasize impressive independent projects (3M-row SQL Server analytics, Fabric Master, Aarohan AI). "
+                "4. Quantifiable Metric Recommendations: Concrete advice to enhance job bullets with specific % gains, hours saved, and recovery values. "
+                "5. ATS & Presentation Strategy: Tips for ATS readability, recruiter scanning, and executive impact."
+            )
 
         messages = [
             {"role": "system", "content": system_content},
@@ -1139,6 +1188,33 @@ def create_app(
         system_content = req.system_prompt
         if fact_snippets:
             system_content += "\n[Verified Reference Context]: " + " ".join(fact_snippets)
+
+        is_resume_review = (
+            any(kw in processed_query.lower() for kw in ["professional summary", "technical skills", "selected technical projects", "professional experience", "curriculum vitae"])
+            or (
+                any(kw in processed_query.lower() for kw in ["resume", "cv", "experience", "education", "mis manager", "dbs mintek"])
+                and len(processed_query) > 250
+            )
+            or (
+                bool(req.messages) and any(
+                    "resume" in m.get("content", "").lower() or "cv" in m.get("content", "").lower()
+                    for m in req.messages[-3:]
+                )
+                and len(processed_query) > 150
+            )
+        )
+        if is_resume_review:
+            system_content += (
+                "\n[Resume Review & Analysis Directive]: "
+                "The user provided their professional resume for review. "
+                "Do NOT parrot, copy, or format the resume back to the user line-by-line. "
+                "Provide an expert, professional analysis structured into: "
+                "1. Profile Assessment & Target Alignment: Identify target roles (Senior BI / MIS Manager, Analytics Lead). "
+                "2. Core Technical Strengths: Highlight mastery in Power BI, SQL Server, Advanced Excel, DAX, Fabric, and BFSI collections portfolio oversight. "
+                "3. Key Portfolio Assets: Emphasize impressive independent projects (3M-row SQL Server analytics, Fabric Master, Aarohan AI). "
+                "4. Quantifiable Metric Recommendations: Concrete advice to enhance job bullets with specific % gains, hours saved, and recovery values. "
+                "5. ATS & Presentation Strategy: Tips for ATS readability, recruiter scanning, and executive impact."
+            )
 
         session_id = req.session_id or f"session_{int(time.time() * 1000)}"
 
