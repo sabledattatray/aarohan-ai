@@ -727,12 +727,19 @@ def create_app(
         is_image_req = (
             primary_intent in (Intent.IMAGE_GENERATION, Intent.IMAGE_UNDERSTANDING)
             or any(m.intent in (Intent.IMAGE_GENERATION, Intent.IMAGE_UNDERSTANDING) for m in intent_res.intents)
+            or any(phrase in combined_q for phrase in [
+                "generate image", "create image", "create an image", "draw", "draw an image", "picture of",
+                "tasveer", "chitra", "photo banao", "tasveer banao", "image banao"
+            ])
         )
+        has_image_context = bool(
+            messages_history and any("image" in m.get("content", "").lower() or "/api/images/" in m.get("content", "") for m in messages_history)
+        )
+        has_edit_keywords = any(k in combined_q for k in [
+            "brighter", "darker", "background", "variation", "palette", "contrast", "crop",
+            "watercolor", "pencil sketch", "sketch", "oil painting", "sharpen", "invert", "modify", "change to"
+        ])
         if not is_image_req:
-            has_image_context = bool(
-                messages_history and any("image" in m.get("content", "").lower() or "/api/images/" in m.get("content", "") for m in messages_history)
-            )
-            has_edit_keywords = any(k in combined_q for k in ["brighter", "darker", "background", "variation", "palette", "contrast", "crop"])
             if has_image_context and has_edit_keywords:
                 is_image_req = True
             else:
@@ -743,6 +750,13 @@ def create_app(
 
             # Check if this is a conversational edit of a previously generated image
             edit_ops = [
+                ("watercolor", "watercolor", {}),
+                ("water color", "watercolor", {}),
+                ("pencil sketch", "pencil_sketch", {}),
+                ("sketch", "pencil_sketch", {}),
+                ("oil painting", "oil_painting", {}),
+                ("sharpen", "sharpen", {}),
+                ("invert", "invert", {}),
                 ("brighter", "brightness", {"brightness": 1.4}),
                 ("darker", "brightness", {"brightness": 0.6}),
                 ("contrast", "contrast", {"contrast": 1.4}),
@@ -766,6 +780,10 @@ def create_app(
                     matched_params = params
                     is_edit = True
                     break
+
+            if not is_edit and has_image_context and any(w in combined_q for w in ("modify", "change", "turn into", "make it")):
+                matched_op = "prompt_edit"
+                is_edit = True
 
             if is_edit and last_image:
                 edit_res = image_manager.edit(

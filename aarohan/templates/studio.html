@@ -540,6 +540,14 @@
       background-color: #F9FAFB !important;
       border-color: #E5E7EB !important;
     }
+    html.light #image-prompt-edit-input {
+      background-color: #FFFFFF !important;
+      border-color: #D1D5DB !important;
+      color: #111827 !important;
+    }
+    html.light #image-prompt-edit-input:focus {
+      border-color: #9333EA !important;
+    }
     html.light #workspace-images .p-3.bg-\[\#1e1e1e\] button {
       background-color: #FFFFFF !important;
       border-color: #E5E7EB !important;
@@ -1670,14 +1678,47 @@
           </div>
         </div>
 
-        <!-- One-Click Quick Editing Tools -->
+        <!-- Conversational Prompt Modification Bar -->
         <div class="p-3 bg-[#1e1e1e] rounded-xl border border-[#2e2e2e] space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-purple-400">✨ Conversational Image
-              Editing Tools</span>
-            <span class="text-[10px] text-[#8e8e8e]">Modifies active artwork while preserving original asset</span>
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-purple-400">✨ Modify With Text Prompt</span>
+            <span class="text-[10px] text-[#8e8e8e]">Aarohan modifies this active artwork based on your exact instructions</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="text" id="image-prompt-edit-input" placeholder="e.g. 'Turn into pencil sketch', 'Add dramatic golden hour sunset', 'Make it watercolor', 'Make it snowy winter'..."
+              onkeydown="if(event.key==='Enter') executePromptImageEdit()"
+              class="flex-1 bg-[#262626] border border-[#383838] rounded-lg px-3 py-1.5 text-xs text-white placeholder-[#8e8e8e] outline-none focus:border-purple-500">
+            <button type="button" onclick="executePromptImageEdit()" id="image-prompt-edit-btn"
+              class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium text-xs shadow transition flex items-center space-x-1 shrink-0">
+              <span>✨</span> <span>Apply Modification</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- One-Click Quick Editing & Artistic Filter Tools -->
+        <div class="p-3 bg-[#1e1e1e] rounded-xl border border-[#2e2e2e] space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-purple-400">🎨 Instant Mediums & Photographic Adjustments</span>
+            <span class="text-[10px] text-[#8e8e8e]">Modifies active artwork while preserving original asset lineage</span>
           </div>
           <div class="flex flex-wrap gap-2 text-xs">
+            <!-- Mediums -->
+            <button type="button" onclick="executeImageEdit('watercolor', {})"
+              class="px-2.5 py-1 rounded-lg bg-[#262626] hover:bg-[#323232] text-purple-300 border border-purple-500/40 transition">
+              🎨 Watercolor
+            </button>
+            <button type="button" onclick="executeImageEdit('pencil_sketch', {})"
+              class="px-2.5 py-1 rounded-lg bg-[#262626] hover:bg-[#323232] text-slate-200 border border-[#383838] transition">
+              ✏️ Pencil Sketch
+            </button>
+            <button type="button" onclick="executeImageEdit('oil_painting', {})"
+              class="px-2.5 py-1 rounded-lg bg-[#262626] hover:bg-[#323232] text-amber-300 border border-amber-500/40 transition">
+              🖼️ Oil Painting
+            </button>
+            <button type="button" onclick="executeImageEdit('sharpen', {})"
+              class="px-2.5 py-1 rounded-lg bg-[#262626] hover:bg-[#323232] text-cyan-300 border border-cyan-500/40 transition">
+              🔍 Sharpen & HDR
+            </button>
             <button type="button" onclick="executeImageEdit('brightness', {brightness: 1.35})"
               class="px-2.5 py-1 rounded-lg bg-[#262626] hover:bg-[#323232] text-slate-200 border border-[#383838] transition">
               ☀️ Make Brighter
@@ -3153,6 +3194,49 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
         }
       } catch (e) {
         alert('Edit error: ' + e.message);
+      }
+    }
+
+    async function executePromptImageEdit() {
+      if (!currentActiveImage || !currentActiveImage.filename) {
+        alert('Please generate or select an image from the library first to modify.');
+        return;
+      }
+      const input = document.getElementById('image-prompt-edit-input');
+      const val = input.value.trim();
+      if (!val) {
+        input.focus();
+        return;
+      }
+      const btn = document.getElementById('image-prompt-edit-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> <span>Modifying...</span>';
+      try {
+        const res = await fetch('/api/images/edit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            source_image: currentActiveImage.filename,
+            operation: 'prompt_edit',
+            prompt: val,
+            parameters: {}
+          })
+        });
+        const data = await res.json();
+        if (data.filename) {
+          data.prompt = `Modified: "${val}"`;
+          currentActiveImage = data;
+          displayActiveImage(data, true);
+          loadImageGallery();
+          input.value = '';
+        } else {
+          alert('Modification failed: ' + (data.error || 'Unknown error'));
+        }
+      } catch (e) {
+        alert('Modification error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>✨</span> <span>Apply Modification</span>';
       }
     }
 

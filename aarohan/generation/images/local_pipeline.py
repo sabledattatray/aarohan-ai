@@ -13,6 +13,8 @@ import logging
 import math
 import random
 import time
+import urllib.parse
+import urllib.request
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -247,8 +249,38 @@ class LocalNeuralProvider(ImageGenerationProvider):
 
         return canvas
 
+    def _fetch_neural_image(
+        self, prompt: str, width: int, height: int, seed: Optional[int] = None
+    ) -> Optional[Image.Image]:
+        """Fetch authentic neural diffusion image via free high-fidelity endpoints.
+
+        Zero API keys required. Falls back to local procedural rendering on network failure.
+        """
+        try:
+            encoded = urllib.parse.quote(prompt.strip())
+            # Pollinations free public synthesis endpoint
+            seed_param = f"&seed={seed}" if seed is not None else ""
+            # Cap request dimensions to avoid upstream timeout, then scale to exact target
+            fetch_w = min(width, 1024)
+            fetch_h = min(height, 1024)
+            url = f"https://image.pollinations.ai/prompt/{encoded}?width={fetch_w}&height={fetch_h}&nologo=true{seed_param}"
+            req = urllib.request.Request(
+                url,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+            )
+            with urllib.request.urlopen(req, timeout=18) as resp:
+                data = resp.read()
+                if len(data) > 1000:
+                    img = Image.open(io.BytesIO(data)).convert("RGB")
+                    if img.size != (width, height):
+                        img = img.resize((width, height), Image.Resampling.LANCZOS)
+                    return img
+        except Exception as e:
+            logger.info("Online neural image synthesis unavailable, using local high-fidelity fallback: %s", e)
+        return None
+
     def generate(self, params: GenerationParams) -> ImageJob:
-        """Generate high-fidelity local image."""
+        """Generate high-fidelity local or neural image matching the exact prompt."""
         job_id = str(uuid.uuid4())
         dims = self.ASPECT_RATIO_MAP.get(params.aspect_ratio, (768, 768))
         width, height = dims
@@ -256,15 +288,24 @@ class LocalNeuralProvider(ImageGenerationProvider):
 
         lower_prompt = (params.enhanced_prompt or params.prompt).lower()
 
-        # Route to appropriate visual composition generator
-        if "landscape" in lower_prompt or "mountain" in lower_prompt or "nature" in lower_prompt or "sunset" in lower_prompt:
-            img = self._render_photorealistic_landscape(width, height, rng, params.prompt)
-        elif "banner" in lower_prompt or "linkedin" in lower_prompt or "business" in lower_prompt or "logo" in lower_prompt:
-            img = self._render_business_banner(width, height, rng, params.prompt)
-        elif "neural" in lower_prompt or "tech" in lower_prompt or "futuristic" in lower_prompt or "3d" in lower_prompt:
-            img = self._render_technology_concept(width, height, rng, params.prompt)
-        else:
-            img = self._render_technology_concept(width, height, rng, params.prompt)
+        # 1. Attempt real neural diffusion synthesis first
+        img = self._fetch_neural_image(
+            prompt=params.enhanced_prompt or params.prompt,
+            width=width,
+            height=height,
+            seed=params.seed,
+        )
+
+        # 2. If online neural synthesis was unreachable or timed out, use local composition
+        if img is None:
+            if "landscape" in lower_prompt or "mountain" in lower_prompt or "nature" in lower_prompt or "sunset" in lower_prompt:
+                img = self._render_photorealistic_landscape(width, height, rng, params.prompt)
+            elif "banner" in lower_prompt or "linkedin" in lower_prompt or "business" in lower_prompt or "logo" in lower_prompt:
+                img = self._render_business_banner(width, height, rng, params.prompt)
+            elif "neural" in lower_prompt or "tech" in lower_prompt or "futuristic" in lower_prompt or "3d" in lower_prompt:
+                img = self._render_technology_concept(width, height, rng, params.prompt)
+            else:
+                img = self._render_technology_concept(width, height, rng, params.prompt)
 
         # Subtle signature watermark
         draw = ImageDraw.Draw(img)
@@ -338,6 +379,24 @@ class LocalNeuralProvider(ImageGenerationProvider):
                     params.source_image_path,
                     target_aspect_ratio=params.aspect_ratio or "16:9",
                 )
+            elif op in ("watercolor", "water_color"):
+                res = ImageEditor.apply_artistic_filter(params.source_image_path, "watercolor")
+            elif op in ("pencil_sketch", "sketch", "pencil", "drawing"):
+                res = ImageEditor.apply_artistic_filter(params.source_image_path, "pencil_sketch")
+            elif op in ("oil_painting", "oil", "painting"):
+                res = ImageEditor.apply_artistic_filter(params.source_image_path, "oil_painting")
+            elif op in ("sharpen", "hdr", "clarity"):
+                res = ImageEditor.apply_artistic_filter(params.source_image_path, "sharpen")
+            elif op in ("invert", "negative"):
+                res = ImageEditor.apply_artistic_filter(params.source_image_path, "invert")
+            elif op in ("edge_enhance", "contour"):
+                res = ImageEditor.apply_artistic_filter(params.source_image_path, "edge_enhance")
+            elif op in ("prompt_edit", "prompt_modify", "text_edit", "modify"):
+                res = ImageEditor.prompt_modify(
+                    params.source_image_path,
+                    modification_prompt=params.prompt or "variation",
+                    seed=params.seed,
+                )
             else:
                 res = ImageEditor.generate_variation(
                     params.source_image_path, seed=params.seed
@@ -355,6 +414,17 @@ class LocalNeuralProvider(ImageGenerationProvider):
                 output_url=res["edited_url"],
                 dimensions=f"{res['width']}x{res['height']}",
                 metadata={"original_filename": res["original_filename"], "operation": op},
+            )
+            self._jobs[job_id] = job
+            return job
+        except Exception as e:
+            logger.error("Image editing failed: %s", e)
+            job = ImageJob(
+                job_id=job_id,
+                provider_id="aarohan_local",
+                status=JobStatus.FAILED,
+                prompt=params.prompt or f"Image edit: {op}",
+                error_message=str(e),
             )
             self._jobs[job_id] = job
             return job

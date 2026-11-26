@@ -8,13 +8,18 @@ from __future__ import annotations
 
 import base64
 import io
+import logging
 import math
 import random
 import time
+import urllib.parse
+import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from PIL import Image, ImageDraw, ImageFilter
+
+logger = logging.getLogger(__name__)
 
 IMAGES_DIR = Path("artifacts/images")
 IMAGES_DIR.mkdir(parents=True, exist_ok=True)
@@ -45,6 +50,24 @@ class ImageStudioEngine:
         return f"{prompt.strip()}, {', '.join(chosen)}"
 
     @classmethod
+    def _fetch_neural_image(cls, prompt: str, width: int, height: int, seed: Optional[int] = None) -> Optional[Image.Image]:
+        try:
+            enc = urllib.parse.quote(prompt.strip())
+            seed_p = f"&seed={seed}" if seed is not None else ""
+            url = f"https://image.pollinations.ai/prompt/{enc}?width={min(width, 1024)}&height={min(height, 1024)}&nologo=true{seed_p}"
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+            with urllib.request.urlopen(req, timeout=18) as resp:
+                data = resp.read()
+                if len(data) > 1000:
+                    loaded = Image.open(io.BytesIO(data)).convert("RGB")
+                    if loaded.size != (width, height):
+                        loaded = loaded.resize((width, height), Image.Resampling.LANCZOS)
+                    return loaded
+        except Exception as e:
+            logger.info("Online neural image fetch fallback: %s", e)
+        return None
+
+    @classmethod
     def generate_image(
         cls,
         prompt: str,
@@ -56,6 +79,29 @@ class ImageStudioEngine:
         dims = cls.ASPECT_RATIOS.get(aspect_ratio, (768, 768))
         width, height = dims
         rng = random.Random(seed if seed is not None else random.randint(1, 999999))
+
+        # Try real neural image synthesis first
+        neural_img = cls._fetch_neural_image(prompt, width, height, seed)
+        if neural_img is not None:
+            timestamp = int(time.time())
+            filename = f"gen_{timestamp}_{aspect_ratio.replace(':', 'x')}.png"
+            out_path = IMAGES_DIR / filename
+            neural_img.save(out_path, format="PNG", quality=95)
+
+            buf = io.BytesIO()
+            neural_img.save(buf, format="PNG")
+            buf.seek(0)
+            b64 = base64.b64encode(buf.read()).decode("utf-8")
+
+            return {
+                "prompt": prompt,
+                "aspect_ratio": aspect_ratio,
+                "dimensions": f"{width}x{height}",
+                "filename": filename,
+                "file_path": str(out_path),
+                "image_base64": f"data:image/png;base64,{b64}",
+                "seed": seed,
+            }
 
         # Color schemes based on style and prompt keywords
         lower = prompt.lower()

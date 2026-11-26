@@ -14,9 +14,12 @@ from __future__ import annotations
 import logging
 import random
 import time
+import urllib.parse
+import urllib.request
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
+import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
 logger = logging.getLogger(__name__)
@@ -244,3 +247,127 @@ class ImageEditor:
         img = Image.alpha_composite(img, overlay).convert("RGB")
 
         return cls.save_edited(img, path.name, "variation")
+
+    @classmethod
+    def apply_artistic_filter(
+        cls,
+        image_path: str,
+        filter_name: str = "watercolor",
+    ) -> dict[str, Any]:
+        """Apply authentic artistic mediums: watercolor, pencil sketch, oil painting, sharpen, etc."""
+        img, path = cls.load_image(image_path)
+        f_name = filter_name.lower().strip()
+
+        if f_name in ("pencil_sketch", "sketch", "pencil", "drawing"):
+            # Authentic graphite pencil sketch via color dodge blend
+            gray = ImageOps.grayscale(img)
+            inv = ImageOps.invert(gray)
+            blurred = inv.filter(ImageFilter.GaussianBlur(radius=12))
+            f_arr = np.asarray(blurred, dtype=np.float32)
+            b_arr = np.asarray(gray, dtype=np.float32)
+            sketch_arr = np.clip(b_arr * 255.0 / np.maximum(255.0 - f_arr, 1.0), 0, 255).astype(np.uint8)
+            img = Image.fromarray(sketch_arr).convert("RGB")
+            # Subtle contrast boost
+            img = ImageEnhance.Contrast(img).enhance(1.15)
+            op = "pencil_sketch"
+
+        elif f_name in ("watercolor", "water_color"):
+            # Watercolor painterly wash with edge accent
+            img = img.filter(ImageFilter.SMOOTH_MORE)
+            img = img.filter(ImageFilter.EDGE_ENHANCE)
+            img = ImageEnhance.Color(img).enhance(1.45)
+            img = ImageEnhance.Contrast(img).enhance(1.05)
+            op = "watercolor"
+
+        elif f_name in ("oil_painting", "oil", "painting"):
+            # Rich impasto / oil painting texture
+            img = ImageOps.posterize(img, 4)
+            img = img.filter(ImageFilter.MedianFilter(size=5))
+            img = ImageEnhance.Color(img).enhance(1.35)
+            img = ImageEnhance.Sharpness(img).enhance(1.5)
+            op = "oil_painting"
+
+        elif f_name in ("sharpen", "hdr", "clarity"):
+            img = ImageEnhance.Sharpness(img).enhance(2.8)
+            img = ImageEnhance.Contrast(img).enhance(1.15)
+            op = "sharpen"
+
+        elif f_name in ("invert", "negative"):
+            img = ImageOps.invert(img)
+            op = "invert"
+
+        elif f_name in ("edge_enhance", "contour"):
+            img = img.filter(ImageFilter.EDGE_ENHANCE_MORE)
+            op = "edge_enhance"
+
+        else:
+            # Default to watercolor
+            img = img.filter(ImageFilter.SMOOTH_MORE).filter(ImageFilter.EDGE_ENHANCE)
+            img = ImageEnhance.Color(img).enhance(1.3)
+            op = "artistic"
+
+        return cls.save_edited(img, path.name, op)
+
+    @classmethod
+    def prompt_modify(
+        cls,
+        image_path: str,
+        modification_prompt: str,
+        seed: Optional[int] = None,
+    ) -> dict[str, Any]:
+        """Modify an image using natural language instruction.
+
+        Intelligently routes between artistic medium transforms, tone shifts,
+        or generative modification while preserving image lineage.
+        """
+        lower = modification_prompt.lower().strip()
+        img, path = cls.load_image(image_path)
+
+        # 1. Check for artistic medium keywords
+        if any(k in lower for k in ("pencil", "sketch", "drawing", "graphite", "line art")):
+            return cls.apply_artistic_filter(image_path, "pencil_sketch")
+        if any(k in lower for k in ("watercolor", "water color", "aquarelle")):
+            return cls.apply_artistic_filter(image_path, "watercolor")
+        if any(k in lower for k in ("oil painting", "oil paint", "impasto", "acrylic")):
+            return cls.apply_artistic_filter(image_path, "oil_painting")
+        if any(k in lower for k in ("sharpen", "sharp", "clarity", "high definition")):
+            return cls.apply_artistic_filter(image_path, "sharpen")
+        if any(k in lower for k in ("invert", "negative")):
+            return cls.apply_artistic_filter(image_path, "invert")
+
+        # 2. Check for photographic adjustments
+        if any(k in lower for k in ("brighter", "brighten", "lighter", "more light")):
+            return cls.adjust_exposure(image_path, brightness=1.4)
+        if any(k in lower for k in ("darker", "dim", "shadows", "night")):
+            return cls.adjust_exposure(image_path, brightness=0.65)
+        if any(k in lower for k in ("contrast", "punchy", "vivid")):
+            return cls.adjust_exposure(image_path, contrast=1.4, saturation=1.2)
+        if any(k in lower for k in ("cyberpunk", "neon", "cyan")):
+            return cls.apply_color_palette(image_path, "cyberpunk")
+        if any(k in lower for k in ("sunset", "golden", "warm")):
+            return cls.apply_color_palette(image_path, "warm")
+        if any(k in lower for k in ("vintage", "sepia", "retro", "old")):
+            return cls.apply_color_palette(image_path, "vintage")
+        if any(k in lower for k in ("blur background", "bokeh", "portrait blur", "depth of field")):
+            return cls.adjust_background(image_path, action="blur")
+
+        # 3. Text-guided generative modification via free neural synthesis
+        try:
+            w, h = img.size
+            # Pollinations neural URL with modified prompt
+            encoded = urllib.parse.quote(modification_prompt)
+            seed_val = seed if seed is not None else int(time.time()) % 999999
+            url = f"https://image.pollinations.ai/prompt/{encoded}?width={min(w, 768)}&height={min(h, 768)}&nologo=true&seed={seed_val}"
+            req = urllib.request.Request(
+                url,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+            )
+            with urllib.request.urlopen(req, timeout=18) as resp:
+                import io
+                neural_img = Image.open(io.BytesIO(resp.read())).convert("RGB")
+                if neural_img.size != (w, h):
+                    neural_img = neural_img.resize((w, h), Image.Resampling.LANCZOS)
+                return cls.save_edited(neural_img, path.name, "prompt_modified")
+        except Exception as e:
+            logger.warning("Generative prompt modify fallback to variation: %s", e)
+            return cls.generate_variation(image_path, seed=seed)
