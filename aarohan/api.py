@@ -1862,10 +1862,19 @@ def create_app(
     def list_models() -> dict[str, Any]:
         state = rollback_mgr._load_state()
         active = rollback_mgr.get_active()
+        engines = inference_manager.list_models()
+        normalized_models = []
+        for eng in engines:
+            item = dict(eng)
+            item["name"] = eng.get("model_id") or eng.get("alias", "model")
+            item["model_type"] = eng.get("alias", "neural")
+            normalized_models.append(item)
         return {
             "active_checkpoint": active,
+            "active_engine": "foundation",
             "deployments": state.get("history", []),
-            "inference_engines": inference_manager.list_models(),
+            "inference_engines": normalized_models,
+            "models": normalized_models,
             "health": inference_manager.health_check_all(),
         }
 

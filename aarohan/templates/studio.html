@@ -1175,7 +1175,7 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
     let currentLastQuery = '';
     let currentLastResponse = '';
     let activeConversationTurns = [];
-    let currentConversationId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    let currentConversationId = localStorage.getItem('aarohan_active_session_id') || ('session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7));
     let currentActiveWorkspace = 'chat';
 
     // Markdown setup with syntax highlighting
@@ -1292,6 +1292,8 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
     function startNewChat() {
       switchWorkspace('chat');
       currentConversationId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+      localStorage.setItem('aarohan_active_session_id', currentConversationId);
+      sessionStorage.setItem('aarohan_is_new_chat', 'true');
       const chatBox = document.getElementById('chat-messages');
       chatBox.innerHTML = `
         <div id="welcome-hero" class="text-center pt-24 pb-12 space-y-6">
@@ -1515,6 +1517,8 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
       if (hero) hero.remove();
 
       currentLastQuery = text;
+      sessionStorage.removeItem('aarohan_is_new_chat');
+      localStorage.setItem('aarohan_active_session_id', currentConversationId);
       const retrievalMode = document.getElementById('chat-mode').value;
       const engine = document.getElementById('chat-engine').value;
       const chatBox = document.getElementById('chat-messages');
@@ -1653,9 +1657,10 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
                   activeConversationTurns.push({role: 'assistant', content: rawAccumulatedText});
                   if (ev.session_id) {
                     currentConversationId = ev.session_id;
+                    localStorage.setItem('aarohan_active_session_id', currentConversationId);
                   }
                   renderMarkdownWithMath(outputEl, rawAccumulatedText);
-                  loadRecentHistory();
+                  loadRecentHistory(false);
                 } else if (ev.type === 'error') {
                   outputEl.innerHTML = `
                     <div class="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-800/50 text-amber-300 text-xs space-y-1.5">
@@ -2506,14 +2511,32 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
     // Recent History
     let rawConversationItems = [];
 
-    async function loadRecentHistory() {
+    async function loadRecentHistory(autoRestore = true) {
       const list = document.getElementById('recent-history-list');
       if (!list) return;
       try {
-        const res = await fetch('/api/conversations?limit=25');
+        const res = await fetch('/api/conversations?limit=50');
         const data = await res.json();
         rawConversationItems = data.conversations || [];
         renderHistoryList(rawConversationItems);
+
+        // Auto-restore active or most recent conversation on page load / refresh
+        if (autoRestore) {
+          const isExplicitNew = sessionStorage.getItem('aarohan_is_new_chat') === 'true';
+          if (!isExplicitNew) {
+            const savedSessionId = localStorage.getItem('aarohan_active_session_id');
+            let targetId = null;
+            if (savedSessionId && rawConversationItems.some(c => (c.session_id || c.id) === savedSessionId)) {
+              targetId = savedSessionId;
+            } else if (rawConversationItems.length > 0) {
+              targetId = rawConversationItems[0].session_id || rawConversationItems[0].id;
+            }
+
+            if (targetId) {
+              loadConversationSession(targetId);
+            }
+          }
+        }
       } catch (e) {
         list.innerHTML = '<div class="text-[11px] text-[#8e8e8e] px-2 py-1">History offline</div>';
       }
@@ -2557,6 +2580,8 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
         const session = await res.json();
         switchWorkspace('chat');
         currentConversationId = sessionId;
+        localStorage.setItem('aarohan_active_session_id', sessionId);
+        sessionStorage.removeItem('aarohan_is_new_chat');
 
         const chatBox = document.getElementById('chat-messages');
         chatBox.innerHTML = '';
@@ -2628,9 +2653,10 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
       try {
         await fetch(`/api/conversations/${encodeURIComponent(id)}`, {method: 'DELETE'});
         if (id === currentConversationId) {
+          localStorage.removeItem('aarohan_active_session_id');
           startNewChat();
         }
-        loadRecentHistory();
+        loadRecentHistory(false);
       } catch(e) {
         console.error('Delete error:', e);
       }

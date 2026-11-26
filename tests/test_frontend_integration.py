@@ -121,3 +121,19 @@ def test_chat_stream_prompt_injection_safety_event(tmp_path):
     err_event = events[0]
     assert err_event.get("type") == "error"
     assert "safety" in err_event.get("reason", "").lower() or "prompt injection" in err_event.get("reason", "").lower()
+
+
+def test_conversation_session_persistence_contract(tmp_path):
+    db_path = tmp_path / "memory.sqlite"
+    app = create_app(database_path=db_path)
+    client = TestClient(app)
+
+    res = client.get("/")
+    assert res.status_code == 200
+    html = res.text
+
+    # Verify session persistence and auto-restoration mechanisms
+    assert "aarohan_active_session_id" in html
+    assert "loadConversationSession" in html
+    assert "autoRestore" in html
+    assert "recent-history-list" in html
