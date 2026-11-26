@@ -82,51 +82,273 @@
       --user-bubble: #E4E4E7;
     }
 
-    /* Complete ChatGPT-inspired Light Theme Overrides */
+    /* ========================================================================= */
+    /* COMPREHENSIVE LIGHT THEME ENGINE (ChatGPT / Modern Minimalist)            */
+    /* ========================================================================= */
+    html.light {
+      color-scheme: light;
+    }
+
     html.light body {
       background-color: #FFFFFF !important;
-      color: #18181B !important;
+      color: #0D0D0D !important;
     }
+
+    /* Main Container & Workspaces */
+    html.light main,
+    html.light .workspace-pane {
+      background-color: #FFFFFF !important;
+      color: #0D0D0D !important;
+    }
+
+    /* Left Sidebar */
     html.light aside#sidebar,
-    html.light #sidebar {
+    html.light #sidebar,
+    html.light aside#chat-sidebar,
+    html.light #chat-sidebar,
+    html.light .bg-\[\#171717\] {
       background-color: #F9F9F9 !important;
-      border-color: #E4E4E7 !important;
+      border-color: #E5E5E5 !important;
+      color: #0D0D0D !important;
     }
-    html.light main {
+
+    html.light aside#chat-sidebar * {
+      border-color: #E5E5E5;
+    }
+
+    /* Sidebar Search Input */
+    html.light #conv-search-input {
+      background-color: #FFFFFF !important;
+      color: #0D0D0D !important;
+      border-color: #E5E5E5 !important;
+    }
+    html.light #conv-search-input::placeholder {
+      color: #8E8E8E !important;
+    }
+
+    /* Sidebar Headers */
+    html.light aside#chat-sidebar .text-\[\#8e8e8e\],
+    html.light aside#chat-sidebar .text-\[\#71717A\] {
+      color: #71717A !important;
+    }
+
+    /* Sidebar Nav Buttons & Hover */
+    html.light aside#chat-sidebar button {
+      color: #4B5563;
+    }
+    html.light aside#chat-sidebar button:hover {
+      background-color: #ECECEC !important;
+      color: #0D0D0D !important;
+    }
+
+    /* Active Nav Item */
+    html.light .nav-item-active {
+      background-color: #E4E4E7 !important;
+      color: #0D0D0D !important;
+      font-weight: 600 !important;
+    }
+    html.light .nav-item-active svg {
+      color: #10A37F !important;
+    }
+
+    /* Header */
+    html.light header {
+      background-color: rgba(255, 255, 255, 0.95) !important;
+      border-color: #E5E5E5 !important;
+    }
+    html.light header h1,
+    html.light #active-workspace-title {
+      color: #0D0D0D !important;
+    }
+    html.light #model-dropdown-btn {
+      color: #374151 !important;
+    }
+    html.light #model-dropdown-btn:hover {
+      background-color: #F3F4F6 !important;
+      color: #0D0D0D !important;
+    }
+    html.light #model-dropdown-menu,
+    html.light #attachment-menu {
+      background-color: #FFFFFF !important;
+      border-color: #E5E5E5 !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+    }
+    html.light #model-dropdown-menu button:hover,
+    html.light #attachment-menu button:hover {
+      background-color: #F4F4F5 !important;
+    }
+
+    /* CUDA / RTX 2060 Badge */
+    html.light .bg-emerald-950\/60 {
+      background-color: #ECFDF5 !important;
+      color: #047857 !important;
+      border-color: #A7F3D0 !important;
+    }
+
+    /* Chat Messages Container & Scroll */
+    html.light #chat-messages-container {
       background-color: #FFFFFF !important;
     }
-    html.light header {
-      background-color: rgba(255, 255, 255, 0.9) !important;
-      border-color: #E4E4E7 !important;
+
+    /* User Message Bubble */
+    html.light .user-chat-bubble,
+    html.light #chat-messages .flex.justify-end > div {
+      background-color: #F4F4F4 !important;
+      color: #0D0D0D !important;
+      border: 1px solid #E5E5E5 !important;
+      box-shadow: none !important;
     }
-    html.light #chat-messages-container {
+
+    /* Assistant Markdown Body */
+    html.light .markdown-body {
+      color: #0D0D0D !important;
+    }
+    html.light .markdown-body p,
+    html.light .markdown-body li,
+    html.light .markdown-body span {
+      color: #0D0D0D !important;
+    }
+    html.light .markdown-body h1,
+    html.light .markdown-body h2,
+    html.light .markdown-body h3,
+    html.light .markdown-body h4,
+    html.light .markdown-body strong {
+      color: #000000 !important;
+    }
+    html.light .markdown-body code:not(pre code) {
+      background-color: #F4F4F5 !important;
+      color: #0D0D0D !important;
+      border: 1px solid #E4E4E7 !important;
+    }
+    html.light .markdown-body table {
+      border-color: #E5E5E5 !important;
+    }
+    html.light .markdown-body th {
+      background-color: #F9FAFB !important;
+      color: #111827 !important;
+      border-color: #E5E5E5 !important;
+    }
+    html.light .markdown-body td {
+      border-color: #E5E5E5 !important;
+      color: #111827 !important;
+    }
+    html.light .markdown-body tr:nth-child(even) {
+      background-color: #F9FAFB !important;
+    }
+    html.light .markdown-body blockquote {
+      border-left-color: #10A37F !important;
+      background-color: #F0FDF4 !important;
+      color: #166534 !important;
+    }
+
+    /* Code Blocks */
+    html.light .code-block-container {
+      background-color: #F8F9FA !important;
+      border-color: #E2E8F0 !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    }
+    html.light .code-block-container > div:first-child {
+      background-color: #F1F5F9 !important;
+      border-bottom-color: #E2E8F0 !important;
+      color: #475569 !important;
+    }
+    html.light .code-block-container button {
+      color: #475569 !important;
+    }
+    html.light .code-block-container button:hover {
+      color: #0F172A !important;
+    }
+    html.light .code-block-container pre {
+      background-color: #F8F9FA !important;
+      color: #0F172A !important;
+    }
+    html.light .code-block-container code {
+      color: #0F172A !important;
+    }
+
+    /* Assistant Action Toolbar (Copy, Thumbs, Retry) */
+    html.light #chat-messages [id$="-actions"] button,
+    html.light #chat-messages .flex.items-center.space-x-1 button {
+      color: #71717A !important;
+    }
+    html.light #chat-messages [id$="-actions"] button:hover,
+    html.light #chat-messages .flex.items-center.space-x-1 button:hover {
+      background-color: #F4F4F5 !important;
+      color: #0D0D0D !important;
+    }
+
+    /* Bottom Input Container & Transparent Gradient (NO BLACK FOG) */
+    html.light #chat-input-gradient-container,
+    html.light .from-\[\#212121\] {
+      background: linear-gradient(to top, #FFFFFF 65%, rgba(255, 255, 255, 0.9) 85%, rgba(255, 255, 255, 0)) !important;
+    }
+
+    html.light #chat-composer-container,
+    html.light .rounded-\[26px\] {
+      background-color: #F4F4F4 !important;
+      border-color: #E5E5E5 !important;
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06) !important;
+    }
+    html.light #chat-composer-container:focus-within,
+    html.light .rounded-\[26px\]:focus-within {
+      border-color: #A1A1AA !important;
+      box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    html.light textarea#chat-input {
+      background-color: transparent !important;
+      color: #0D0D0D !important;
+    }
+    html.light textarea#chat-input::placeholder {
+      color: #8E8E8E !important;
+    }
+
+    html.light button#chat-send-btn,
+    html.light button#chat-stop-btn {
+      background-color: #0D0D0D !important;
+      color: #FFFFFF !important;
+    }
+    html.light button#chat-send-btn:hover,
+    html.light button#chat-stop-btn:hover {
+      background-color: #262626 !important;
+    }
+
+    html.light button#attachment-btn {
+      color: #5D5D5D !important;
+    }
+    html.light button#attachment-btn:hover {
+      background-color: #E5E5E5 !important;
+      color: #0D0D0D !important;
+    }
+
+    /* General Tailwind Arbitrary Color Mappings */
+    html.light .bg-\[\#212121\] {
       background-color: #FFFFFF !important;
     }
     html.light .bg-\[\#171717\] {
       background-color: #F9F9F9 !important;
     }
-    html.light .bg-\[\#212121\] {
-      background-color: #FFFFFF !important;
-    }
-    html.light .bg-\[\#2A2A2A\],
-    html.light .bg-\[\#303030\] {
+    html.light .bg-\[\#2A2A2A\] {
       background-color: #F4F4F5 !important;
     }
+    html.light .bg-\[\#303030\] {
+      background-color: #F4F4F4 !important;
+    }
     html.light .bg-\[\#2F2F2F\] {
-      background-color: #E4E4E7 !important;
-      color: #18181B !important;
+      background-color: #EAEAEA !important;
+      color: #0D0D0D !important;
     }
     html.light .bg-\[\#262626\] {
-      background-color: #E4E4E7 !important;
+      background-color: #E5E5E5 !important;
     }
     html.light .border-\[\#383838\],
     html.light .border-\[\#262626\],
     html.light .border-\[\#303030\] {
-      border-color: #E4E4E7 !important;
+      border-color: #E5E5E5 !important;
     }
     html.light .text-\[\#ECECEC\],
     html.light .text-white {
-      color: #18181B !important;
+      color: #0D0D0D !important;
     }
     html.light .text-\[\#A1A1AA\],
     html.light .text-\[\#8e8e8e\],
@@ -134,76 +356,48 @@
     html.light .text-\[\#71717A\] {
       color: #52525B !important;
     }
-    html.light textarea#chat-input {
-      background-color: transparent !important;
-      color: #18181B !important;
+    html.light .text-\[\#b4b4b4\] {
+      color: #4B5563 !important;
     }
-    html.light textarea#chat-input::placeholder {
-      color: #71717A !important;
-    }
-    html.light #chat-composer-container {
-      background-color: #F4F4F5 !important;
-      border-color: #E4E4E7 !important;
-    }
-    html.light .hover\:bg-\[\#2F2F2F\]:hover,
-    html.light .hover\:bg-\[\#212121\]:hover {
-      background-color: #E4E4E7 !important;
-      color: #18181B !important;
-    }
-    html.light .hover\:text-white:hover {
-      color: #09090B !important;
-    }
-    html.light button#chat-send-btn,
-    html.light button#chat-stop-btn {
-      background-color: #18181B !important;
-      color: #FFFFFF !important;
-    }
-    html.light .code-block-container {
-      background-color: #F4F4F5 !important;
-      border-color: #E4E4E7 !important;
-    }
-    html.light .code-block-container .bg-\[\#171717\],
-    html.light .code-block-container pre {
-      background-color: #F4F4F5 !important;
-    }
-    html.light .code-block-container code {
-      color: #18181B !important;
-    }
-    html.light .code-block-container .bg-\[\#262626\] {
-      background-color: #E4E4E7 !important;
-      color: #52525B !important;
-    }
-    html.light .workspace-pane {
+
+    /* Cards, Forms, Inputs & Selects across other workspaces */
+    html.light input:not([type="checkbox"]):not([type="radio"]),
+    html.light select,
+    html.light textarea {
       background-color: #FFFFFF !important;
+      color: #0D0D0D !important;
+      border-color: #E5E5E5 !important;
+    }
+    html.light input:focus,
+    html.light select:focus,
+    html.light textarea:focus {
+      border-color: #10A37F !important;
     }
 
-    code, pre code, .font-mono {
-      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    /* Welcome Hero Prompt Cards */
+    html.light #welcome-hero button {
+      background-color: #FFFFFF !important;
+      border-color: #E5E5E5 !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    }
+    html.light #welcome-hero button:hover {
+      background-color: #F9FAFB !important;
+      border-color: #D1D5DB !important;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08) !important;
+    }
+    html.light #welcome-hero h2 {
+      color: #0D0D0D !important;
     }
 
-    html.light .markdown-body {
-      color: #18181b;
+    /* Scrollbars in Light Mode */
+    html.light ::-webkit-scrollbar-track {
+      background: #FFFFFF !important;
     }
-    html.light .markdown-body h1,
-    html.light .markdown-body h2,
-    html.light .markdown-body h3,
-    html.light .markdown-body strong {
-      color: #09090b;
+    html.light ::-webkit-scrollbar-thumb {
+      background: #D4D4D8 !important;
     }
-    html.light .markdown-body code:not(pre code) {
-      background: #e4e4e7;
-      color: #18181b;
-    }
-    html.light .markdown-body th {
-      background: #f4f4f5;
-      color: #18181b;
-    }
-    html.light .markdown-body tr:nth-child(even) {
-      background: #fafafa;
-    }
-    html.light .markdown-body blockquote {
-      border-left-color: #10a37f;
-      color: #52525b;
+    html.light ::-webkit-scrollbar-thumb:hover {
+      background: #A1A1AA !important;
     }
     ::-webkit-scrollbar {
       width: 6px;
@@ -732,7 +926,7 @@
       </div>
 
       <!-- Floating Input Pill -->
-      <div class="p-4 bg-gradient-to-t from-[#212121] via-[#212121]/95 to-transparent z-20 flex-shrink-0">
+      <div id="chat-input-gradient-container" class="p-4 bg-gradient-to-t from-[#212121] via-[#212121]/95 to-transparent z-20 flex-shrink-0">
         <form id="chat-form" onsubmit="handleChatSubmit(event); return false;" class="max-w-[48rem] w-full mx-auto">
           <!-- File Attachment Chip Bar -->
           <div id="attachment-preview-bar" class="hidden pb-2 flex items-center space-x-2">
@@ -744,7 +938,7 @@
             </div>
           </div>
 
-          <div
+          <div id="chat-composer-container"
             class="relative rounded-[26px] bg-[#303030] border border-[#383838] focus-within:border-[#71717A] shadow-2xl p-3 pl-4 pr-3 flex items-end space-x-2 transition-all">
             <input type="file" id="chat-file-input" class="hidden" accept=".txt,.pdf,.docx,.xlsx,.csv,.json,.py,.sql,.js,.html,.css" onchange="handleChatFileUpload(this)">
 
