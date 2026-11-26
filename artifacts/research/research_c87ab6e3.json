@@ -1,0 +1,11 @@
+{
+  "task_id": "c87ab6e3-8104-40d0-9e23-b3619b5f5e54",
+  "title": "Incorporate regression gating concept into knowledge base",
+  "query": "regression gating catastrophic forgetting",
+  "documents_scanned": 1,
+  "facts_extracted": 0,
+  "entities_discovered": [],
+  "contradictions_detected": [],
+  "proposed_memory_ids": [],
+  "completed_at": "2026-11-26T06:15:22.483807+00:00"
+}

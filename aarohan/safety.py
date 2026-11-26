@@ -18,9 +18,10 @@ from pathlib import Path
 from typing import Any
 
 INJECTION_PATTERNS = [
-    re.compile(r"ignore\s+(all\s+)?(previous|prior)\s+(instructions|rules|prompts)", re.IGNORECASE),
+    re.compile(r"ignore\s+(all\s+)?(previous\s+|prior\s+|system\s+)?(instructions|rules|prompts)", re.IGNORECASE),
     re.compile(r"system\s+(override|prompt\s+leak|instruction\s+bypass)", re.IGNORECASE),
     re.compile(r"(disregard|forget)\s+(all\s+)?(safety|rules|instructions)", re.IGNORECASE),
+    re.compile(r"(bypass|override)\s+(all\s+)?(safety|security|filters)", re.IGNORECASE),
     re.compile(r"you\s+are\s+now\s+in\s+developer\s+mode", re.IGNORECASE),
     re.compile(r"(output|print|show)\s+(your\s+)?(initial|system)\s+(instructions|prompt)", re.IGNORECASE),
 ]

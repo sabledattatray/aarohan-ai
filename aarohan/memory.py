@@ -112,6 +112,17 @@ class MemoryStore:
                 )
             """)
 
+            # Migration check: ensure newer columns exist if db was created in earlier prompt
+            cursor = connection.execute("PRAGMA table_info(memories)")
+            columns = {row["name"] for row in cursor.fetchall()}
+            if columns:
+                if "embedding" not in columns:
+                    connection.execute("ALTER TABLE memories ADD COLUMN embedding BLOB")
+                if "last_accessed_at" not in columns:
+                    connection.execute("ALTER TABLE memories ADD COLUMN last_accessed_at TEXT")
+                if "metadata_json" not in columns:
+                    connection.execute("ALTER TABLE memories ADD COLUMN metadata_json TEXT")
+
             # 2. Knowledge Graph: Entities
             connection.execute("""
                 CREATE TABLE IF NOT EXISTS knowledge_entities (
