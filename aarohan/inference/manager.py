@@ -12,6 +12,7 @@ from aarohan.inference.base import (
 )
 from aarohan.inference.custom import CustomTransformerInferenceEngine
 from aarohan.inference.foundation import FoundationInferenceEngine
+from aarohan.inference.ollama_engine import OllamaInferenceEngine
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,16 @@ class InferenceManager:
             logger.info("Coder engine deferred until downloaded: %s", e)
             self._coder_engine = self._foundation_engine
 
+        # 3. High-Performance 7B Foundation Engine (Ollama / Qwen 2.5 7B ChatGPT Grade)
+        try:
+            self._ollama_engine = OllamaInferenceEngine(model_name="qwen2.5:7b")
+            self.register_engine("ollama", self._ollama_engine)
+            self.register_engine("7b", self._ollama_engine)
+            self.register_engine("chatgpt", self._ollama_engine)
+        except Exception as e:
+            logger.info("Ollama engine setup deferred: %s", e)
+            self._ollama_engine = None
+
         # 2. Custom checkpoint engine (if paths provided)
         if custom_checkpoint_path and custom_tokenizer_path:
             self._custom_engine = CustomTransformerInferenceEngine(
@@ -58,6 +69,11 @@ class InferenceManager:
 
     def get_engine(self, name: str = "foundation") -> BaseInferenceEngine:
         normalized = name.lower()
+        if normalized in ("foundation", "auto", "default", "chat"):
+            # Auto-upgrade to 7B Ollama engine if active
+            if hasattr(self, "_ollama_engine") and self._ollama_engine and self._ollama_engine.is_loaded():
+                return self._ollama_engine
+            return self._foundation_engine
         if normalized in self._engines:
             return self._engines[normalized]
         raise ValueError(f"Unknown engine '{name}'. Available: {list(self._engines.keys())}")
