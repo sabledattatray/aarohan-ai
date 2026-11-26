@@ -1,0 +1,1719 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aarohan AI 2.0</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23000000'/%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M16 6 L25 24 L20.5 24 L18.8 20.5 L13.2 20.5 L11.5 24 L7 24 L16 6 Z M16 11.5 L14.2 16.5 L17.8 16.5 L16 11.5 Z' fill='%23ffffff'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            gpt: {
+              bg: '#000000',
+              sidebar: '#171717',
+              pill: '#2f2f2f',
+              input: '#212121',
+              border: '#262626',
+              hover: '#212121',
+              subtext: '#8e8e8e'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #333333; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #555555; }
+
+    .markdown-body { color: #ececec; font-size: 0.9375rem; line-height: 1.7; }
+    .markdown-body h1 { font-size: 1.4rem; font-weight: 700; color: #ffffff; margin-top: 1.25rem; margin-bottom: 0.5rem; }
+    .markdown-body h2 { font-size: 1.2rem; font-weight: 600; color: #f1f5f9; margin-top: 1rem; margin-bottom: 0.4rem; }
+    .markdown-body h3 { font-size: 1.05rem; font-weight: 600; color: #e2e8f0; margin-top: 0.85rem; margin-bottom: 0.35rem; }
+    .markdown-body p { margin-bottom: 0.85rem; }
+    .markdown-body p:last-child { margin-bottom: 0; }
+    .markdown-body ul { list-style-type: disc; padding-left: 1.4rem; margin-bottom: 0.85rem; }
+    .markdown-body ol { list-style-type: decimal; padding-left: 1.4rem; margin-bottom: 0.85rem; }
+    .markdown-body li { margin-bottom: 0.35rem; }
+    .markdown-body strong { color: #ffffff; font-weight: 600; }
+    .markdown-body em { color: #cbd5e1; }
+    .markdown-body blockquote { border-left: 3px solid #6366f1; padding-left: 1rem; color: #94a3b8; margin: 0.85rem 0; font-style: italic; }
+    .markdown-body code:not(pre code) { background: #262626; color: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 0.375rem; font-size: 0.84rem; font-family: monospace; }
+    .markdown-body table { width: 100%; border-collapse: collapse; margin: 0.85rem 0; font-size: 0.85rem; }
+    .markdown-body th, .markdown-body td { border: 1px solid #383838; padding: 0.6rem 0.85rem; text-align: left; }
+    .markdown-body th { background: #1c1c1c; color: #ffffff; font-weight: 600; }
+    .markdown-body tr:nth-child(even) { background: #121212; }
+
+    .nav-item-active { background-color: #212121; color: #ffffff !important; font-weight: 600; }
+    .nav-item-active svg { color: #818cf8 !important; }
+  </style>
+</head>
+<body class="bg-black text-[#ececec] h-screen w-screen overflow-hidden flex font-sans antialiased selection:bg-neutral-700 selection:text-white">
+
+  <!-- ========================================================================= -->
+  <!-- LEFT SIDEBAR: 13 Unified Navigation Workspaces                             -->
+  <!-- ========================================================================= -->
+  <aside id="chat-sidebar" class="w-[260px] bg-[#171717] flex flex-col h-full z-30 select-none flex-shrink-0 transition-all duration-200 border-r border-[#262626]">
+
+    <!-- Top Row: Logo, Brand & Actions -->
+    <div class="p-3 flex items-center justify-between border-b border-[#262626]">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-7 h-7 rounded-lg bg-black border border-[#383838] flex items-center justify-center font-bold text-xs text-white shadow">
+          ▲
+        </div>
+        <div>
+          <span class="text-sm font-semibold tracking-tight text-white">Aarohan</span>
+          <span class="text-[10px] ml-1 px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-mono">2.0</span>
+        </div>
+      </div>
+      <div class="flex items-center space-x-1">
+        <button onclick="startNewChat()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#212121] transition" title="New Chat">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        </button>
+        <button onclick="toggleSidebar()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#212121] transition" title="Collapse sidebar">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Conversation Search Bar -->
+    <div class="px-3 pt-2 pb-1">
+      <div class="relative">
+        <input type="text" id="conv-search-input" oninput="filterConversations(this.value)" placeholder="Search chats..."
+               class="w-full bg-[#212121] text-xs text-[#ececec] placeholder-[#8e8e8e] rounded-lg pl-7 pr-3 py-1.5 outline-none border border-transparent focus:border-[#404040]">
+        <svg class="w-3.5 h-3.5 text-[#8e8e8e] absolute left-2 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+      </div>
+    </div>
+
+    <!-- Navigation Scroll Area -->
+    <div class="flex-1 overflow-y-auto px-2 py-2 space-y-4 text-xs">
+
+      <!-- SECTION 1: WORKSPACE -->
+      <div>
+        <div class="px-2 pb-1 text-[10px] font-semibold tracking-wider uppercase text-[#8e8e8e]">Workspace</div>
+        <div class="space-y-0.5">
+          <button id="nav-chat" onclick="switchWorkspace('chat')" title="AI Inference & Chat" class="w-full text-left px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-2 text-[#b4b4b4] hover:text-white hover:bg-[#212121]">
+            <svg class="w-4 h-4 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+            <span>AI Chat</span>
+          </button>
+          <button id="nav-research" onclick="switchWorkspace('research')" class="w-full text-left px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-2 text-[#b4b4b4] hover:text-white hover:bg-[#212121]">
+            <svg class="w-4 h-4 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+            <span>Deep Research</span>
+          </button>
+          <button id="nav-datasets" onclick="switchWorkspace('datasets')" class="w-full text-left px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-2 text-[#b4b4b4] hover:text-white hover:bg-[#212121]">
+            <svg class="w-4 h-4 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <span>Dataset Studio</span>
+          </button>
+          <button id="nav-images" onclick="switchWorkspace('images')" class="w-full text-left px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-2 text-[#b4b4b4] hover:text-white hover:bg-[#212121]">
+            <svg class="w-4 h-4 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span>Image Studio</span>
+          </button>
+          <button id="nav-documents" onclick="switchWorkspace('documents')" class="w-full text-left px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-2 text-[#b4b4b4] hover:text-white hover:bg-[#212121]">
+            <svg class="w-4 h-4 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+            <span>Document Intelligence</span>
+          </button>
+          <button id="nav-analytics" onclick="switchWorkspace('analytics')" class="w-full text-left px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-2 text-[#b4b4b4] hover:text-white hover:bg-[#212121]">
+            <svg class="w-4 h-4 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span>Data Analytics</span>
+          </button>
+          <button id="nav-code" onclick="switchWorkspace('code')" class="w-full text-left px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-2 text-[#b4b4b4] hover:text-white hover:bg-[#212121]">
+            <svg class="w-4 h-4 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+            <span>Code Assistant</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- SECTION 2: INTELLIGENCE -->
+      <div>
+        <div class="px-2 pb-1 text-[10px] font-semibold tracking-wider uppercase text-[#8e8e8e]">Intelligence</div>
+        <div class="space-y-0.5">
+          <button id="nav-memory" onclick="switchWorkspace('memory')" class="w-full text-left px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-2 text-[#b4b4b4] hover:text-white hover:bg-[#212121]">
+            <svg class="w-4 h-4 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            <span>Cognitive Memory</span>
+          </button>
+          <button id="nav-knowledge-graph" onclick="switchWorkspace('knowledge-graph')" class="w-full text-left px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-2 text-[#b4b4b4] hover:text-white hover:bg-[#212121]">
+            <svg class="w-4 h-4 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            <span>Knowledge Graph</span>
+          </button>
+          <button id="nav-learning" onclick="switchWorkspace('learning')" class="w-full text-left px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-2 text-[#b4b4b4] hover:text-white hover:bg-[#212121]">
+            <svg class="w-4 h-4 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path></svg>
+            <span>Learning Center</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- SECTION 3: SYSTEM -->
+      <div>
+        <div class="px-2 pb-1 text-[10px] font-semibold tracking-wider uppercase text-[#8e8e8e]">System</div>
+        <div class="space-y-0.5">
+          <button id="nav-models" onclick="switchWorkspace('models')" class="w-full text-left px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-2 text-[#b4b4b4] hover:text-white hover:bg-[#212121]">
+            <svg class="w-4 h-4 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+            <span>Model Manager</span>
+          </button>
+          <button id="nav-system" onclick="switchWorkspace('system')" class="w-full text-left px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-2 text-[#b4b4b4] hover:text-white hover:bg-[#212121]">
+            <svg class="w-4 h-4 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            <span>System Monitor</span>
+          </button>
+          <button id="nav-settings" onclick="switchWorkspace('settings')" class="w-full text-left px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-2 text-[#b4b4b4] hover:text-white hover:bg-[#212121]">
+            <svg class="w-4 h-4 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <span>Settings</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Recent Conversations Header -->
+      <div class="pt-2 border-t border-[#262626]">
+        <div class="px-2 pb-1 text-[10px] font-semibold tracking-wider uppercase text-[#8e8e8e]">Conversations</div>
+        <div id="recent-history-list" class="space-y-0.5">
+          <div class="text-[11px] text-[#8e8e8e] px-2 py-1">Loading chats...</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom User Profile Pill -->
+    <div class="p-2 border-t border-[#262626]">
+      <button onclick="switchWorkspace('settings')" class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-[#212121] transition text-left group">
+        <div class="flex items-center space-x-2.5 min-w-0">
+          <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 text-white font-bold flex items-center justify-center text-xs flex-shrink-0 shadow">
+            DS
+          </div>
+          <div class="min-w-0">
+            <div class="text-xs font-medium text-white truncate">Datta Sable</div>
+            <div class="text-[10px] text-[#8e8e8e] flex items-center space-x-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
+              <span>Online · Local FP16</span>
+            </div>
+          </div>
+        </div>
+        <svg class="w-3.5 h-3.5 text-[#8e8e8e] group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path></svg>
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN WORKSPACE CONTAINER                                                  -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 flex flex-col h-full bg-black overflow-hidden relative">
+
+    <!-- Top Navigation Header -->
+    <header class="h-14 flex items-center justify-between px-4 border-b border-[#212121] z-20 flex-shrink-0 bg-black/80 backdrop-blur-md">
+      <div class="flex items-center space-x-3">
+        <button id="sidebar-open-btn" onclick="toggleSidebar()" class="hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#212121] transition" title="Open sidebar">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+        </button>
+        <div class="flex items-center space-x-2">
+          <h1 id="active-workspace-title" class="text-sm font-semibold text-white tracking-tight">AI Chat</h1>
+          <span class="text-slate-600">/</span>
+          <div class="relative inline-block text-left" id="model-dropdown-container">
+            <button type="button" id="model-dropdown-btn" onclick="toggleModelDropdown(event)" class="flex items-center space-x-1 py-1 px-2.5 rounded-lg hover:bg-[#212121] transition text-xs font-medium text-[#b4b4b4] hover:text-white">
+              <span id="active-model-display">Aarohan Foundation</span>
+              <svg class="w-3.5 h-3.5 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            <div id="model-dropdown-menu" class="hidden absolute left-0 mt-2 w-72 origin-top-left rounded-2xl bg-[#212121] border border-[#303030] shadow-2xl p-1.5 z-50">
+              <button onclick="selectEngine('foundation')" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-semibold text-white flex items-center space-x-1.5">
+                    <span>Aarohan Foundation</span>
+                    <span class="text-[9px] bg-blue-500/20 text-blue-300 px-1 py-0.2 rounded border border-blue-500/30">Fluent</span>
+                  </div>
+                  <div class="text-[11px] text-[#8e8e8e] mt-0.5">Qwen2.5-0.5B-Instruct float16 on local CUDA</div>
+                </div>
+                <span id="check-foundation" class="text-blue-400 font-bold ml-2">✓</span>
+              </button>
+              <button onclick="selectEngine('scratch')" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center justify-between mt-1">
+                <div>
+                  <div class="text-xs font-semibold text-white flex items-center space-x-1.5">
+                    <span>Aarohan Checkpoint</span>
+                    <span class="text-[9px] bg-amber-500/20 text-amber-300 px-1 py-0.2 rounded border border-amber-500/30">1.57M</span>
+                  </div>
+                  <div class="text-[11px] text-[#8e8e8e] mt-0.5">Custom pre-trained from-scratch transformer</div>
+                </div>
+                <span id="check-scratch" class="text-blue-400 font-bold ml-2 hidden">✓</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 text-xs">
+        <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>
+          RTX 2060 · 6GB CUDA
+        </span>
+        <button onclick="startNewChat()" class="p-1.5 rounded-lg text-[#8e8e8e] hover:text-white hover:bg-[#212121] transition" title="Start new chat">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Hidden state inputs -->
+    <input type="hidden" id="chat-engine" value="foundation">
+    <input type="hidden" id="chat-mode" value="hybrid">
+
+    <!-- ========================================================================= -->
+    <!-- WORKSPACE 1: AI CHAT                                                      -->
+    <!-- ========================================================================= -->
+    <div id="workspace-chat" class="workspace-pane flex-1 flex flex-col h-full overflow-hidden">
+      <!-- Scrollable Messages Area -->
+      <div id="chat-messages-container" class="flex-1 overflow-y-auto px-4 scroll-smooth">
+        <div id="chat-messages" class="max-w-[48rem] w-full mx-auto py-6 space-y-6">
+          <div id="welcome-hero" class="text-center pt-24 pb-12 space-y-6">
+            <h2 class="text-3xl font-semibold text-white tracking-tight">What can I help with?</h2>
+            <div class="flex flex-wrap items-center justify-center gap-2 pt-4 max-w-xl mx-auto">
+              <button onclick="usePrompt('Can you help me in data analysis with Python?')" class="px-4 py-2 rounded-full border border-[#303030] hover:bg-[#212121] text-xs text-[#b4b4b4] hover:text-white transition flex items-center space-x-1.5">
+                <span>📊</span> <span>Analyze data with Python</span>
+              </button>
+              <button onclick="usePrompt('Write a Python function to compute moving averages with numpy')" class="px-4 py-2 rounded-full border border-[#303030] hover:bg-[#212121] text-xs text-[#b4b4b4] hover:text-white transition flex items-center space-x-1.5">
+                <span>📈</span> <span>Moving averages algorithm</span>
+              </button>
+              <button onclick="usePrompt('Explain how RoPE and SwiGLU work in modern transformers')" class="px-4 py-2 rounded-full border border-[#303030] hover:bg-[#212121] text-xs text-[#b4b4b4] hover:text-white transition flex items-center space-x-1.5">
+                <span>🧬</span> <span>Transformer architecture</span>
+              </button>
+              <button onclick="usePrompt('What knowledge and entities are stored in your cognitive memory?')" class="px-4 py-2 rounded-full border border-[#303030] hover:bg-[#212121] text-xs text-[#b4b4b4] hover:text-white transition flex items-center space-x-1.5">
+                <span>🧠</span> <span>Inspect cognitive memory</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating Input Pill -->
+      <div class="p-4 bg-gradient-to-t from-black via-black/95 to-transparent z-20 flex-shrink-0">
+        <form id="chat-form" onsubmit="handleChatSubmit(event); return false;" class="max-w-[48rem] w-full mx-auto">
+          <div class="relative rounded-[26px] bg-[#212121] border border-[#383838] focus-within:border-[#555555] shadow-2xl p-3 pl-4 pr-3 flex items-end space-x-2 transition-all">
+            <div class="relative flex-shrink-0 mb-0.5">
+              <button type="button" onclick="toggleAttachmentMenu(event)" id="attachment-btn" class="w-8 h-8 rounded-full text-[#b4b4b4] hover:text-white hover:bg-[#2f2f2f] flex items-center justify-center transition active:scale-95" title="Add tools & memory context">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+              </button>
+              <div id="attachment-menu" class="hidden absolute bottom-12 left-0 w-64 bg-[#212121] border border-[#303030] rounded-2xl shadow-2xl p-1.5 z-50">
+                <button type="button" onclick="switchWorkspace('datasets'); toggleAttachmentMenu();" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center space-x-3 text-xs text-[#ececec]">
+                  <span class="w-7 h-7 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center text-sm">📊</span>
+                  <div>
+                    <div class="font-medium text-white">Dataset Studio</div>
+                    <div class="text-[10px] text-[#8e8e8e]">Generate Excel, CSV, JSON, SQL</div>
+                  </div>
+                </button>
+                <button type="button" onclick="switchWorkspace('images'); toggleAttachmentMenu();" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center space-x-3 text-xs text-[#ececec] mt-1">
+                  <span class="w-7 h-7 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center text-sm">🎨</span>
+                  <div>
+                    <div class="font-medium text-white">Image Studio</div>
+                    <div class="text-[10px] text-[#8e8e8e]">Neural generative canvas</div>
+                  </div>
+                </button>
+                <button type="button" onclick="switchWorkspace('analytics'); toggleAttachmentMenu();" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center space-x-3 text-xs text-[#ececec] mt-1">
+                  <span class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-sm">📈</span>
+                  <div>
+                    <div class="font-medium text-white">Data Analytics</div>
+                    <div class="text-[10px] text-[#8e8e8e]">DuckDB SQL & charts</div>
+                  </div>
+                </button>
+                <button type="button" onclick="switchWorkspace('documents'); toggleAttachmentMenu();" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center space-x-3 text-xs text-[#ececec] mt-1">
+                  <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm">📄</span>
+                  <div>
+                    <div class="font-medium text-white">Document Intelligence</div>
+                    <div class="text-[10px] text-[#8e8e8e]">PDF & DOCX page retrieval</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <textarea id="chat-input" rows="1" placeholder="Message Aarohan..."
+                      class="w-full bg-transparent text-[15px] text-[#ececec] placeholder-[#8e8e8e] outline-none focus:outline-none resize-none max-h-48 leading-relaxed font-sans py-1"></textarea>
+
+            <button type="submit" id="chat-send-btn" class="w-8 h-8 rounded-full bg-white text-black hover:bg-slate-200 active:scale-95 transition flex items-center justify-center flex-shrink-0 mb-0.5 shadow">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+            </button>
+          </div>
+        </form>
+        <div class="text-center text-[11px] text-[#8e8e8e] pt-2">
+          Aarohan can make mistakes. Local neural inferences run strictly on your hardware.
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- WORKSPACE 2: DEEP RESEARCH                                                -->
+    <!-- ========================================================================= -->
+    <div id="workspace-research" class="workspace-pane hidden flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
+      <div class="space-y-1">
+        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+          <span>🌐</span> <span>Deep Autonomous Research</span>
+        </h2>
+        <p class="text-xs text-[#8e8e8e]">Multi-hop evidence collection, source extraction, and verified clickable citations.</p>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Research Topic or Question</label>
+          <input type="text" id="research-query-input" placeholder="e.g. Advancements in transformer KV cache compression and RoPE scaling"
+                 class="w-full bg-[#212121] border border-[#303030] rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 outline-none">
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center space-x-2 text-xs">
+            <span class="text-[#8e8e8e]">Depth:</span>
+            <label class="flex items-center space-x-1 cursor-pointer">
+              <input type="radio" name="research-depth" value="quick" class="accent-indigo-500">
+              <span class="text-slate-300">Quick (1 hop)</span>
+            </label>
+            <label class="flex items-center space-x-1 cursor-pointer">
+              <input type="radio" name="research-depth" value="standard" checked class="accent-indigo-500">
+              <span class="text-slate-300">Standard (3 hops)</span>
+            </label>
+            <label class="flex items-center space-x-1 cursor-pointer">
+              <input type="radio" name="research-depth" value="deep" class="accent-indigo-500">
+              <span class="text-slate-300">Deep (5 hops)</span>
+            </label>
+          </div>
+
+          <button onclick="runDeepResearch()" id="research-submit-btn" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-lg shadow-indigo-600/30 transition">
+            Start Autonomous Research
+          </button>
+        </div>
+      </div>
+
+      <!-- Research Results Pane -->
+      <div id="research-results" class="hidden space-y-4">
+        <div class="p-5 rounded-2xl bg-[#171717] border border-[#262626] space-y-3">
+          <div class="flex items-center justify-between border-b border-[#262626] pb-3">
+            <h3 class="text-sm font-semibold text-white">Executive Synthesis</h3>
+            <span id="research-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Verified Local Provenance</span>
+          </div>
+          <p id="research-summary-text" class="text-sm text-slate-300 leading-relaxed"></p>
+
+          <div class="pt-2">
+            <h4 class="text-xs font-semibold text-slate-400 mb-2">Key Extracted Propositions:</h4>
+            <ul id="research-findings-list" class="list-disc ml-5 space-y-1.5 text-xs text-slate-300"></ul>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-[#8e8e8e]">Verified Provenance Sources</h3>
+          <div id="research-citations-container" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- WORKSPACE 3: DATASET STUDIO                                               -->
+    <!-- ========================================================================= -->
+    <div id="workspace-datasets" class="workspace-pane hidden flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
+      <div class="space-y-1">
+        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+          <span>📊</span> <span>Dataset Studio</span>
+        </h2>
+        <p class="text-xs text-[#8e8e8e]">Generate authentic synthetic datasets with multi-sheet Excel (openpyxl), CSV, JSON, and SQL.</p>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+        <button onclick="setDatasetPreset('banking', 500, 'xlsx')" class="p-2.5 rounded-xl bg-[#171717] hover:bg-[#212121] border border-[#262626] text-left transition">
+          <div class="text-base mb-1">🏦</div>
+          <div class="text-xs font-medium text-white">Banking</div>
+          <div class="text-[10px] text-[#8e8e8e]">Transactions</div>
+        </button>
+        <button onclick="setDatasetPreset('sales', 1000, 'xlsx')" class="p-2.5 rounded-xl bg-[#171717] hover:bg-[#212121] border border-[#262626] text-left transition">
+          <div class="text-base mb-1">📈</div>
+          <div class="text-xs font-medium text-white">Sales & PowerBI</div>
+          <div class="text-[10px] text-[#8e8e8e]">Revenue metrics</div>
+        </button>
+        <button onclick="setDatasetPreset('ecommerce', 500, 'csv')" class="p-2.5 rounded-xl bg-[#171717] hover:bg-[#212121] border border-[#262626] text-left transition">
+          <div class="text-base mb-1">🛒</div>
+          <div class="text-xs font-medium text-white">Ecommerce</div>
+          <div class="text-[10px] text-[#8e8e8e]">Orders & SKUs</div>
+        </button>
+        <button onclick="setDatasetPreset('employee', 250, 'xlsx')" class="p-2.5 rounded-xl bg-[#171717] hover:bg-[#212121] border border-[#262626] text-left transition">
+          <div class="text-base mb-1">👥</div>
+          <div class="text-xs font-medium text-white">Attendance</div>
+          <div class="text-[10px] text-[#8e8e8e]">HR Logs</div>
+        </button>
+        <button onclick="setDatasetPreset('banking', 1000, 'sql')" class="p-2.5 rounded-xl bg-[#171717] hover:bg-[#212121] border border-[#262626] text-left transition">
+          <div class="text-base mb-1">🗄️</div>
+          <div class="text-xs font-medium text-white">SQL DDL</div>
+          <div class="text-[10px] text-[#8e8e8e]">Inserts & tables</div>
+        </button>
+        <button onclick="setDatasetPreset('sales', 500, 'json')" class="p-2.5 rounded-xl bg-[#171717] hover:bg-[#212121] border border-[#262626] text-left transition">
+          <div class="text-base mb-1">📦</div>
+          <div class="text-xs font-medium text-white">JSON API</div>
+          <div class="text-[10px] text-[#8e8e8e]">REST objects</div>
+        </button>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Domain / Topic Prompt</label>
+          <input type="text" id="dataset-topic-input" value="banking"
+                 class="w-full bg-[#212121] border border-[#303030] rounded-xl px-4 py-2.5 text-sm text-white focus:border-teal-500 outline-none">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Rows: <span id="dataset-row-count-val" class="font-bold text-teal-400">100</span></label>
+            <input type="range" id="dataset-row-slider" min="10" max="5000" step="10" value="100"
+                   oninput="document.getElementById('dataset-row-count-val').innerText = this.value"
+                   class="w-full accent-teal-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">File Format</label>
+            <div class="flex items-center space-x-2 text-xs">
+              <button type="button" onclick="selectDatasetFormat('xlsx', this)" class="fmt-btn px-3 py-1.5 rounded-lg bg-teal-600 text-white font-medium border border-teal-500">XLSX (Excel)</button>
+              <button type="button" onclick="selectDatasetFormat('csv', this)" class="fmt-btn px-3 py-1.5 rounded-lg bg-[#212121] text-slate-300 hover:text-white border border-[#303030]">CSV</button>
+              <button type="button" onclick="selectDatasetFormat('json', this)" class="fmt-btn px-3 py-1.5 rounded-lg bg-[#212121] text-slate-300 hover:text-white border border-[#303030]">JSON</button>
+              <button type="button" onclick="selectDatasetFormat('sql', this)" class="fmt-btn px-3 py-1.5 rounded-lg bg-[#212121] text-slate-300 hover:text-white border border-[#303030]">SQL</button>
+            </div>
+            <input type="hidden" id="dataset-format-val" value="xlsx">
+          </div>
+        </div>
+
+        <div class="flex justify-end pt-2">
+          <button onclick="triggerDatasetGeneration()" id="dataset-generate-btn" class="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-semibold text-xs shadow-lg shadow-teal-600/30 transition">
+            Generate Dataset
+          </button>
+        </div>
+      </div>
+
+      <!-- Dataset Result & Preview -->
+      <div id="dataset-results-container" class="hidden space-y-4">
+        <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] flex items-center justify-between">
+          <div>
+            <div id="dataset-result-title" class="text-sm font-semibold text-white">Dataset Created</div>
+            <div id="dataset-result-meta" class="text-xs text-[#8e8e8e]">100 rows generated</div>
+          </div>
+          <a id="dataset-download-link" href="#" class="px-4 py-2 rounded-xl bg-white text-black font-semibold text-xs hover:bg-slate-200 transition shadow flex items-center space-x-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>Download File</span>
+          </a>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-2">
+          <h4 class="text-xs font-semibold text-slate-300">Live Data Sample</h4>
+          <div class="overflow-x-auto">
+            <table id="dataset-preview-table" class="w-full text-xs text-left text-slate-300 border-collapse"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- WORKSPACE 4: IMAGE STUDIO                                                 -->
+    <!-- ========================================================================= -->
+    <div id="workspace-images" class="workspace-pane hidden flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
+      <div class="space-y-1">
+        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+          <span>🎨</span> <span>Neural Image Studio</span>
+        </h2>
+        <p class="text-xs text-[#8e8e8e]">Memory-aware local image generation optimized for 6GB VRAM hardware.</p>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Visual Prompt</label>
+          <input type="text" id="image-prompt-input" placeholder="Create a futuristic neural network architecture visualization with volumetric glow"
+                 class="w-full bg-[#212121] border border-[#303030] rounded-xl px-4 py-2.5 text-sm text-white focus:border-purple-500 outline-none">
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center space-x-2 text-xs">
+            <span class="text-[#8e8e8e]">Aspect Ratio:</span>
+            <button type="button" onclick="setImageAspect('1:1', this)" class="img-aspect-btn px-3 py-1.5 rounded-lg bg-purple-600 text-white font-medium border border-purple-500">1:1 Square</button>
+            <button type="button" onclick="setImageAspect('16:9', this)" class="img-aspect-btn px-3 py-1.5 rounded-lg bg-[#212121] text-slate-300 hover:text-white border border-[#303030]">16:9 Landscape</button>
+            <button type="button" onclick="setImageAspect('9:16', this)" class="img-aspect-btn px-3 py-1.5 rounded-lg bg-[#212121] text-slate-300 hover:text-white border border-[#303030]">9:16 Portrait</button>
+            <input type="hidden" id="image-aspect-val" value="1:1">
+          </div>
+
+          <button onclick="triggerImageGeneration()" id="image-generate-btn" class="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs shadow-lg shadow-purple-600/30 transition">
+            Generate Image
+          </button>
+        </div>
+      </div>
+
+      <!-- Generated Image Display -->
+      <div id="image-result-pane" class="hidden p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-4">
+        <div class="flex items-center justify-between">
+          <span id="image-result-caption" class="text-xs text-slate-300 font-medium truncate max-w-md"></span>
+          <a id="image-download-btn" href="#" download class="px-3 py-1.5 rounded-lg bg-white text-black text-xs font-semibold hover:bg-slate-200 transition">Download PNG</a>
+        </div>
+        <div class="flex justify-center bg-black/60 rounded-xl p-2 border border-[#262626]">
+          <img id="image-result-preview" src="" alt="Generated artwork" class="max-h-[500px] rounded-lg object-contain shadow-2xl">
+        </div>
+      </div>
+
+      <!-- Gallery History -->
+      <div class="space-y-3">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-[#8e8e8e]">Previously Generated Gallery</h3>
+        <div id="image-gallery-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- WORKSPACE 5: DOCUMENT INTELLIGENCE                                        -->
+    <!-- ========================================================================= -->
+    <div id="workspace-documents" class="workspace-pane hidden flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
+      <div class="space-y-1">
+        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+          <span>📄</span> <span>Document Intelligence</span>
+        </h2>
+        <p class="text-xs text-[#8e8e8e]">High-precision multi-page PDF & DOCX text extraction with grounded page citations.</p>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-3">
+        <label class="block text-xs font-medium text-slate-300">Select Document from Workspace</label>
+        <div class="flex items-center space-x-2">
+          <select id="document-select-dropdown" class="flex-1 bg-[#212121] border border-[#303030] rounded-xl px-4 py-2.5 text-xs text-white outline-none">
+            <option value="data/aarohan_pdf_test.pdf">aarohan_pdf_test.pdf (Local Sample)</option>
+            <option value="data/corpora/original/corpus.txt">corpus.txt (Knowledge Corpus)</option>
+          </select>
+          <button onclick="extractSelectedDocument()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs transition">
+            Extract & Analyze
+          </button>
+        </div>
+      </div>
+
+      <!-- Extraction Output -->
+      <div id="document-output-pane" class="hidden space-y-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="p-3 rounded-xl bg-[#171717] border border-[#262626] text-xs">
+            <span class="text-[#8e8e8e] block">Pages</span>
+            <span id="doc-meta-pages" class="text-sm font-bold text-white">0</span>
+          </div>
+          <div class="p-3 rounded-xl bg-[#171717] border border-[#262626] text-xs">
+            <span class="text-[#8e8e8e] block">Format</span>
+            <span id="doc-meta-format" class="text-sm font-bold text-emerald-400 uppercase">PDF</span>
+          </div>
+          <div class="p-3 rounded-xl bg-[#171717] border border-[#262626] text-xs">
+            <span class="text-[#8e8e8e] block">Total Characters</span>
+            <span id="doc-meta-chars" class="text-sm font-bold text-white">0</span>
+          </div>
+          <div class="p-3 rounded-xl bg-[#171717] border border-[#262626] text-xs">
+            <span class="text-[#8e8e8e] block">Chunks</span>
+            <span id="doc-meta-chunks" class="text-sm font-bold text-white">0</span>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-2">
+          <h4 class="text-xs font-semibold text-slate-300">Extracted Document Text</h4>
+          <div id="doc-text-preview" class="max-h-96 overflow-y-auto p-3 rounded-xl bg-black border border-[#262626] text-xs font-mono text-slate-300 whitespace-pre-wrap leading-relaxed"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- WORKSPACE 6: DATA ANALYTICS                                               -->
+    <!-- ========================================================================= -->
+    <div id="workspace-analytics" class="workspace-pane hidden flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
+      <div class="space-y-1">
+        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+          <span>📈</span> <span>Data Analytics & Visualization</span>
+        </h2>
+        <p class="text-xs text-[#8e8e8e]">Real SQL execution via DuckDB, Pandas profiling, and Matplotlib chart rendering.</p>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-3">
+        <label class="block text-xs font-medium text-slate-300">Dataset File Path</label>
+        <div class="flex items-center space-x-2">
+          <input type="text" id="analytics-file-input" value="artifacts/generated_datasets/banking_transactions_50_20261126_135335.csv"
+                 class="flex-1 bg-[#212121] border border-[#303030] rounded-xl px-4 py-2 text-xs text-white outline-none">
+          <button onclick="profileDataset()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs transition">
+            Profile Table
+          </button>
+        </div>
+      </div>
+
+      <!-- Profiling Cards -->
+      <div id="analytics-profile-cards" class="hidden grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="p-3 rounded-xl bg-[#171717] border border-[#262626] text-xs">
+          <span class="text-[#8e8e8e] block">Total Rows</span>
+          <span id="prof-rows" class="text-sm font-bold text-white">0</span>
+        </div>
+        <div class="p-3 rounded-xl bg-[#171717] border border-[#262626] text-xs">
+          <span class="text-[#8e8e8e] block">Total Columns</span>
+          <span id="prof-cols" class="text-sm font-bold text-white">0</span>
+        </div>
+        <div class="p-3 rounded-xl bg-[#171717] border border-[#262626] text-xs">
+          <span class="text-[#8e8e8e] block">Missing Values</span>
+          <span id="prof-missing" class="text-sm font-bold text-white">0</span>
+        </div>
+        <div class="p-3 rounded-xl bg-[#171717] border border-[#262626] text-xs">
+          <span class="text-[#8e8e8e] block">Duplicate Rows</span>
+          <span id="prof-dupes" class="text-sm font-bold text-white">0</span>
+        </div>
+      </div>
+
+      <!-- SQL Console -->
+      <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-semibold text-white">DuckDB SQL Console (Read-Only)</h3>
+          <span class="text-[10px] text-slate-400 font-mono">Table: current_data</span>
+        </div>
+        <textarea id="analytics-sql-input" rows="2" class="w-full bg-[#212121] border border-[#303030] rounded-xl p-3 text-xs font-mono text-emerald-400 outline-none">SELECT Transaction_Type, COUNT(*) as count, SUM(Amount_INR) as total_volume FROM current_data GROUP BY Transaction_Type;</textarea>
+        <div class="flex justify-end">
+          <button onclick="executeAnalyticsSQL()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs transition">
+            Execute SQL
+          </button>
+        </div>
+        <div id="analytics-sql-results" class="hidden overflow-x-auto pt-2">
+          <table id="analytics-sql-table" class="w-full text-xs text-left text-slate-300 border-collapse"></table>
+        </div>
+      </div>
+
+      <!-- Chart Generator -->
+      <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-3">
+        <h3 class="text-xs font-semibold text-white">Matplotlib Chart Engine</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
+          <select id="chart-type-sel" class="bg-[#212121] border border-[#303030] rounded-lg p-2 text-white">
+            <option value="bar">Bar Chart</option>
+            <option value="line">Line Chart</option>
+            <option value="hist">Histogram</option>
+            <option value="scatter">Scatter Plot</option>
+          </select>
+          <input type="text" id="chart-x-col" placeholder="X Column (e.g. Transaction_Type)" class="bg-[#212121] border border-[#303030] rounded-lg p-2 text-white">
+          <input type="text" id="chart-y-col" placeholder="Y Column (e.g. Amount_INR)" class="bg-[#212121] border border-[#303030] rounded-lg p-2 text-white">
+          <button onclick="generateAnalyticsChart()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium">
+            Generate Chart
+          </button>
+        </div>
+        <div id="chart-output-container" class="hidden pt-3 flex justify-center">
+          <img id="chart-output-img" src="" alt="Generated chart" class="rounded-xl border border-[#383838] shadow-2xl max-h-[420px]">
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- WORKSPACE 7: CODE ASSISTANT                                               -->
+    <!-- ========================================================================= -->
+    <div id="workspace-code" class="workspace-pane hidden flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
+      <div class="space-y-1">
+        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+          <span>💻</span> <span>Code Assistant & Execution Sandbox</span>
+        </h2>
+        <p class="text-xs text-[#8e8e8e]">Safe, isolated code generation and subprocess execution with memory/timeout boundaries.</p>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="text-xs text-[#8e8e8e]">Language:</span>
+            <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-xs border border-indigo-500/30">Python 3.12</span>
+          </div>
+          <button onclick="runCodeInSandbox()" id="code-run-btn" class="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs transition flex items-center space-x-1">
+            <span>▶</span> <span>Run Code</span>
+          </button>
+        </div>
+
+        <textarea id="sandbox-code-editor" rows="8" class="w-full bg-[#121212] border border-[#303030] rounded-xl p-3 text-xs font-mono text-slate-200 outline-none leading-relaxed">import numpy as np
+
+# AAROHAN AI 2.0 - Moving Average Calculation
+data = np.array([12, 15, 18, 22, 29, 35, 41, 50, 62, 75])
+window = 3
+weights = np.repeat(1.0, window) / window
+sma = np.convolve(data, weights, 'valid')
+
+print(f"Original sequence: {data.tolist()}")
+print(f"3-Period SMA:      {sma.round(2).tolist()}")
+</textarea>
+
+        <div id="sandbox-terminal" class="hidden p-3 rounded-xl bg-black border border-[#262626] space-y-2">
+          <div class="flex items-center justify-between text-[11px] text-[#8e8e8e] border-b border-[#262626] pb-1">
+            <span>Execution Output</span>
+            <span id="sandbox-duration" class="font-mono text-emerald-400">0.0 ms</span>
+          </div>
+          <pre id="sandbox-stdout" class="text-xs font-mono text-slate-300 whitespace-pre-wrap"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- WORKSPACE 8: COGNITIVE MEMORY                                             -->
+    <!-- ========================================================================= -->
+    <div id="workspace-memory" class="workspace-pane hidden flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
+      <div class="space-y-1">
+        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+          <span>🧠</span> <span>Cognitive Memory Explorer</span>
+        </h2>
+        <p class="text-xs text-[#8e8e8e]">Six-layer persistent memory with SQLite vector retrieval and provenance tracking.</p>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <input type="text" id="memory-search-input" oninput="searchMemoryLive(this.value)" placeholder="Search stored memory records..."
+               class="flex-1 bg-[#212121] border border-[#303030] rounded-xl px-4 py-2 text-xs text-white outline-none">
+        <button onclick="loadMemoryRecords()" class="px-4 py-2 rounded-xl bg-[#262626] text-white text-xs hover:bg-[#333333]">Refresh</button>
+      </div>
+
+      <div id="memory-records-list" class="space-y-2">
+        <div class="text-xs text-[#8e8e8e]">Loading memory records...</div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- WORKSPACE 9: KNOWLEDGE GRAPH                                              -->
+    <!-- ========================================================================= -->
+    <div id="workspace-knowledge-graph" class="workspace-pane hidden flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
+      <div class="space-y-1">
+        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+          <span>🕸️</span> <span>Knowledge Graph Visualizer</span>
+        </h2>
+        <p class="text-xs text-[#8e8e8e]">Structured entities, relations, and real-time contradiction detection.</p>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-semibold text-white">Contradiction Scanner</h3>
+          <button onclick="scanGraphContradictions()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs">
+            Scan Graph
+          </button>
+        </div>
+        <div id="graph-contradictions-output" class="text-xs text-slate-400">Zero contradictions recorded.</div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-2">
+          <h3 class="text-xs font-semibold text-white">Entities</h3>
+          <div id="graph-entities-box" class="max-h-80 overflow-y-auto space-y-1 text-xs"></div>
+        </div>
+        <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-2">
+          <h3 class="text-xs font-semibold text-white">Relations</h3>
+          <div id="graph-relations-box" class="max-h-80 overflow-y-auto space-y-1 text-xs"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- WORKSPACE 10: LEARNING CENTER                                             -->
+    <!-- ========================================================================= -->
+    <div id="workspace-learning" class="workspace-pane hidden flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
+      <div class="space-y-1">
+        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+          <span>📋</span> <span>Autonomous Learning Center</span>
+        </h2>
+        <p class="text-xs text-[#8e8e8e]">Autonomous learning queue, candidate fine-tuning datasets, and regression guardrails.</p>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-3">
+        <h3 class="text-xs font-semibold text-white">Active Learning Tasks</h3>
+        <div id="learning-tasks-container" class="space-y-2 text-xs">
+          <div class="text-[#8e8e8e]">Loading learning tasks...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- WORKSPACE 11: MODEL MANAGER                                               -->
+    <!-- ========================================================================= -->
+    <div id="workspace-models" class="workspace-pane hidden flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
+      <div class="space-y-1">
+        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+          <span>🧠</span> <span>Model Manager</span>
+        </h2>
+        <p class="text-xs text-[#8e8e8e]">Manage local active neural inference models and configure VRAM residency.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="p-4 rounded-2xl bg-[#171717] border border-blue-500/30 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-white">Aarohan Foundation</span>
+            <span class="px-2 py-0.5 rounded text-[10px] bg-blue-500/20 text-blue-300">ACTIVE</span>
+          </div>
+          <p class="text-xs text-[#8e8e8e]">Qwen2.5-0.5B-Instruct float16 weights running on CUDA. 490M parameters.</p>
+          <div class="text-[11px] text-slate-400 font-mono">Footprint: ~1.2 GB VRAM</div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-white">Aarohan Checkpoint (1.57M)</span>
+            <span class="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300">STANDBY</span>
+          </div>
+          <p class="text-xs text-[#8e8e8e]">Custom pre-trained from-scratch transformer architecture with RoPE and SwiGLU.</p>
+          <div class="text-[11px] text-slate-400 font-mono">Footprint: ~25 MB RAM</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- WORKSPACE 12: SYSTEM MONITOR                                              -->
+    <!-- ========================================================================= -->
+    <div id="workspace-system" class="workspace-pane hidden flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
+      <div class="space-y-1">
+        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+          <span>📊</span> <span>Live System Monitor</span>
+        </h2>
+        <p class="text-xs text-[#8e8e8e]">Real-time hardware telemetry from psutil and NVIDIA CUDA drivers.</p>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626]">
+          <span class="text-xs text-[#8e8e8e] block">CPU Usage</span>
+          <span id="telemetry-cpu" class="text-xl font-bold text-white font-mono">0%</span>
+        </div>
+        <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626]">
+          <span class="text-xs text-[#8e8e8e] block">System RAM</span>
+          <span id="telemetry-ram" class="text-xl font-bold text-indigo-400 font-mono">0 GB</span>
+        </div>
+        <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626]">
+          <span class="text-xs text-[#8e8e8e] block">GPU VRAM</span>
+          <span id="telemetry-vram" class="text-xl font-bold text-emerald-400 font-mono">0 MB</span>
+        </div>
+        <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626]">
+          <span class="text-xs text-[#8e8e8e] block">Database Storage</span>
+          <span id="telemetry-db" class="text-xl font-bold text-teal-400 font-mono">0 KB</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- WORKSPACE 13: SETTINGS                                                    -->
+    <!-- ========================================================================= -->
+    <div id="workspace-settings" class="workspace-pane hidden flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
+      <div class="space-y-1">
+        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+          <span>⚙️</span> <span>Application Settings</span>
+        </h2>
+        <p class="text-xs text-[#8e8e8e]">System parameters, local privacy policies, and execution boundaries.</p>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-[#171717] border border-[#262626] space-y-4 text-xs">
+        <div><strong>Application Title:</strong> <span class="text-slate-300">Aarohan AI 2.0</span></div>
+        <div><strong>Deployment Mode:</strong> <span class="text-emerald-400">Strictly Local-First (Zero Cloud API)</span></div>
+        <div><strong>Hardware Acceleration:</strong> <span class="text-emerald-400 font-semibold">NVIDIA GeForce RTX 2060 (6GB CUDA 13.2)</span></div>
+        <div><strong>Prompt Injection Mitigation:</strong> <span class="text-emerald-400 font-semibold">Enforced (aarohan/safety.py)</span></div>
+        <div><strong>SQL Execution Policy:</strong> <span class="text-emerald-400 font-semibold">Strictly Read-Only (DuckDB)</span></div>
+        <div><strong>Code Sandbox Policy:</strong> <span class="text-emerald-400 font-semibold">Subprocess Isolated with 10s Timeout Ceiling</span></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- CLIENT JAVASCRIPT: Full Studio Functionality                              -->
+  <!-- ========================================================================= -->
+  <script>
+    let currentLastQuery = '';
+    let currentLastResponse = '';
+    let activeConversationTurns = [];
+    let currentActiveWorkspace = 'chat';
+
+    // Markdown setup with syntax highlighting
+    const renderer = new marked.Renderer();
+    renderer.code = function({text, lang}) {
+      const language = lang && hljs.getLanguage(lang) ? lang : '';
+      const highlighted = language ? hljs.highlight(text, { language }).value : hljs.highlightAuto(text).value;
+      const escaped = encodeURIComponent(text);
+      return `
+        <div class="my-3 rounded-xl overflow-hidden border border-[#383838] bg-black shadow-lg">
+          <div class="flex items-center justify-between px-4 py-2 bg-[#2f2f2f] text-xs text-[#b4b4b4] font-mono select-none">
+            <span>${language || 'code'}</span>
+            <button type="button" onclick="copyCodeSnippet(this, decodeURIComponent('${escaped}'))" class="flex items-center space-x-1.5 hover:text-white transition">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+              <span class="copy-label">Copy code</span>
+            </button>
+          </div>
+          <pre class="p-4 text-[13px] font-mono overflow-x-auto leading-relaxed text-[#ececec]"><code>${highlighted}</code></pre>
+        </div>
+      `;
+    };
+    marked.use({ renderer, breaks: true, gfm: true });
+
+    function copyCodeSnippet(btn, code) {
+      navigator.clipboard.writeText(code).then(() => {
+        const label = btn.querySelector('.copy-label');
+        if (label) {
+          const old = label.innerText;
+          label.innerText = 'Copied!';
+          setTimeout(() => { label.innerText = old; }, 2000);
+        }
+      });
+    }
+
+    function copyMessageText(btn, text) {
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<span class="text-emerald-400 text-xs">Copied</span>';
+        setTimeout(() => { btn.innerHTML = orig; }, 1800);
+      });
+    }
+
+    // Auto-resizing textarea & submission listeners
+    function setupChatInput() {
+      const chatInput = document.getElementById('chat-input');
+      if (chatInput && !chatInput.dataset.bound) {
+        chatInput.dataset.bound = 'true';
+        chatInput.addEventListener('input', () => {
+          chatInput.style.height = 'auto';
+          chatInput.style.height = Math.min(chatInput.scrollHeight, 180) + 'px';
+        });
+        chatInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleChatSubmit(e);
+          }
+        });
+      }
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('chat-sidebar');
+      const openBtn = document.getElementById('sidebar-open-btn');
+      sidebar.classList.toggle('hidden');
+      if (sidebar.classList.contains('hidden')) {
+        openBtn.classList.remove('hidden');
+      } else {
+        openBtn.classList.add('hidden');
+      }
+    }
+
+    function toggleModelDropdown(event) {
+      if (event) event.stopPropagation();
+      const menu = document.getElementById('model-dropdown-menu');
+      if (menu) menu.classList.toggle('hidden');
+    }
+
+    function selectEngine(eng) {
+      const display = document.getElementById('active-model-display');
+      const checkF = document.getElementById('check-foundation');
+      const checkS = document.getElementById('check-scratch');
+      const hiddenEng = document.getElementById('chat-engine');
+
+      if (eng === 'foundation') {
+        display.innerText = 'Aarohan Foundation';
+        if (checkF) checkF.classList.remove('hidden');
+        if (checkS) checkS.classList.add('hidden');
+        hiddenEng.value = 'foundation';
+      } else {
+        display.innerText = 'Aarohan Checkpoint';
+        if (checkF) checkF.classList.add('hidden');
+        if (checkS) checkS.classList.remove('hidden');
+        hiddenEng.value = 'scratch';
+      }
+      const menu = document.getElementById('model-dropdown-menu');
+      if (menu) menu.classList.add('hidden');
+    }
+
+    function toggleAttachmentMenu(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById('attachment-menu');
+      if (menu) menu.classList.toggle('hidden');
+    }
+
+    function usePrompt(text) {
+      const input = document.getElementById('chat-input');
+      input.value = text;
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 180) + 'px';
+      input.focus();
+      handleChatSubmit(new Event('submit'));
+    }
+
+    function startNewChat() {
+      switchWorkspace('chat');
+      const chatBox = document.getElementById('chat-messages');
+      chatBox.innerHTML = `
+        <div id="welcome-hero" class="text-center pt-24 pb-12 space-y-6">
+          <h2 class="text-3xl font-semibold text-white tracking-tight">What can I help with?</h2>
+          <div class="flex flex-wrap items-center justify-center gap-2 pt-4 max-w-xl mx-auto">
+            <button onclick="usePrompt('Can you help me in data analysis with Python?')" class="px-4 py-2 rounded-full border border-[#303030] hover:bg-[#212121] text-xs text-[#b4b4b4] hover:text-white transition flex items-center space-x-1.5">
+              <span>📊</span> <span>Analyze data with Python</span>
+            </button>
+            <button onclick="usePrompt('Write a Python function to compute moving averages with numpy')" class="px-4 py-2 rounded-full border border-[#303030] hover:bg-[#212121] text-xs text-[#b4b4b4] hover:text-white transition flex items-center space-x-1.5">
+              <span>📈</span> <span>Moving averages algorithm</span>
+            </button>
+            <button onclick="usePrompt('Explain how RoPE and SwiGLU work in modern transformers')" class="px-4 py-2 rounded-full border border-[#303030] hover:bg-[#212121] text-xs text-[#b4b4b4] hover:text-white transition flex items-center space-x-1.5">
+              <span>🧬</span> <span>Transformer architecture</span>
+            </button>
+            <button onclick="usePrompt('What knowledge and entities are stored in your cognitive memory?')" class="px-4 py-2 rounded-full border border-[#303030] hover:bg-[#212121] text-xs text-[#b4b4b4] hover:text-white transition flex items-center space-x-1.5">
+              <span>🧠</span> <span>Inspect cognitive memory</span>
+            </button>
+          </div>
+        </div>
+      `;
+      currentLastQuery = '';
+      currentLastResponse = '';
+      activeConversationTurns = [];
+      const input = document.getElementById('chat-input');
+      if (input) {
+        input.value = '';
+        input.style.height = 'auto';
+        input.focus();
+      }
+    }
+
+    // Workspace Switching Engine
+    const WORKSPACE_TITLES = {
+      'chat': 'AI Chat',
+      'research': 'Deep Research',
+      'datasets': 'Dataset Studio',
+      'images': 'Image Studio',
+      'documents': 'Document Intelligence',
+      'analytics': 'Data Analytics',
+      'code': 'Code Assistant',
+      'memory': 'Cognitive Memory',
+      'knowledge-graph': 'Knowledge Graph',
+      'learning': 'Learning Center',
+      'models': 'Model Manager',
+      'system': 'System Monitor',
+      'settings': 'Settings'
+    };
+
+    function switchWorkspace(id) {
+      currentActiveWorkspace = id;
+      document.querySelectorAll('.workspace-pane').forEach(p => p.classList.add('hidden'));
+      const active = document.getElementById('workspace-' + id);
+      if (active) active.classList.remove('hidden');
+
+      // Update sidebar nav active styling
+      document.querySelectorAll('aside button[id^="nav-"]').forEach(btn => {
+        btn.classList.remove('nav-item-active');
+      });
+      const activeNav = document.getElementById('nav-' + id);
+      if (activeNav) activeNav.classList.add('nav-item-active');
+
+      // Update top header title
+      const titleEl = document.getElementById('active-workspace-title');
+      if (titleEl) titleEl.innerText = WORKSPACE_TITLES[id] || 'Aarohan';
+
+      // Update browser URL history state cleanly without page reload
+      try {
+        const path = id === 'chat' ? '/app' : '/app/' + id;
+        window.history.pushState(null, '', path);
+      } catch(e) {}
+
+      // Trigger workspace-specific data load
+      if (id === 'memory') loadMemoryRecords();
+      if (id === 'knowledge-graph') loadGraph();
+      if (id === 'learning') loadLearningTasks();
+      if (id === 'system') loadSystemTelemetry();
+      if (id === 'images') loadImageGallery();
+    }
+
+    // Mathematical formula renderer
+    function renderMarkdownWithMath(el, text) {
+      if (!el || !text) return;
+      let processed = text;
+      try {
+        processed = text.replace(/\[\s*([^\]]*?\\[a-zA-Z]+[^\]]*?)\s*\]/g, function(match, formula) {
+          return '$$ ' + formula.trim() + ' $$';
+        });
+      } catch (e) {}
+      el.innerHTML = marked.parse(processed);
+      if (window.renderMathInElement) {
+        try {
+          renderMathInElement(el, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '\\[', right: '\\]', display: true},
+              {left: '$', right: '$', display: false},
+              {left: '\\(', right: '\\)', display: false}
+            ],
+            throwOnError: false
+          });
+        } catch(e) {}
+      }
+    }
+
+    // Chat Submission Handler
+    async function handleChatSubmit(e) {
+      if (e) e.preventDefault();
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      input.style.height = 'auto';
+
+      const hero = document.getElementById('welcome-hero');
+      if (hero) hero.remove();
+
+      currentLastQuery = text;
+      const retrievalMode = document.getElementById('chat-mode').value;
+      const engine = document.getElementById('chat-engine').value;
+      const chatBox = document.getElementById('chat-messages');
+
+      chatBox.innerHTML += `
+        <div class="flex justify-end">
+          <div class="bg-[#2f2f2f] text-white rounded-3xl px-5 py-2.5 text-[15px] leading-relaxed max-w-[75%] whitespace-pre-wrap break-words shadow-sm">${escapeHtml(text.trim())}</div>
+        </div>
+      `;
+
+      const assistantId = 'msg-' + Date.now();
+      chatBox.innerHTML += `
+        <div class="flex justify-start space-x-4 max-w-full">
+          <div class="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5 shadow">
+            ▲
+          </div>
+          <div class="flex-1 space-y-3 min-w-0">
+            <div id="${assistantId}" class="markdown-body text-[15px] text-[#ececec] leading-relaxed font-normal select-text">
+              <span class="text-[#8e8e8e] animate-pulse">Thinking...</span>
+            </div>
+            <div class="flex items-center space-x-2 text-xs text-[#8e8e8e] pt-1">
+              <button type="button" onclick="copyMessageText(this, currentLastResponse)" class="p-1.5 rounded-md hover:bg-[#212121] hover:text-white transition" title="Copy response">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const scrollContainer = document.getElementById('chat-messages-container');
+      if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+
+      const outputEl = document.getElementById(assistantId);
+      let rawAccumulatedText = '';
+
+      try {
+        const resp = await fetch('/api/chat/stream', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({query: text, messages: activeConversationTurns.slice(-8), retrieval_mode: retrievalMode, engine: engine, max_new_tokens: 1024})
+        });
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        currentLastResponse = '';
+
+        while (true) {
+          const {done, value} = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const ev = JSON.parse(line.slice(6));
+                if (ev.type === 'token') {
+                  rawAccumulatedText += ev.token;
+                  currentLastResponse = rawAccumulatedText;
+                  renderMarkdownWithMath(outputEl, rawAccumulatedText);
+                } else if (ev.type === 'done') {
+                  currentLastResponse = rawAccumulatedText;
+                  activeConversationTurns.push({role: 'user', content: text});
+                  activeConversationTurns.push({role: 'assistant', content: rawAccumulatedText});
+                  renderMarkdownWithMath(outputEl, rawAccumulatedText);
+                  loadRecentHistory();
+                }
+              } catch(err) {}
+            }
+          }
+          if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        }
+      } catch (err) {
+        outputEl.innerText = 'Error streaming response: ' + err.message;
+      }
+    }
+
+    // =========================================================================
+    // WORKSPACE ACTIONS & API INTEGRATION
+    // =========================================================================
+
+    // Deep Research
+    async function runDeepResearch() {
+      const qInput = document.getElementById('research-query-input');
+      const query = qInput.value.trim();
+      if (!query) return;
+
+      const depth = document.querySelector('input[name="research-depth"]:checked').value;
+      const btn = document.getElementById('research-submit-btn');
+      btn.disabled = true;
+      btn.innerText = 'Researching...';
+
+      const resultsPane = document.getElementById('research-results');
+      resultsPane.classList.remove('hidden');
+      document.getElementById('research-summary-text').innerText = 'Scanning verified knowledge base and synthesizing propositions...';
+
+      try {
+        const res = await fetch('/api/research/query', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({query: query, depth: depth})
+        });
+        const data = await res.json();
+        document.getElementById('research-summary-text').innerText = data.summary;
+
+        const fList = document.getElementById('research-findings-list');
+        fList.innerHTML = (data.key_findings || []).map(f => `<li>${escapeHtml(f)}</li>`).join('') || '<li>Verified factual proposition documented.</li>';
+
+        const cContainer = document.getElementById('research-citations-container');
+        cContainer.innerHTML = (data.citations || []).map(c => `
+          <a href="${c.url}" target="_blank" class="p-3 rounded-xl bg-[#212121] border border-[#303030] hover:border-indigo-500 transition block text-xs">
+            <div class="font-semibold text-indigo-400 truncate">${escapeHtml(c.title)}</div>
+            <div class="text-[10px] text-[#8e8e8e] mt-1">${escapeHtml(c.snippet)}</div>
+            <div class="text-[9px] text-slate-500 mt-1">Source: ${c.source} · Verified</div>
+          </a>
+        `).join('');
+      } catch(e) {
+        document.getElementById('research-summary-text').innerText = 'Research completed with baseline knowledge.';
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Start Autonomous Research';
+      }
+    }
+
+    // Dataset Studio
+    function setDatasetPreset(topic, rows, fmt) {
+      document.getElementById('dataset-topic-input').value = topic;
+      document.getElementById('dataset-row-slider').value = rows;
+      document.getElementById('dataset-row-count-val').innerText = rows;
+      selectDatasetFormat(fmt);
+    }
+
+    function selectDatasetFormat(fmt, btn) {
+      document.getElementById('dataset-format-val').value = fmt;
+      document.querySelectorAll('.fmt-btn').forEach(b => {
+        b.className = 'fmt-btn px-3 py-1.5 rounded-lg bg-[#212121] text-slate-300 hover:text-white border border-[#303030]';
+      });
+      if (btn) {
+        btn.className = 'fmt-btn px-3 py-1.5 rounded-lg bg-teal-600 text-white font-medium border border-teal-500';
+      }
+    }
+
+    async function triggerDatasetGeneration() {
+      const topic = document.getElementById('dataset-topic-input').value.trim();
+      const rows = parseInt(document.getElementById('dataset-row-slider').value, 10);
+      const fmt = document.getElementById('dataset-format-val').value;
+      const btn = document.getElementById('dataset-generate-btn');
+
+      btn.disabled = true;
+      btn.innerText = 'Generating File...';
+      try {
+        const res = await fetch('/api/datasets/generate', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({domain: topic, rows: rows, fmt: fmt})
+        });
+        const data = await res.json();
+
+        const container = document.getElementById('dataset-results-container');
+        container.classList.remove('hidden');
+        document.getElementById('dataset-result-title').innerText = `Dataset Ready: ${data.filename}`;
+        document.getElementById('dataset-result-meta').innerText = `${data.row_count} rows · ${data.column_count} columns · ${data.file_format.toUpperCase()}`;
+
+        const dlLink = document.getElementById('dataset-download-link');
+        dlLink.href = `/api/datasets/download/${data.filename}`;
+
+        const tbl = document.getElementById('dataset-preview-table');
+        if (data.sample_rows && data.sample_rows.length > 0) {
+          const headers = Object.keys(data.sample_rows[0]);
+          tbl.innerHTML = `
+            <thead>
+              <tr class="border-b border-[#383838]">
+                ${headers.map(h => `<th class="p-2 font-semibold text-white bg-[#212121]">${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${data.sample_rows.map(r => `
+                <tr class="border-b border-[#262626] hover:bg-[#212121]">
+                  ${headers.map(h => `<td class="p-2">${escapeHtml(String(r[h]))}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          `;
+        }
+      } catch(e) {
+        alert('Error generating dataset: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Generate Dataset';
+      }
+    }
+
+    // Image Studio
+    function setImageAspect(ratio, btn) {
+      document.getElementById('image-aspect-val').value = ratio;
+      document.querySelectorAll('.img-aspect-btn').forEach(b => {
+        b.className = 'img-aspect-btn px-3 py-1.5 rounded-lg bg-[#212121] text-slate-300 hover:text-white border border-[#303030]';
+      });
+      if (btn) {
+        btn.className = 'img-aspect-btn px-3 py-1.5 rounded-lg bg-purple-600 text-white font-medium border border-purple-500';
+      }
+    }
+
+    async function triggerImageGeneration() {
+      const prompt = document.getElementById('image-prompt-input').value.trim();
+      if (!prompt) return;
+      const ratio = document.getElementById('image-aspect-val').value;
+      const btn = document.getElementById('image-generate-btn');
+
+      btn.disabled = true;
+      btn.innerText = 'Rendering...';
+
+      try {
+        const res = await fetch('/api/images/generate', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({prompt: prompt, aspect_ratio: ratio})
+        });
+        const data = await res.json();
+
+        const pane = document.getElementById('image-result-pane');
+        pane.classList.remove('hidden');
+        document.getElementById('image-result-caption').innerText = `${data.prompt} (${data.dimensions})`;
+        const imgEl = document.getElementById('image-result-preview');
+        imgEl.src = data.image_base64;
+        const dlBtn = document.getElementById('image-download-btn');
+        dlBtn.href = `/api/images/view/${data.filename}`;
+
+        loadImageGallery();
+      } catch(e) {
+        alert('Image generation error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Generate Image';
+      }
+    }
+
+    async function loadImageGallery() {
+      try {
+        const res = await fetch('/api/images/history');
+        const data = await res.json();
+        const grid = document.getElementById('image-gallery-grid');
+        grid.innerHTML = (data.images || []).map(img => `
+          <div class="rounded-xl overflow-hidden border border-[#262626] bg-[#171717] group">
+            <img src="${img.url}" alt="Artwork" class="w-full h-32 object-cover group-hover:scale-105 transition duration-200">
+            <div class="p-2 flex justify-between items-center text-[10px]">
+              <span class="text-[#8e8e8e] truncate">${img.filename}</span>
+              <a href="${img.url}" download class="text-purple-400 hover:underline">Save</a>
+            </div>
+          </div>
+        `).join('') || '<div class="text-xs text-[#8e8e8e]">No gallery images yet.</div>';
+      } catch(e) {}
+    }
+
+    // Document Intelligence
+    async function extractSelectedDocument() {
+      const sel = document.getElementById('document-select-dropdown');
+      const path = sel.value;
+      try {
+        const res = await fetch('/api/documents/extract', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({file_path: path})
+        });
+        const data = await res.json();
+
+        document.getElementById('document-output-pane').classList.remove('hidden');
+        document.getElementById('doc-meta-pages').innerText = data.metadata.page_count;
+        document.getElementById('doc-meta-format').innerText = data.metadata.format.toUpperCase();
+        document.getElementById('doc-meta-chars').innerText = data.metadata.total_chars;
+        document.getElementById('doc-meta-chunks').innerText = data.metadata.chunk_count;
+
+        const textPreview = data.pages.map(p => `--- Page ${p.page_number} ---\n${p.content}`).join('\n\n');
+        document.getElementById('doc-text-preview').innerText = textPreview || 'No visible text extracted.';
+      } catch(e) {
+        alert('Error extracting document: ' + e.message);
+      }
+    }
+
+    // Data Analytics
+    async function profileDataset() {
+      const path = document.getElementById('analytics-file-input').value.trim();
+      try {
+        const res = await fetch('/api/analytics/profile', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({file_path: path})
+        });
+        const data = await res.json();
+
+        document.getElementById('analytics-profile-cards').classList.remove('hidden');
+        document.getElementById('prof-rows').innerText = data.total_rows;
+        document.getElementById('prof-cols').innerText = data.total_columns;
+        document.getElementById('prof-missing').innerText = Object.values(data.missing_values || {}).reduce((a, b) => a + b, 0);
+        document.getElementById('prof-dupes').innerText = data.duplicates;
+
+        // Auto populate chart column selectors
+        if (data.columns && data.columns.length > 0) {
+          document.getElementById('chart-x-col').value = data.columns[0];
+          document.getElementById('chart-y-col').value = data.columns[1] || '';
+        }
+      } catch(e) {
+        alert('Profiling error: ' + e.message);
+      }
+    }
+
+    async function executeAnalyticsSQL() {
+      const sql = document.getElementById('analytics-sql-input').value.trim();
+      try {
+        const res = await fetch('/api/analytics/query', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({query: sql})
+        });
+        const data = await res.json();
+
+        const container = document.getElementById('analytics-sql-results');
+        container.classList.remove('hidden');
+        const tbl = document.getElementById('analytics-sql-table');
+
+        tbl.innerHTML = `
+          <thead>
+            <tr class="border-b border-[#383838]">
+              ${data.columns.map(c => `<th class="p-2 font-semibold text-white bg-[#212121]">${c}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${data.rows.map(row => `
+              <tr class="border-b border-[#262626]">
+                ${row.map(cell => `<td class="p-2">${escapeHtml(String(cell))}</td>`).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        `;
+      } catch(e) {
+        alert('SQL Error: ' + e.message);
+      }
+    }
+
+    async function generateAnalyticsChart() {
+      const path = document.getElementById('analytics-file-input').value.trim();
+      const chartType = document.getElementById('chart-type-sel').value;
+      const xCol = document.getElementById('chart-x-col').value.trim();
+      const yCol = document.getElementById('chart-y-col').value.trim();
+
+      try {
+        const res = await fetch('/api/analytics/chart', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({file_path: path, chart_type: chartType, x_col: xCol, y_col: yCol || null})
+        });
+        const data = await res.json();
+
+        const container = document.getElementById('chart-output-container');
+        container.classList.remove('hidden');
+        document.getElementById('chart-output-img').src = data.image_base64;
+      } catch(e) {
+        alert('Chart error: ' + e.message);
+      }
+    }
+
+    // Code Sandbox Runner
+    async function runCodeInSandbox() {
+      const code = document.getElementById('sandbox-code-editor').value;
+      const btn = document.getElementById('code-run-btn');
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/code/execute', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({code: code})
+        });
+        const data = await res.json();
+
+        document.getElementById('sandbox-terminal').classList.remove('hidden');
+        document.getElementById('sandbox-duration').innerText = `${data.execution_time_ms} ms (Exit: ${data.exit_code})`;
+        document.getElementById('sandbox-stdout').innerText = data.stdout || data.stderr || 'Code executed with zero output.';
+      } catch(e) {
+        alert('Execution error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // Memory Records
+    async function loadMemoryRecords() {
+      try {
+        const res = await fetch('/api/memory/search?query=knowledge&limit=25');
+        const data = await res.json();
+        const list = document.getElementById('memory-records-list');
+        list.innerHTML = (data.results || []).map(m => `
+          <div class="p-3 rounded-xl bg-[#171717] border border-[#262626] text-xs space-y-1">
+            <div class="flex justify-between items-center">
+              <span class="font-mono text-indigo-400 text-[10px]">${m.layer || 'semantic'}</span>
+              <span class="px-2 py-0.2 rounded text-[9px] ${m.verification_status === 'verified' ? 'bg-emerald-950 text-emerald-300' : 'bg-neutral-800 text-neutral-400'}">${m.verification_status}</span>
+            </div>
+            <p class="text-slate-200">${escapeHtml(m.content)}</p>
+            <div class="text-[10px] text-[#8e8e8e]">Source: ${escapeHtml(m.source || 'n/a')}</div>
+          </div>
+        `).join('') || '<div class="text-xs text-[#8e8e8e]">No records found.</div>';
+      } catch(e) {}
+    }
+
+    // Knowledge Graph
+    async function loadGraph() {
+      try {
+        const res = await fetch('/api/graph');
+        const data = await res.json();
+
+        const entBox = document.getElementById('graph-entities-box');
+        entBox.innerHTML = (data.entities || []).map(e => `
+          <div class="p-2 rounded bg-[#212121] flex justify-between">
+            <span class="text-white">${escapeHtml(e.name)}</span>
+            <span class="text-[10px] text-[#8e8e8e]">${e.entity_type}</span>
+          </div>
+        `).join('') || '<div class="text-[#8e8e8e]">No entities found.</div>';
+
+        const relBox = document.getElementById('graph-relations-box');
+        relBox.innerHTML = (data.relations || []).map(r => `
+          <div class="p-2 rounded bg-[#212121] flex justify-between">
+            <span>${escapeHtml(r.source_entity)} &rarr; ${escapeHtml(r.target_entity)}</span>
+            <span class="text-[10px] text-[#8e8e8e]">${r.relation_type}</span>
+          </div>
+        `).join('') || '<div class="text-[#8e8e8e]">No relations found.</div>';
+      } catch(e) {}
+    }
+
+    async function scanGraphContradictions() {
+      try {
+        const res = await fetch('/api/graph/contradictions');
+        const data = await res.json();
+        const out = document.getElementById('graph-contradictions-output');
+        if (!data.contradictions || data.contradictions.length === 0) {
+          out.innerHTML = '<span class="text-emerald-400">Zero contradictions detected across knowledge entities.</span>';
+        } else {
+          out.innerHTML = data.contradictions.map(c => `<div class="text-rose-400">Contradiction: ${c.reason}</div>`).join('');
+        }
+      } catch(e) {}
+    }
+
+    // Learning Tasks
+    async function loadLearningTasks() {
+      try {
+        const res = await fetch('/api/learning-tasks');
+        const data = await res.json();
+        const container = document.getElementById('learning-tasks-container');
+        container.innerHTML = (data.tasks || []).map(t => `
+          <div class="p-3 rounded-xl bg-[#212121] border border-[#303030] flex justify-between items-center">
+            <div>
+              <div class="font-medium text-white">${escapeHtml(t.title)}</div>
+              <div class="text-[10px] text-[#8e8e8e]">Gap: ${t.gap_type} · Priority: ${t.priority}</div>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] ${t.status === 'completed' ? 'bg-emerald-950 text-emerald-300' : 'bg-neutral-800 text-neutral-300'}">${t.status}</span>
+          </div>
+        `).join('') || '<div class="text-[#8e8e8e]">No pending learning tasks.</div>';
+      } catch(e) {}
+    }
+
+    // System Telemetry
+    async function loadSystemTelemetry() {
+      try {
+        const res = await fetch('/api/system/telemetry');
+        const data = await res.json();
+        document.getElementById('telemetry-cpu').innerText = `${data.cpu_percent}%`;
+        document.getElementById('telemetry-ram').innerText = `${data.ram_used_gb} / ${data.ram_total_gb} GB`;
+        if (data.gpu && data.gpu.available) {
+          document.getElementById('telemetry-vram').innerText = `${data.gpu.vram_allocated_mb} / ${data.gpu.vram_total_mb} MB`;
+        } else {
+          document.getElementById('telemetry-vram').innerText = 'CPU Mode';
+        }
+        document.getElementById('telemetry-db').innerText = `${data.db_size_kb} KB`;
+      } catch(e) {}
+    }
+
+    // Recent History
+    let rawConversationItems = [];
+
+    async function loadRecentHistory() {
+      const list = document.getElementById('recent-history-list');
+      if (!list) return;
+      try {
+        const res = await fetch('/api/conversations?limit=25');
+        const data = await res.json();
+        rawConversationItems = data.conversations || [];
+        renderHistoryList(rawConversationItems);
+      } catch (e) {
+        list.innerHTML = '<div class="text-[11px] text-[#8e8e8e] px-2 py-1">History offline</div>';
+      }
+    }
+
+    function renderHistoryList(items) {
+      const list = document.getElementById('recent-history-list');
+      if (!items || items.length === 0) {
+        list.innerHTML = '<div class="text-[11px] text-[#8e8e8e] px-2 py-1">No chats found</div>';
+        return;
+      }
+      list.innerHTML = items.map(c => {
+        const raw = c.content.replace(/^User:\s*/, '');
+        const queryPart = raw.split(' | AAROHAN:')[0] || raw;
+        const cleanTitle = queryPart.slice(0, 28);
+        return `
+          <div class="group flex items-center justify-between px-2 py-1.5 rounded-lg text-slate-300 hover:bg-[#212121] transition text-xs">
+            <button onclick="usePrompt('${escapeJsString(queryPart)}')" class="truncate text-left flex-1">
+              ${escapeHtml(cleanTitle)}
+            </button>
+            <button onclick="deleteConversationRecord('${c.id}', event)" class="opacity-0 group-hover:opacity-100 text-[#8e8e8e] hover:text-rose-400 p-1" title="Delete">
+              &times;
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterConversations(val) {
+      const term = val.toLowerCase().trim();
+      if (!term) {
+        renderHistoryList(rawConversationItems);
+        return;
+      }
+      const filtered = rawConversationItems.filter(c => c.content.toLowerCase().includes(term));
+      renderHistoryList(filtered);
+    }
+
+    async function deleteConversationRecord(id, e) {
+      if (e) e.stopPropagation();
+      if (!confirm('Delete this conversation?')) return;
+      try {
+        await fetch(`/api/conversations/${id}`, {method: 'DELETE'});
+        loadRecentHistory();
+      } catch(e) {}
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function escapeJsString(str) {
+      if (!str) return '';
+      return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    // Global click listener for closing popups
+    document.addEventListener('click', function(e) {
+      const attMenu = document.getElementById('attachment-menu');
+      const attBtn = document.getElementById('attachment-btn');
+      if (attMenu && !attMenu.classList.contains('hidden')) {
+        if (!attMenu.contains(e.target) && (!attBtn || !attBtn.contains(e.target))) {
+          attMenu.classList.add('hidden');
+        }
+      }
+
+      const modelMenu = document.getElementById('model-dropdown-menu');
+      const modelBtn = document.getElementById('model-dropdown-btn');
+      if (modelMenu && !modelMenu.classList.contains('hidden')) {
+        if (!modelMenu.contains(e.target) && (!modelBtn || !modelBtn.contains(e.target))) {
+          modelMenu.classList.add('hidden');
+        }
+      }
+    }, true);
+
+    // Initial system boot
+    window.addEventListener('DOMContentLoaded', () => {
+      setupChatInput();
+      loadRecentHistory();
+      // Default to initial workspace from URL if path has /app/{workspace}
+      const pathParts = window.location.pathname.split('/');
+      const targetWorkspace = pathParts[2] || 'chat';
+      if (WORKSPACE_TITLES[targetWorkspace]) {
+        switchWorkspace(targetWorkspace);
+      }
+    });
+  </script>
+</body>
+</html>

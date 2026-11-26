@@ -1,0 +1,670 @@
+# AAROHAN AI — IMAGE GENERATION ENGINE 1.0
+## COMPLETE IMAGE STUDIO IMPLEMENTATION SPECIFICATION
+
+PROJECT: AAROHAN AI
+OWNER: Datta Sable
+REPOSITORY: https://github.com/sabledattatray/aarohan-ai
+
+OBJECTIVE:
+
+Implement a fully functional AI image-generation and image-editing system inside AAROHAN.
+
+Users should be able to describe an image in ordinary language, and AAROHAN should understand the request, prepare an optimized image prompt, select an available generation model, generate an image and return the actual image inside the application.
+
+This must work as a real product.
+
+Do not create a mock image generator.
+
+Do not return stock images as generated images.
+
+Do not display fake progress or simulated generation results.
+
+==================================================
+PHASE 1 — REPOSITORY INSPECTION
+==================================================
+
+Before implementation:
+
+1. Inspect the complete existing repository.
+2. Identify the frontend framework.
+3. Identify the backend framework.
+4. Inspect the current Chat API.
+5. Inspect the existing Dataset Studio.
+6. Inspect existing file storage.
+7. Inspect current model-management services.
+8. Inspect GPU detection and configuration.
+9. Identify the current image-generation dependencies.
+10. Preserve all working features.
+
+Create:
+
+docs/IMAGE_ENGINE_ARCHITECTURE.md
+docs/IMAGE_ENGINE_SETUP.md
+docs/IMAGE_ENGINE_STATUS.md
+
+==================================================
+PHASE 2 — IMAGE STUDIO UI
+==================================================
+
+Create a complete Image Studio.
+
+Route:
+
+/app/images
+
+DESIGN:
+
+Follow the existing AAROHAN dark interface.
+
+Use a premium creative workspace layout.
+
+MAIN COMPONENTS:
+
+1. Prompt composer.
+2. Image preview area.
+3. Generation settings.
+4. Model selector.
+5. Style selector.
+6. Aspect ratio selector.
+7. Generation history.
+8. Image library.
+9. Download controls.
+10. Editing tools.
+
+PROMPT INPUT:
+
+Allow natural-language prompts.
+
+Examples:
+
+"Create a realistic futuristic city at sunset."
+
+"Create a premium technology company logo."
+
+"Design a professional LinkedIn banner."
+
+"Generate a cinematic photograph of a mountain landscape."
+
+"Create a 3D illustration of a neural network."
+
+"Create an educational illustration of the human digestive system."
+
+The interface must support multiline prompts.
+
+Add an Enhance Prompt button.
+
+Add Generate Image button.
+
+Add Stop Generation button.
+
+Add Regenerate button.
+
+Add Clear button.
+
+==================================================
+PHASE 3 — IMAGE GENERATION BACKEND
+==================================================
+
+Implement a modular image-generation provider architecture.
+
+Primary local provider:
+
+COMFYUI
+
+Repository:
+https://github.com/Comfy-Org/ComfyUI
+
+Integrate ComfyUI through its documented API.
+
+Features:
+
+- Backend health check.
+- Connection status.
+- Workflow submission.
+- Queue monitoring.
+- Generation progress.
+- Job cancellation where supported.
+- Result retrieval.
+- Error handling.
+- Image metadata retrieval.
+
+Default local endpoint:
+
+http://127.0.0.1:8188
+
+Make the endpoint configurable.
+
+Do not hardcode it throughout the application.
+
+Create a provider interface:
+
+ImageGenerationProvider
+
+Required methods:
+
+- health_check()
+- list_models()
+- generate()
+- edit()
+- get_job_status()
+- cancel_job()
+- retrieve_result()
+
+Create separate adapters for:
+
+- ComfyUI.
+- Compatible local Diffusers pipelines.
+- Optional external image-generation APIs.
+
+The application must continue functioning when an optional provider is unavailable.
+
+==================================================
+PHASE 4 — MODEL MANAGEMENT
+==================================================
+
+Implement a model registry.
+
+Support configurable models.
+
+INITIAL MODEL STRATEGY:
+
+1. Stable Diffusion 1.5: initial local baseline.
+2. SDXL Base: optional higher-quality model.
+3. Compatible image-to-image models.
+4. Compatible inpainting models.
+5. Compatible upscaling models.
+
+Do not automatically download large models.
+
+Show:
+
+- Model name.
+- Model type.
+- File size.
+- Model path.
+- Download status.
+- Installation status.
+- Hardware compatibility.
+- Model license.
+- Active status.
+
+Before downloading a model:
+
+- Show its size.
+- Show required disk space.
+- Show license information.
+- Ask for confirmation.
+
+Never download models from unknown or untrusted sources.
+
+==================================================
+PHASE 5 — HARDWARE OPTIMIZATION
+==================================================
+
+Target hardware:
+
+NVIDIA RTX 2060 6GB VRAM.
+
+Design for limited VRAM.
+
+Implement:
+
+- FP16 where supported.
+- Low-VRAM mode.
+- CPU offloading.
+- Sequential model loading.
+- Memory monitoring.
+- Model unloading.
+- Configurable batch size.
+- Generation queue.
+- Automatic memory cleanup.
+- Safe fallback when CUDA is unavailable.
+
+INITIAL GENERATION DEFAULTS:
+
+- One image per request.
+- 512x512 initial resolution for lightweight models.
+- Configurable resolution.
+- Conservative inference steps.
+- No automatic simultaneous loading of large models.
+
+Allow higher resolutions only when the selected backend supports them within available memory.
+
+Do not crash the main AAROHAN application if image generation runs out of memory.
+
+Return a useful error message and recovery instructions.
+
+==================================================
+PHASE 6 — IMAGE CREATION CAPABILITIES
+==================================================
+
+Support the following generation categories:
+
+PHOTOGRAPHY
+- Portraits.
+- Landscapes.
+- Architecture.
+- Product photography.
+- Food photography.
+- Nature.
+- Travel.
+- Wildlife.
+
+DIGITAL ART
+- Digital painting.
+- Fantasy.
+- Sci-fi.
+- Anime.
+- Cartoon.
+- Illustration.
+- Concept art.
+- 3D renders.
+
+BUSINESS AND BRANDING
+- Logos.
+- Brand illustrations.
+- Social media graphics.
+- LinkedIn banners.
+- Blog featured images.
+- Marketing posters.
+- Product advertisements.
+- Presentation backgrounds.
+
+EDUCATION
+- Scientific illustrations.
+- Technical diagrams.
+- Educational graphics.
+- Historical scene illustrations.
+- Infographics.
+
+DESIGN
+- Website hero concepts.
+- UI/UX concepts.
+- App illustrations.
+- Interior concepts.
+- Architecture concepts.
+
+Do not assume every model performs equally well in every category.
+
+==================================================
+PHASE 7 — ADVANCED IMAGE CONTROLS
+==================================================
+
+Provide:
+
+- Width.
+- Height.
+- Aspect ratio.
+- Number of images.
+- Seed.
+- Guidance scale.
+- Inference steps.
+- Negative prompt.
+- Sampler where supported.
+- Scheduler where supported.
+
+ASPECT RATIOS:
+
+1:1
+4:3
+3:4
+16:9
+9:16
+3:2
+2:3
+21:9
+
+Add preset buttons:
+
+- Square.
+- Landscape.
+- Portrait.
+- Story.
+- Banner.
+- Wide cinematic.
+
+Validate dimensions against the selected model and workflow.
+
+==================================================
+PHASE 8 — PROMPT INTELLIGENCE
+==================================================
+
+Integrate the existing AAROHAN language model and conversation engine.
+
+Users should not need to understand technical image prompts.
+
+Example:
+
+User:
+
+"Make a nice image of a futuristic office."
+
+AAROHAN should understand the request and generate a detailed image prompt.
+
+Prompt enhancement should consider:
+
+- Subject.
+- Environment.
+- Composition.
+- Lighting.
+- Camera perspective.
+- Color palette.
+- Materials.
+- Visual style.
+- Detail level.
+- Aspect ratio.
+
+Preserve the user's original intent.
+
+Allow the user to view and edit the enhanced prompt.
+
+Implement spelling correction.
+
+Understand informal English and common Hinglish instructions.
+
+Do not automatically change a user's requested visual style.
+
+==================================================
+PHASE 9 — IMAGE EDITING
+==================================================
+
+Implement actual image-editing workflows where supported by the selected model.
+
+Features:
+
+1. Image-to-image.
+2. Inpainting.
+3. Outpainting.
+4. Background removal.
+5. Background replacement.
+6. Image upscaling.
+7. Image variation.
+8. Style transformation.
+9. Object replacement.
+10. Cropping and resizing.
+
+Allow image uploads.
+
+Show an original-versus-edited preview.
+
+Preserve the original file.
+
+Do not claim a specific editing capability works until its model and workflow are installed and tested.
+
+==================================================
+PHASE 10 — IMAGE LIBRARY
+==================================================
+
+Create a persistent image library.
+
+Features:
+
+- Generated images.
+- Uploaded reference images.
+- Search.
+- Filters.
+- Tags.
+- Favorites.
+- Collections.
+- Rename.
+- Delete.
+- Download.
+- Image details.
+- Prompt history.
+
+Save:
+
+- Image ID.
+- Prompt.
+- Enhanced prompt.
+- Model name.
+- Seed.
+- Width.
+- Height.
+- Generation date.
+- File path.
+- Provider.
+- Generation settings.
+
+Store image metadata in the existing database.
+
+Store image files in managed storage.
+
+Avoid storing large image binaries directly in relational database records.
+
+==================================================
+PHASE 11 — IMAGE GENERATION HISTORY
+==================================================
+
+Display:
+
+- Queued.
+- Processing.
+- Completed.
+- Failed.
+- Cancelled.
+
+For every generation job, retain:
+
+- Job ID.
+- User prompt.
+- Model.
+- Start time.
+- Completion time.
+- Status.
+- Error message.
+- Generated files.
+
+Allow users to regenerate using previous settings.
+
+==================================================
+PHASE 12 — CHAT INTEGRATION
+==================================================
+
+Integrate image generation directly into AI Chat.
+
+Example:
+
+User:
+
+"Create an image of a futuristic AI laboratory."
+
+AAROHAN:
+
+Understands the request.
+Selects image-generation tool.
+Creates an image.
+Displays the generated result.
+
+Users should not need to open Image Studio for every generation request.
+
+Support conversational editing:
+
+"Make it brighter."
+
+"Change the background to blue."
+
+"Make it more realistic."
+
+"Generate another variation."
+
+"Create a landscape version."
+
+Maintain image-generation context across follow-up messages.
+
+Use the actual previous image as the editing input when required.
+
+==================================================
+PHASE 13 — IMAGE SAFETY AND SECURITY
+==================================================
+
+Implement:
+
+- Prompt validation.
+- Upload validation.
+- File-size limits.
+- File-type validation.
+- Safe storage.
+- Access control.
+- Generation permissions.
+- Content moderation.
+- Rate limiting.
+- Resource limits.
+
+Respect model licenses and usage restrictions.
+
+Block prohibited image requests.
+
+Protect against non-consensual intimate imagery, exploitation, deceptive impersonation and other harmful uses.
+
+Do not expose private uploaded images.
+
+==================================================
+PHASE 14 — API ENDPOINTS
+==================================================
+
+Implement endpoints consistent with the existing API conventions.
+
+Required capabilities:
+
+POST /api/images/generate
+POST /api/images/edit
+POST /api/images/enhance-prompt
+GET /api/images/jobs
+GET /api/images/jobs/{job_id}
+POST /api/images/jobs/{job_id}/cancel
+GET /api/images/library
+GET /api/images/library/{image_id}
+DELETE /api/images/library/{image_id}
+GET /api/images/providers
+GET /api/images/models
+GET /api/images/health
+
+Use proper request validation and response schemas.
+
+Do not duplicate existing routes if equivalent functionality exists.
+
+==================================================
+PHASE 15 — TESTING
+==================================================
+
+Test:
+
+1. ComfyUI connection.
+2. Provider availability.
+3. Model discovery.
+4. Model loading.
+5. Prompt enhancement.
+6. Image generation.
+7. Progress updates.
+8. Job cancellation.
+9. Image retrieval.
+10. Image storage.
+11. Image downloads.
+12. Image history.
+13. Image editing.
+14. VRAM recovery.
+15. Invalid prompts.
+16. Missing model.
+17. Backend disconnection.
+18. API errors.
+19. Chat integration.
+20. Image library persistence.
+
+Generate at least three real test images:
+
+- Photorealistic landscape.
+- 3D technology illustration.
+- Professional business banner.
+
+Verify that all three actual image files are saved and can be opened.
+
+==================================================
+PHASE 16 — ACCEPTANCE CRITERIA
+==================================================
+
+The implementation is complete only when these workflows work.
+
+TEST 1:
+
+User:
+"Create a photorealistic mountain landscape at sunset."
+
+Expected:
+An actual generated landscape displayed in AAROHAN.
+
+TEST 2:
+
+User:
+"Create a professional LinkedIn banner for a Business Intelligence expert."
+
+Expected:
+An actual generated banner in landscape format.
+
+TEST 3:
+
+User:
+"Make this image brighter and change the background."
+
+Expected:
+An actual edited image using the uploaded image.
+
+TEST 4:
+
+User:
+"Generate another version with a different color palette."
+
+Expected:
+A new image variation.
+
+TEST 5:
+
+User:
+"Save this image to my library."
+
+Expected:
+Image metadata and image file are persisted.
+
+TEST 6:
+
+User:
+"Generate a futuristic AI workspace."
+
+Expected:
+Chat automatically invokes the image-generation provider and returns the actual generated image.
+
+==================================================
+FINAL DEVELOPMENT RULES
+==================================================
+
+1. Preserve existing AAROHAN features.
+2. Do not replace the custom Transformer.
+3. Do not fabricate generated images.
+4. Do not show fake generation progress.
+5. Do not download large models without approval.
+6. Keep local generation as the default.
+7. Make external providers optional.
+8. Optimize for 6GB GPU memory.
+9. Keep image generation separate from the main chat inference process.
+10. Test every workflow.
+11. Document installation and setup.
+12. Update the README only after implementation is verified.
+
+IMPLEMENTATION ORDER:
+
+Phase 1: Image Studio UI.
+Phase 2: ComfyUI installation and health check.
+Phase 3: Local model integration.
+Phase 4: Actual text-to-image generation.
+Phase 5: Image history and storage.
+Phase 6: Chat integration.
+Phase 7: Image editing.
+Phase 8: Advanced optimization and testing.
+
+Do not attempt all phases in a single uncontrolled operation.
+
+FINAL OBJECTIVE:
+
+AAROHAN must allow users to create, edit, explore, save and manage AI-generated images through a simple conversational interface.
+
+AAROHAN IMAGE ENGINE — IMAGINE. CREATE. TRANSFORM.

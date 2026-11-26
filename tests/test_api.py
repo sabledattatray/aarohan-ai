@@ -238,3 +238,76 @@ def test_dataset_api_endpoints(test_env):
     assert down_res.status_code == 200
     assert len(down_res.content) > 100
     assert "Transaction_ID" in down_res.text
+
+
+def test_deep_research_endpoint(test_env):
+    client = test_env["client"]
+    res = client.post("/api/research/query", json={"query": "transformer attention mechanisms", "depth": "quick"})
+    assert res.status_code == 200
+    data = res.json()
+    assert "summary" in data
+    assert "citations" in data
+    assert data["status"] == "completed"
+
+
+def test_analytics_endpoints(test_env):
+    client = test_env["client"]
+    # Generate CSV to profile
+    gen = client.post("/api/datasets/generate", json={"domain": "banking", "rows": 20, "fmt": "csv"})
+    assert gen.status_code == 200
+    fname = gen.json()["filename"]
+
+    # Profile
+    prof_res = client.post("/api/analytics/profile", json={"file_path": fname})
+    assert prof_res.status_code == 200
+    prof_data = prof_res.json()
+    assert prof_data["total_rows"] == 20
+    assert prof_data["total_columns"] >= 5
+
+    # Query SQL
+    sql_res = client.post("/api/analytics/query", json={"query": "SELECT COUNT(*) as cnt FROM current_data"})
+    assert sql_res.status_code == 200
+    assert sql_res.json()["rows"][0][0] == 20
+
+    # Chart
+    chart_res = client.post("/api/analytics/chart", json={"file_path": fname, "chart_type": "bar", "x_col": "Transaction_Type", "y_col": "Amount_INR"})
+    assert chart_res.status_code == 200
+    assert chart_res.json()["image_base64"].startswith("data:image/png;base64,")
+
+
+def test_code_sandbox_endpoint(test_env):
+    client = test_env["client"]
+    res = client.post("/api/code/execute", json={"code": "x = 5 * 10\nprint(f'VAL={x}')"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert "VAL=50" in data["stdout"]
+
+
+def test_image_studio_endpoints(test_env):
+    client = test_env["client"]
+    gen_res = client.post("/api/images/generate", json={"prompt": "cyberpunk city neural skyline", "aspect_ratio": "1:1", "seed": 999})
+    assert gen_res.status_code == 200
+    data = gen_res.json()
+    assert data["image_base64"].startswith("data:image/png;base64,")
+    fname = data["filename"]
+
+    hist_res = client.get("/api/images/history")
+    assert hist_res.status_code == 200
+    assert len(hist_res.json()["images"]) >= 1
+
+    view_res = client.get(f"/api/images/view/{fname}")
+    assert view_res.status_code == 200
+    assert view_res.headers["content-type"] == "image/png"
+
+
+def test_system_telemetry_endpoint(test_env):
+    client = test_env["client"]
+    res = client.get("/api/system/telemetry")
+    assert res.status_code == 200
+    data = res.json()
+    assert "cpu_percent" in data
+    assert "ram_used_gb" in data
+    assert "gpu" in data
+    assert data["backend_status"] == "Operational"
+
