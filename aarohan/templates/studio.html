@@ -367,43 +367,250 @@
       color: #0D0D0D !important;
     }
 
-    /* General Tailwind Arbitrary Color Mappings */
+    /* General Tailwind Arbitrary Color Mappings across ALL Workspaces */
     html.light .bg-\[\#212121\] {
       background-color: #FFFFFF !important;
     }
     html.light .bg-\[\#171717\] {
-      background-color: #F9F9F9 !important;
+      background-color: #FFFFFF !important;
+      border-color: #E5E7EB !important;
     }
+    html.light .bg-\[\#1e1e1e\] {
+      background-color: #F9FAFB !important;
+      border-color: #E5E7EB !important;
+    }
+    html.light .bg-\[\#242424\],
     html.light .bg-\[\#2A2A2A\] {
       background-color: #F4F4F5 !important;
+      border-color: #E5E7EB !important;
     }
     html.light .bg-\[\#303030\] {
       background-color: #F4F4F4 !important;
+      border-color: #E5E7EB !important;
     }
     html.light .bg-\[\#2F2F2F\] {
       background-color: #EAEAEA !important;
       color: #0D0D0D !important;
     }
-    html.light .bg-\[\#262626\] {
-      background-color: #E5E5E5 !important;
+    html.light .bg-\[\#262626\],
+    html.light .bg-\[\#2c2c2c\],
+    html.light .bg-\[\#323232\] {
+      background-color: #E5E7EB !important;
+      color: #111827 !important;
+    }
+    html.light .bg-black\/70,
+    html.light .bg-black\/40 {
+      background-color: #F3F4F6 !important;
     }
     html.light .border-\[\#383838\],
     html.light .border-\[\#262626\],
-    html.light .border-\[\#303030\] {
-      border-color: #E5E5E5 !important;
+    html.light .border-\[\#303030\],
+    html.light .border-\[\#2e2e2e\],
+    html.light .border-\[\#333333\],
+    html.light .border-\[\#232323\] {
+      border-color: #E5E7EB !important;
     }
     html.light .text-\[\#ECECEC\],
     html.light .text-white {
       color: #0D0D0D !important;
     }
+    html.light .text-slate-200,
+    html.light .text-slate-300 {
+      color: #374151 !important;
+    }
+    html.light .text-slate-400 {
+      color: #4B5563 !important;
+    }
+    html.light .text-\[\#e0e0e0\] {
+      color: #111827 !important;
+    }
     html.light .text-\[\#A1A1AA\],
     html.light .text-\[\#8e8e8e\],
     html.light .text-\[\#8E8E8E\],
-    html.light .text-\[\#71717A\] {
-      color: #52525B !important;
+    html.light .text-\[\#71717A\],
+    html.light .text-\[\#707070\] {
+      color: #6B7280 !important;
     }
     html.light .text-\[\#b4b4b4\] {
       color: #4B5563 !important;
+    }
+
+    /* ========================================================================= */
+    /* IMAGE STUDIO & DATASETS LIGHT THEME SPECIALIZATION                        */
+    /* ========================================================================= */
+    html.light #workspace-images,
+    html.light #workspace-datasets,
+    html.light #workspace-research,
+    html.light #workspace-documents,
+    html.light #workspace-analytics,
+    html.light #workspace-code,
+    html.light #workspace-memory,
+    html.light #workspace-knowledge-graph,
+    html.light #workspace-learning,
+    html.light #workspace-models,
+    html.light #workspace-monitor,
+    html.light #workspace-settings {
+      background-color: #FFFFFF !important;
+      color: #111827 !important;
+    }
+
+    /* Preset Buttons in Image Studio & Datasets */
+    html.light #workspace-images .grid > button,
+    html.light #workspace-datasets .grid > button {
+      background-color: #FFFFFF !important;
+      border-color: #E5E7EB !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    }
+    html.light #workspace-images .grid > button:hover,
+    html.light #workspace-datasets .grid > button:hover {
+      background-color: #F9FAFB !important;
+      border-color: #D1D5DB !important;
+    }
+    html.light #workspace-images .grid > button .text-white,
+    html.light #workspace-datasets .grid > button .text-white {
+      color: #111827 !important;
+    }
+    html.light #workspace-images .grid > button:hover .text-white,
+    html.light #workspace-images .grid > button:hover div {
+      color: #7E22CE !important;
+    }
+
+    /* Cards across all workspaces */
+    html.light .workspace-pane .rounded-2xl {
+      background-color: #FFFFFF !important;
+      border-color: #E5E7EB !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    /* Image Prompt Input */
+    html.light #image-prompt-input {
+      background-color: #F9FAFB !important;
+      color: #111827 !important;
+      border-color: #D1D5DB !important;
+    }
+    html.light #image-prompt-input:focus {
+      background-color: #FFFFFF !important;
+      border-color: #9333EA !important;
+      ring-color: #9333EA !important;
+    }
+
+    /* Aspect Ratio Buttons */
+    html.light .img-aspect-btn:not(.bg-purple-600) {
+      background-color: #F3F4F6 !important;
+      color: #374151 !important;
+      border-color: #E5E7EB !important;
+    }
+    html.light .img-aspect-btn:not(.bg-purple-600):hover {
+      background-color: #E5E7EB !important;
+      color: #111827 !important;
+    }
+
+    /* Style & Model Dropdowns */
+    html.light #image-style-select,
+    html.light #image-model-select,
+    html.light #image-search-input {
+      background-color: #FFFFFF !important;
+      color: #111827 !important;
+      border-color: #D1D5DB !important;
+    }
+
+    /* Enhance Prompt Button */
+    html.light #image-enhance-btn {
+      background-color: #FAF5FF !important;
+      color: #7E22CE !important;
+      border-color: #E9D5FF !important;
+    }
+    html.light #image-enhance-btn:hover {
+      background-color: #F3E8FF !important;
+      color: #6B21A8 !important;
+    }
+
+    /* Preview Stage in Image Studio */
+    html.light #image-preview-stage {
+      background-color: #F9FAFB !important;
+      border-color: #E5E7EB !important;
+    }
+    html.light #image-result-preview {
+      border-color: #E5E7EB !important;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    /* Conversational Editing Tools Container */
+    html.light #workspace-images .p-3.bg-\[\#1e1e1e\] {
+      background-color: #F9FAFB !important;
+      border-color: #E5E7EB !important;
+    }
+    html.light #workspace-images .p-3.bg-\[\#1e1e1e\] button {
+      background-color: #FFFFFF !important;
+      border-color: #E5E7EB !important;
+      color: #374151 !important;
+    }
+    html.light #workspace-images .p-3.bg-\[\#1e1e1e\] button:hover {
+      background-color: #F3F4F6 !important;
+      color: #111827 !important;
+      border-color: #D1D5DB !important;
+    }
+
+    /* Image Library Gallery Cards */
+    html.light #image-gallery-grid > div {
+      background-color: #FFFFFF !important;
+      border-color: #E5E7EB !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    }
+    html.light #image-gallery-grid > div:hover {
+      border-color: #C084FC !important;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08) !important;
+    }
+    html.light #image-gallery-grid p {
+      color: #111827 !important;
+    }
+    html.light #image-gallery-grid .border-t {
+      border-top-color: #F3F4F6 !important;
+      color: #6B7280 !important;
+    }
+
+    /* Image Studio Telemetry Badges */
+    html.light #image-vram-badge {
+      background-color: #F3F4F6 !important;
+      border-color: #E5E7EB !important;
+      color: #4B5563 !important;
+    }
+    html.light #image-provider-badge {
+      background-color: #ECFDF5 !important;
+      border-color: #A7F3D0 !important;
+      color: #047857 !important;
+    }
+    html.light #image-download-btn {
+      background-color: #111827 !important;
+      color: #FFFFFF !important;
+    }
+    html.light #image-download-btn:hover {
+      background-color: #27272A !important;
+    }
+
+    /* Filter Pills */
+    html.light .img-filter-pill:not(.bg-purple-600) {
+      background-color: #F3F4F6 !important;
+      color: #4B5563 !important;
+      border-color: #E5E7EB !important;
+    }
+    html.light .img-filter-pill:not(.bg-purple-600):hover {
+      background-color: #E5E7EB !important;
+      color: #111827 !important;
+    }
+
+    /* Tables in Datasets, Analytics & Monitor */
+    html.light table th {
+      background-color: #F9FAFB !important;
+      color: #111827 !important;
+      border-color: #E5E7EB !important;
+    }
+    html.light table td {
+      border-color: #E5E7EB !important;
+      color: #1F2937 !important;
+    }
+    html.light table tr:nth-child(even) td {
+      background-color: #F9FAFB !important;
     }
 
     /* Cards, Forms, Inputs & Selects across other workspaces */
