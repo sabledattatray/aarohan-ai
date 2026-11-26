@@ -76,9 +76,19 @@ Status follows the PRD. Check an item only after evidence exists in the reposito
 
 **Exit condition:** PASSED. Persistent 6-layer memory store survives session restarts, executes vector/keyword search, navigates the knowledge graph, and validates contradiction/consolidation logic.
 
+## Phase 5 — Knowledge Acquisition & Bounded Research Engine
+
+- [x] Learning task queue with statuses, priorities, and budget limits (`aarohan/research.py:LearningQueue`).
+- [x] Knowledge gap detection from missing Knowledge Graph relationships and memory co-occurrences (`KnowledgeGapDetector`).
+- [x] Bounded research engine with document budgets, contradiction screening, and entity extraction (`BoundedResearchEngine`).
+- [x] Structured research artifacts generation in `artifacts/research/`.
+- [x] CLI utility for learning tasks, gap detection, and research execution (`scripts/research_cli.py`).
+- [x] Automated unit and integration tests (4 tests passed, 47 total suite tests passed).
+
+**Exit condition:** PASSED. System can autonomously identify missing relationships, propose prioritized learning tasks, execute bounded research against permitted sources, and emit verifiable research artifacts.
+
 ## Later phases
 
-- [ ] Bounded research and learning-gap queue (Phase 5)
 - [ ] Continual learning with replay, regression gates and rollback (Phase 6)
 - [ ] Autonomous learning scheduler (Phase 7)
 - [ ] API, web interface, audits and integrated release evaluation (Phase 15/16)
