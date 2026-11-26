@@ -256,8 +256,18 @@ def create_app(
         if not active_ckpt_path.is_file():
             raise HTTPException(status_code=503, detail="Active model checkpoint not found on disk")
 
+        # Augment system prompt with concise retrieved knowledge if available
+        system_content = req.system_prompt
+        fact_snippets = [
+            m["content"].strip()
+            for m in retrieved
+            if m.get("source") != "user_conversation" and len(m["content"].strip()) < 120
+        ][:2]
+        if fact_snippets:
+            system_content += "\nContext: " + " ".join(fact_snippets)
+
         messages = [
-            {"role": "system", "content": req.system_prompt},
+            {"role": "system", "content": system_content},
             {"role": "user", "content": sanitized_query},
         ]
 
@@ -340,8 +350,18 @@ def create_app(
         if not active_ckpt_path.is_file():
             raise HTTPException(status_code=503, detail="Active model checkpoint not found on disk")
 
+        # Augment system prompt with concise retrieved knowledge if available
+        system_content = req.system_prompt
+        fact_snippets = [
+            m["content"].strip()
+            for m in retrieved
+            if m.get("source") != "user_conversation" and len(m["content"].strip()) < 120
+        ][:2]
+        if fact_snippets:
+            system_content += "\nContext: " + " ".join(fact_snippets)
+
         messages = [
-            {"role": "system", "content": req.system_prompt},
+            {"role": "system", "content": system_content},
             {"role": "user", "content": sanitized_query},
         ]
 

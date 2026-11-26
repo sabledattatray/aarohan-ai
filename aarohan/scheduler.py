@@ -52,15 +52,19 @@ class LearningScheduler:
         vm = psutil.virtual_memory()
         cuda_available = torch.cuda.is_available()
         cuda_mem_free = None
+        gpu_name = "N/A"
         if cuda_available:
             cuda_mem_free = torch.cuda.mem_get_info()[0] / (1024 * 1024)
+            gpu_name = torch.cuda.get_device_name(0)
 
         has_headroom = vm.percent < max_ram_percent
         return {
             "ram_available_mb": round(vm.available / (1024 * 1024), 1),
+            "ram_percent": vm.percent,
             "ram_percent_used": vm.percent,
             "cuda_available": cuda_available,
             "cuda_free_mb": cuda_mem_free,
+            "gpu_name": gpu_name,
             "can_train": has_headroom,
         }
 
