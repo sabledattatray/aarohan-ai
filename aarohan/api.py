@@ -1442,12 +1442,10 @@ def get_dashboard_html() -> str:
       const engine = document.getElementById('chat-engine').value;
       const chatBox = document.getElementById('chat-messages');
 
-      // User Message (Right-aligned ChatGPT bubble)
+      // User Message (Right-aligned ChatGPT bubble, trimmed with no template indentation)
       chatBox.innerHTML += `
         <div class="flex justify-end">
-          <div class="bg-[#2f2f2f] text-white rounded-3xl px-5 py-3 text-[15px] leading-relaxed max-w-[75%] whitespace-pre-wrap shadow-sm">
-            ${escapeHtml(text)}
-          </div>
+          <div class="bg-[#2f2f2f] text-white rounded-3xl px-5 py-2.5 text-[15px] leading-relaxed max-w-[75%] whitespace-pre-wrap break-words shadow-sm">${escapeHtml(text.trim())}</div>
         </div>
       `;
 
@@ -1463,8 +1461,6 @@ def get_dashboard_html() -> str:
             <div id="${assistantId}" class="markdown-body text-[15px] text-[#ececec] leading-relaxed font-normal select-text">
               <span class="text-[#8e8e8e] animate-pulse">Thinking...</span>
             </div>
-
-            <div id="${evidenceAccordionId}-wrapper" class="hidden"></div>
 
             <div class="flex items-center space-x-2 text-xs text-[#8e8e8e] pt-1">
               <button type="button" onclick="copyMessageText(this, currentLastResponse)" class="p-1.5 rounded-md hover:bg-[#212121] hover:text-white transition" title="Copy response">
@@ -1512,7 +1508,7 @@ def get_dashboard_html() -> str:
                   currentLastResponse = rawAccumulatedText;
                   outputEl.innerHTML = marked.parse(rawAccumulatedText);
                 } else if (ev.type === 'context') {
-                  renderInlineEvidence(`${evidenceAccordionId}`, ev.retrieved_memory);
+                  // Cognitive memory retrieved quietly; no visual pills cluttering response
                 } else if (ev.type === 'done') {
                   currentLastResponse = rawAccumulatedText;
                   outputEl.innerHTML = marked.parse(rawAccumulatedText);
@@ -1529,31 +1525,7 @@ def get_dashboard_html() -> str:
     }
 
     function renderInlineEvidence(accordionId, items) {
-      const wrapper = document.getElementById(accordionId + '-wrapper');
-      if (!wrapper || !items || items.length === 0) return;
-      wrapper.classList.remove('hidden');
-      wrapper.innerHTML = `
-        <div class="mt-2 text-xs">
-          <button type="button" onclick="toggleEvidenceAccordion('${accordionId}')" class="flex items-center space-x-1.5 text-slate-400 hover:text-white bg-[#212121] border border-[#303030] px-3 py-1.5 rounded-lg transition text-[11px] font-medium">
-            <span>🧠</span>
-            <span>Referenced ${items.length} memory records</span>
-            <svg class="w-3.5 h-3.5 ml-1 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-          </button>
-          <div id="${accordionId}" class="hidden mt-2 space-y-1.5 p-3 rounded-xl bg-[#171717] border border-[#2a2a2a] text-[11px]">
-            ${items.map(it => `
-              <div class="p-2.5 rounded-lg bg-[#212121] border border-[#303030] flex justify-between items-start space-x-2">
-                <div class="space-y-0.5 flex-1">
-                  <div class="text-[#ececec]">${escapeHtml(it.content)}</div>
-                  <div class="text-[10px] text-[#8e8e8e]">Layer: ${it.memory_type} &bull; Source: ${escapeHtml(it.source || 'unknown')}</div>
-                </div>
-                <span class="badge ${it.verification_status === 'verified' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-neutral-800 text-neutral-400 border border-neutral-700'} text-[10px]">
-                  ${it.verification_status || 'unverified'}
-                </span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
+      // Memory evidence rendered quietly behind the scenes
     }
 
     async function submitQuickFeedback(rating, btn) {
