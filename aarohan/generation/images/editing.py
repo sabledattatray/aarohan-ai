@@ -351,23 +351,13 @@ class ImageEditor:
         if any(k in lower for k in ("blur background", "bokeh", "portrait blur", "depth of field")):
             return cls.adjust_background(image_path, action="blur")
 
-        # 3. Text-guided generative modification via free neural synthesis
+        # 3. Text-guided generative modification via local diffusion or FLUX
         try:
-            w, h = img.size
-            # Pollinations neural URL with modified prompt
-            encoded = urllib.parse.quote(modification_prompt)
-            seed_val = seed if seed is not None else int(time.time()) % 999999
-            url = f"https://image.pollinations.ai/prompt/{encoded}?width={min(w, 768)}&height={min(h, 768)}&nologo=true&seed={seed_val}"
-            req = urllib.request.Request(
-                url,
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
-            )
-            with urllib.request.urlopen(req, timeout=18) as resp:
-                import io
-                neural_img = Image.open(io.BytesIO(resp.read())).convert("RGB")
-                if neural_img.size != (w, h):
-                    neural_img = neural_img.resize((w, h), Image.Resampling.LANCZOS)
+            from aarohan.generation.images.local_pipeline import LocalNeuralProvider
+            provider = LocalNeuralProvider()
+            neural_img = provider._fetch_neural_image(modification_prompt, img.width, img.height, seed=seed)
+            if neural_img is not None:
                 return cls.save_edited(neural_img, path.name, "prompt_modified")
         except Exception as e:
             logger.warning("Generative prompt modify fallback to variation: %s", e)
-            return cls.generate_variation(image_path, seed=seed)
+        return cls.generate_variation(image_path, seed=seed)

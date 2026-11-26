@@ -52,19 +52,11 @@ class ImageStudioEngine:
     @classmethod
     def _fetch_neural_image(cls, prompt: str, width: int, height: int, seed: Optional[int] = None) -> Optional[Image.Image]:
         try:
-            enc = urllib.parse.quote(prompt.strip())
-            seed_p = f"&seed={seed}" if seed is not None else ""
-            url = f"https://image.pollinations.ai/prompt/{enc}?width={min(width, 1024)}&height={min(height, 1024)}&nologo=true{seed_p}"
-            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
-            with urllib.request.urlopen(req, timeout=18) as resp:
-                data = resp.read()
-                if len(data) > 1000:
-                    loaded = Image.open(io.BytesIO(data)).convert("RGB")
-                    if loaded.size != (width, height):
-                        loaded = loaded.resize((width, height), Image.Resampling.LANCZOS)
-                    return loaded
+            from aarohan.generation.images.local_pipeline import LocalNeuralProvider
+            provider = LocalNeuralProvider()
+            return provider._fetch_neural_image(prompt, width, height, seed=seed)
         except Exception as e:
-            logger.info("Online neural image fetch fallback: %s", e)
+            logger.info("Neural image fetch fallback: %s", e)
         return None
 
     @classmethod
