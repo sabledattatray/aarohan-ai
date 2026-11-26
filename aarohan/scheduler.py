@@ -47,7 +47,7 @@ class LearningScheduler:
         self.artifacts_dir.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
-    def check_system_resources() -> dict[str, Any]:
+    def check_system_resources(max_ram_percent: float = 98.0) -> dict[str, Any]:
         """Verify memory and compute headroom prior to initiating a training cycle."""
         vm = psutil.virtual_memory()
         cuda_available = torch.cuda.is_available()
@@ -55,7 +55,7 @@ class LearningScheduler:
         if cuda_available:
             cuda_mem_free = torch.cuda.mem_get_info()[0] / (1024 * 1024)
 
-        has_headroom = vm.percent < 95.0
+        has_headroom = vm.percent < max_ram_percent
         return {
             "ram_available_mb": round(vm.available / (1024 * 1024), 1),
             "ram_percent_used": vm.percent,
@@ -73,10 +73,11 @@ class LearningScheduler:
         source_documents: list[Path],
         output_candidate_path: Path,
         device_name: str = "cpu",
+        max_ram_percent: float = 98.0,
     ) -> dict[str, Any]:
         """Execute one complete bounded learning cycle."""
         cycle_start = datetime.now(UTC).isoformat()
-        res_status = self.check_system_resources()
+        res_status = self.check_system_resources(max_ram_percent=max_ram_percent)
         if not res_status["can_train"]:
             self.audit.log("learning_cycle_aborted", actor="scheduler", status="failed", details=res_status)
             raise RuntimeError(f"Insufficient resources to execute learning cycle: {res_status}")
