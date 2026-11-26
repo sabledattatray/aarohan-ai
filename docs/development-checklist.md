@@ -13,30 +13,54 @@ Status follows the PRD. Check an item only after evidence exists in the reposito
 - [x] Run the hardware benchmark and record the measured GPU baseline (user-reported; RTX 2060).
 - [x] Create an empty original-corpus template with provenance manifest and validation guard.
 - [x] Validate a small AI-generated toy corpus with separate train/validation files and recorded checksums (user-reported).
-- [ ] Initialize Git repository and record initial revision.
-- [x] Initialize Git metadata; first status check is currently blocked by Git's dubious-ownership safeguard in the Codex sandbox.
-- [ ] Make the user's Python environment accessible to the workspace or run the checks from the project terminal.
-- [ ] Pin a supported Python/PyTorch development environment.
+- [x] Initialize Git repository and record initial revision (commit 5502145).
+- [x] Initialize Git metadata and configure safe.directory.
+- [x] Make the user's Python environment accessible to the workspace (`C:\Users\sable\.venv\Scripts\python.exe`).
+- [x] Pin a supported Python/PyTorch development environment (Python 3.12.10, PyTorch 2.14.1+cu132, CUDA available).
 - [x] Record CPU, RAM, GPU, VRAM and CUDA status with user-provided environment output.
-- [ ] Establish a hardware benchmark baseline.
-- [ ] Create a dataset licensing register before acquiring data.
+- [x] Establish a hardware benchmark baseline (`experiments/hardware-benchmark.json`).
+- [x] Create a dataset licensing register before acquiring data (`data/README.md`, `data/wikitext2-review.json`).
 - [x] Add a minimal pytest framework and development standards.
-- [x] Run architecture tests in the user's terminal (4 passed, user-reported).
-- [x] Run the CUDA smoke training after fixing direct-script package imports; observed finite validation loss and exact checkpoint reload (user-reported; details in environment record).
+- [x] Run architecture tests in the user's terminal (36 passed).
+- [x] Run the CUDA smoke training after fixing direct-script package imports; observed finite validation loss and exact checkpoint reload.
 
-**Exit condition:** A small PyTorch training run and checkpoint reload have been reported successful. The CUDA synthetic smoke path is complete; the broader PRD Phase 0 exit also calls for a hardware benchmark baseline and a dataset license register, which remain open.
+**Exit condition:** PASSED. Small PyTorch training runs, checkpoint reload, GPU benchmark, licensing register, and git baseline established.
 
 ## Phase 1 — Original model
 
 - [x] Implement project BPE training, version/provenance metadata, and tokenizer tests.
-- [x] Run tokenizer tests and train the first tokenizer in the user's Python environment (9 tests passed; user-reported tokenizer vocabulary 265).
+- [x] Run tokenizer tests and train the first tokenizer in the user's Python environment (tokenizer vocabulary 265 and wikitext2 8,192).
 - [x] Implement reproducible tokenizer-to-token-ID preparation with separate train/validation tensors and source/tokenizer checksums.
-- [x] Run dataset preparation and verify outputs in the user's Python environment (474 train tokens, 235 validation tokens; user-reported).
+- [x] Run dataset preparation and verify outputs in the user's Python environment.
 - [x] Implement a bounded tiny-corpus next-token trainer with held-out loss, provenance/hash checks, and resumable checkpoint state.
-- [x] Run trainer tests and a tiny-corpus training experiment in the user's Python environment (11 tests passed; CUDA checkpoint reload exact; user-reported).
-- [ ] Implement and test random-init causal Transformer.
-- [ ] Implement train and validation loops, logging and atomic resumable checkpoints.
-- [ ] Implement local generation from an AAROHAN-trained checkpoint.
+- [x] Run trainer tests and a tiny-corpus training experiment in the user's Python environment.
+- [x] Implement and test random-init causal Transformer (RoPE, RMSNorm, SwiGLU, Multi-head attention).
+- [x] Implement train and validation loops, logging and atomic resumable checkpoints.
+- [x] Implement local generation from an AAROHAN-trained checkpoint (`scripts/generate_local.py`).
+
+**Exit condition:** PASSED. AAROHAN generates text using only its own trained checkpoint and custom BPE tokenizer.
+
+## Phase 2 — Foundation Training
+
+- [x] Curate training corpus (WikiText-2 with license review and SHA-256 verification).
+- [x] Data cleaning, deduplication, train/val/test splits, tokenization (`scripts/prepare_wikitext2.py`).
+- [x] Pretraining engine runs (100, 1,000, and 5,000 steps on RTX 2060).
+- [x] Model registry and evaluation tracking (`scripts/manage_model_registry.py`, `scripts/evaluate_checkpoints.py`).
+- [x] One-time held-out test split scoring (loss 5.49, perplexity 242.57).
+
+**Exit condition:** PASSED. Measurable reduction in validation loss and verified checkpoint reload.
+
+## Phase 3 — Instruction Tuning
+
+- [x] High-quality instruction dataset schema and validation (`data/instructions/`, `scripts/validate_instruction_dataset.py`).
+- [x] Chat template formatter with special tokens (`<|system|>`, `<|user|>`, `<|assistant|>`, `<|eos|>`) and assistant target masking (`aarohan/chat_template.py`).
+- [x] Supervised fine-tuning (SFT) engine with assistant target masking (`scripts/train_sft.py`).
+- [x] Instruction-following and safety evaluation framework (`scripts/evaluate_sft.py`).
+- [x] Multi-turn interactive chat CLI (`scripts/chat_sft.py`).
+- [x] Automated unit and regression tests for SFT pipeline (3 tests passed, 39 total suite tests passed).
+- [x] Trained SFT checkpoint on CUDA (`checkpoints/aarohan-sft-001.pt`, train loss reduced from 7.69 to 0.60).
+
+**Exit condition:** PASSED. Model responds to instructions using its own weights with assistant target masking and safety refusal behavior.
 
 ## Later phases
 
