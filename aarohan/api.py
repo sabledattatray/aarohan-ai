@@ -124,7 +124,7 @@ class ChatRequest(BaseModel):
     )
     memory_limit: int = Field(3, ge=1, le=10)
     retrieval_mode: str = Field("hybrid", pattern="^(keyword|vector|hybrid)$")
-    engine: str = Field("foundation", pattern="^(foundation|scratch|coder|auto)$")
+    engine: str = Field("foundation", pattern="^(foundation|scratch|coder|auto|ollama|7b|3b)$")
     max_new_tokens: int = Field(1536, ge=1, le=2048)
     temperature: float = Field(0.4, ge=0.01, le=2.0)
     messages: list[dict[str, str]] = Field(default_factory=list, description="Recent conversation turns")
@@ -1216,7 +1216,12 @@ def create_app(
                 response_text = auto_media_prefix + gen_result.text
                 generated_tokens = gen_result.generated_tokens
                 checkpoint_name = gen_result.model_id
-                response_source = "aarohan_foundation_engine" if "qwen" in gen_result.model_id.lower() or req.engine == "foundation" else "aarohan_scratch_engine"
+                if "ollama" in gen_result.model_id.lower() or req.engine in ("ollama", "7b", "3b"):
+                    response_source = "aarohan_ollama_foundation"
+                elif "qwen" in gen_result.model_id.lower() or req.engine == "foundation":
+                    response_source = "aarohan_foundation_engine"
+                else:
+                    response_source = "aarohan_scratch_engine"
                 model_invoked = True
                 warning_msg = gen_result.warning
             except Exception as e:

@@ -124,6 +124,7 @@ class OllamaInferenceEngine(BaseInferenceEngine):
                 "num_predict": max_new_tokens,
                 "temperature": max(temperature, 0.01),
                 "top_p": 0.9,
+                "repeat_penalty": 1.15,
             },
         }
 
@@ -180,6 +181,7 @@ class OllamaInferenceEngine(BaseInferenceEngine):
                 "num_predict": max_new_tokens,
                 "temperature": max(temperature, 0.01),
                 "top_p": 0.9,
+                "repeat_penalty": 1.15,
             },
         }
 
