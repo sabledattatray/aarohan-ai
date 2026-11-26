@@ -3583,18 +3583,58 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
     }
 
     function initGoogleAuth() {
-      if (window.google && window.google.accounts && window.google.accounts.id) {
-        try {
-          google.accounts.id.initialize({
-            client_id: '984321098765-aarohan.apps.googleusercontent.com',
-            callback: handleGoogleOneTapResponse,
-            auto_select: false,
-            cancel_on_tap_outside: false
-          });
-          google.accounts.id.prompt();
-        } catch (e) {
-          console.debug('Google One Tap init note:', e);
+      const clientId = '707439992057-j87plivvk29u7nq35l1j7sqdraoqhv5u.apps.googleusercontent.com';
+      const tryInit = () => {
+        if (window.google && window.google.accounts && window.google.accounts.id) {
+          try {
+            google.accounts.id.initialize({
+              client_id: clientId,
+              callback: handleGoogleOneTapResponse,
+              auto_select: false,
+              cancel_on_tap_outside: true,
+              use_fedcm_for_prompt: false
+            });
+
+            // Render Official Google Sign-In Button
+            const gBtnEl = document.getElementById('google-signin-btn-container');
+            const fallbackBtn = document.getElementById('google-signin-fallback-btn');
+            if (gBtnEl) {
+              google.accounts.id.renderButton(gBtnEl, {
+                theme: 'outline',
+                size: 'large',
+                width: 380,
+                text: 'continue_with',
+                shape: 'rectangular',
+                logo_alignment: 'left'
+              });
+              if (fallbackBtn) fallbackBtn.classList.add('hidden');
+            }
+
+            // Prompt Google One Tap popup
+            google.accounts.id.prompt((notification) => {
+              if (notification && notification.isNotDisplayed()) {
+                console.debug('One Tap not displayed:', notification.getNotDisplayedReason());
+              }
+            });
+          } catch (e) {
+            console.debug('Google One Tap init note:', e);
+          }
         }
+      };
+
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        tryInit();
+      } else {
+        let attempts = 0;
+        const checkInterval = setInterval(() => {
+          attempts++;
+          if (window.google && window.google.accounts && window.google.accounts.id) {
+            tryInit();
+            clearInterval(checkInterval);
+          } else if (attempts > 10) {
+            clearInterval(checkInterval);
+          }
+        }, 500);
       }
     }
 
@@ -3846,11 +3886,14 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
         <!-- 1. GOOGLE ONE TAP & SIGN IN -->
         <div class="space-y-2">
           <div id="g_id_onload"
-               data-client_id="984321098765-aarohan.apps.googleusercontent.com"
+               data-client_id="707439992057-j87plivvk29u7nq35l1j7sqdraoqhv5u.apps.googleusercontent.com"
                data-callback="handleGoogleOneTapResponse"
                data-auto_prompt="true">
           </div>
-          <button type="button" onclick="handleGoogleSignInClick()" class="w-full py-2.5 px-4 rounded-xl border border-[#383838] bg-[#212121] hover:bg-[#2F2F2F] text-white text-sm font-medium transition flex items-center justify-center space-x-3 shadow-sm active:scale-[0.99]">
+          <!-- Official Google Rendered Button -->
+          <div id="google-signin-btn-container" class="w-full flex justify-center min-h-[44px]"></div>
+          <!-- Fallback direct button -->
+          <button type="button" id="google-signin-fallback-btn" onclick="handleGoogleSignInClick()" class="w-full py-2.5 px-4 rounded-xl border border-[#383838] bg-[#212121] hover:bg-[#2F2F2F] text-white text-sm font-medium transition flex items-center justify-center space-x-3 shadow-sm active:scale-[0.99]">
             <svg class="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
