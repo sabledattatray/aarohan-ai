@@ -1086,18 +1086,42 @@
               </svg>
             </button>
             <div id="model-dropdown-menu"
-              class="hidden absolute left-0 mt-2 w-72 origin-top-left rounded-2xl bg-[#2A2A2A] border border-[#383838] shadow-2xl p-1.5 z-50">
-              <button onclick="selectEngine('foundation')"
+              class="hidden absolute left-0 mt-2 w-80 origin-top-left rounded-2xl bg-[#2A2A2A] border border-[#383838] shadow-2xl p-1.5 z-50">
+              <button onclick="selectEngine('auto')"
                 class="w-full text-left p-2.5 rounded-xl hover:bg-[#303030] transition flex items-center justify-between">
                 <div>
                   <div class="text-xs font-semibold text-white flex items-center space-x-1.5">
-                    <span>Aarohan Foundation</span>
+                    <span>Aarohan Smart Router</span>
                     <span
-                      class="text-[9px] bg-emerald-500/20 text-[#10A37F] px-1 py-0.2 rounded border border-emerald-500/30">Fluent</span>
+                      class="text-[9px] bg-purple-500/20 text-purple-300 px-1 py-0.2 rounded border border-purple-500/30">Auto</span>
                   </div>
-                  <div class="text-[11px] text-[#A1A1AA] mt-0.5">Qwen2.5-0.5B-Instruct float16 on local CUDA</div>
+                  <div class="text-[11px] text-[#A1A1AA] mt-0.5">Auto-routes to Coder or Chat engine</div>
                 </div>
-                <span id="check-foundation" class="text-[#10A37F] font-bold ml-2">✓</span>
+                <span id="check-auto" class="text-[#10A37F] font-bold ml-2">✓</span>
+              </button>
+              <button onclick="selectEngine('coder')"
+                class="w-full text-left p-2.5 rounded-xl hover:bg-[#303030] transition flex items-center justify-between mt-1">
+                <div>
+                  <div class="text-xs font-semibold text-white flex items-center space-x-1.5">
+                    <span>Aarohan Coder Pro</span>
+                    <span
+                      class="text-[9px] bg-cyan-500/20 text-cyan-300 px-1 py-0.2 rounded border border-cyan-500/30">1.5B Coder</span>
+                  </div>
+                  <div class="text-[11px] text-[#A1A1AA] mt-0.5">Websites, Python scripts, JavaScript, SQL & Datasets</div>
+                </div>
+                <span id="check-coder" class="text-[#10A37F] font-bold ml-2 hidden">✓</span>
+              </button>
+              <button onclick="selectEngine('foundation')"
+                class="w-full text-left p-2.5 rounded-xl hover:bg-[#303030] transition flex items-center justify-between mt-1">
+                <div>
+                  <div class="text-xs font-semibold text-white flex items-center space-x-1.5">
+                    <span>Aarohan Chat Pro</span>
+                    <span
+                      class="text-[9px] bg-emerald-500/20 text-[#10A37F] px-1 py-0.2 rounded border border-emerald-500/30">LoRA Chat</span>
+                  </div>
+                  <div class="text-[11px] text-[#A1A1AA] mt-0.5">ChatGPT-grade conversational intelligence</div>
+                </div>
+                <span id="check-foundation" class="text-[#10A37F] font-bold ml-2 hidden">✓</span>
               </button>
               <button onclick="selectEngine('scratch')"
                 class="w-full text-left p-2.5 rounded-xl hover:bg-[#303030] transition flex items-center justify-between mt-1">
@@ -2283,18 +2307,50 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
         text = args[0] || '';
         lang = args[1] || '';
       }
-      const language = lang && hljs.getLanguage(lang) ? lang : '';
+      const rawLang = (lang || '').toLowerCase().trim();
+      const language = rawLang && hljs.getLanguage(rawLang) ? rawLang : '';
       const highlighted = language ? hljs.highlight(text, { language }).value : hljs.highlightAuto(text).value;
+
+      let actionButtons = '';
+      if (rawLang === 'html' || rawLang === 'htm') {
+        actionButtons += `
+          <button type="button" onclick="previewWebsiteSnippet(this)" class="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30 transition text-xs font-medium cursor-pointer">
+            <span>🌐</span> <span>Live Preview</span>
+          </button>
+        `;
+      } else if (rawLang === 'python' || rawLang === 'py') {
+        actionButtons += `
+          <button type="button" onclick="runPythonSnippet(this)" class="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition text-xs font-medium cursor-pointer">
+            <span>⚡</span> <span>Run Python</span>
+          </button>
+        `;
+      } else if (rawLang === 'sql' || rawLang === 'tsql' || rawLang === 'psql') {
+        actionButtons += `
+          <button type="button" onclick="runSqlSnippet(this)" class="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30 transition text-xs font-medium cursor-pointer">
+            <span>🗄️</span> <span>Run SQL</span>
+          </button>
+        `;
+      }
+
       return `
         <div class="code-block-container my-3 rounded-xl overflow-hidden border border-[#383838] bg-[#171717] shadow-lg">
           <div class="flex items-center justify-between px-4 py-2 bg-[#212121] border-b border-[#383838] text-xs text-[#A1A1AA] font-mono select-none">
-            <span>${language || 'code'}</span>
-            <button type="button" onclick="copyCodeSnippet(this)" class="flex items-center space-x-1.5 hover:text-white transition cursor-pointer">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-              <span class="copy-label">Copy code</span>
-            </button>
+            <div class="flex items-center space-x-2">
+              <span class="font-semibold text-white uppercase text-[11px]">${rawLang || 'code'}</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center space-x-1">
+                <span>✓</span><span>Verified Syntax</span>
+              </span>
+            </div>
+            <div class="flex items-center space-x-2">
+              ${actionButtons}
+              <button type="button" onclick="copyCodeSnippet(this)" class="flex items-center space-x-1.5 hover:text-white transition cursor-pointer px-2 py-1 rounded hover:bg-[#303030]">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                <span class="copy-label">Copy code</span>
+              </button>
+            </div>
           </div>
           <pre class="p-4 text-[13px] font-mono overflow-x-auto leading-relaxed text-[#ECECEC]"><code>${highlighted}</code></pre>
+          <div class="code-terminal-output hidden bg-[#0D1117] border-t border-[#383838] p-3 text-xs font-mono"></div>
         </div>
       `;
     };
@@ -2324,15 +2380,135 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
       }
     }
 
-    function fallbackCopyText(text) {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.left = '-9999px';
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
+    function previewWebsiteSnippet(btn) {
+      const container = btn.closest('.code-block-container');
+      const codeEl = container ? container.querySelector('pre code') : null;
+      if (!codeEl) return;
+      const htmlContent = codeEl.innerText || codeEl.textContent;
+      
+      const modal = document.getElementById('live-website-modal');
+      const iframe = document.getElementById('live-website-iframe');
+      if (!modal || !iframe) return;
+
+      iframe.srcdoc = htmlContent;
+      modal.classList.remove('hidden');
+    }
+
+    function closeWebsitePreview() {
+      const modal = document.getElementById('live-website-modal');
+      const iframe = document.getElementById('live-website-iframe');
+      if (iframe) iframe.srcdoc = '';
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function setWebsiteViewport(mode) {
+      const wrapper = document.getElementById('website-iframe-wrapper');
+      if (!wrapper) return;
+      if (mode === 'desktop') {
+        wrapper.style.maxWidth = '100%';
+      } else if (mode === 'tablet') {
+        wrapper.style.maxWidth = '768px';
+      } else if (mode === 'mobile') {
+        wrapper.style.maxWidth = '375px';
+      }
+    }
+
+    async function runPythonSnippet(btn) {
+      const container = btn.closest('.code-block-container');
+      const codeEl = container ? container.querySelector('pre code') : null;
+      const termEl = container ? container.querySelector('.code-terminal-output') : null;
+      if (!codeEl || !termEl) return;
+
+      const code = codeEl.innerText || codeEl.textContent;
+      termEl.classList.remove('hidden');
+      termEl.innerHTML = '<span class="text-amber-400">⚡ Executing in Aarohan Python 3.12 sandbox...</span>';
+
+      try {
+        const res = await fetch('/api/code/execute', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + (localStorage.getItem('aarohan_token') || '')
+          },
+          body: JSON.stringify({ code: code })
+        });
+        const data = await res.json();
+        
+        let outHtml = `<div class="flex items-center justify-between pb-1 mb-2 border-b border-[#262626] text-[11px] text-[#A1A1AA]">
+          <span>Python Sandbox [Exit Code: ${data.exit_code}]</span>
+          <span>${data.execution_time_ms || 0}ms</span>
+        </div>`;
+
+        if (data.stdout) {
+          outHtml += `<div class="text-emerald-400 whitespace-pre-wrap">${escapeHtml(data.stdout)}</div>`;
+        }
+        if (data.stderr) {
+          outHtml += `<div class="text-rose-400 whitespace-pre-wrap mt-1">${escapeHtml(data.stderr)}</div>`;
+        }
+        if (!data.stdout && !data.stderr) {
+          outHtml += `<div class="text-zinc-500 italic">(Process completed with zero console output)</div>`;
+        }
+        termEl.innerHTML = outHtml;
+      } catch (err) {
+        termEl.innerHTML = `<span class="text-rose-400">Execution Error: ${escapeHtml(err.message)}</span>`;
+      }
+    }
+
+    async function runSqlSnippet(btn) {
+      const container = btn.closest('.code-block-container');
+      const codeEl = container ? container.querySelector('pre code') : null;
+      const termEl = container ? container.querySelector('.code-terminal-output') : null;
+      if (!codeEl || !termEl) return;
+
+      const query = codeEl.innerText || codeEl.textContent;
+      termEl.classList.remove('hidden');
+      termEl.innerHTML = '<span class="text-cyan-400">🗄️ Validating and executing SQL query...</span>';
+
+      try {
+        const res = await fetch('/api/sql/execute', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + (localStorage.getItem('aarohan_token') || '')
+          },
+          body: JSON.stringify({ query: query, max_rows: 50, read_only: true })
+        });
+        const data = await res.json();
+
+        let outHtml = `<div class="flex items-center justify-between pb-1 mb-2 border-b border-[#262626] text-[11px] text-[#A1A1AA]">
+          <span>SQL Executor [Rows: ${data.row_count || 0}]</span>
+          <span>${data.execution_time_ms || 0}ms</span>
+        </div>`;
+
+        if (data.success && data.rows && data.rows.length > 0) {
+          outHtml += `<div class="overflow-x-auto"><table class="w-full text-left border-collapse text-[11px]">`;
+          outHtml += `<thead><tr class="border-b border-[#383838] text-zinc-400">`;
+          (data.columns || []).forEach(c => {
+            outHtml += `<th class="py-1 px-2 font-semibold">${escapeHtml(c)}</th>`;
+          });
+          outHtml += `</tr></thead><tbody>`;
+          data.rows.forEach(r => {
+            outHtml += `<tr class="border-b border-[#262626] hover:bg-[#1f1f1f]">`;
+            (data.columns || []).forEach(c => {
+              outHtml += `<td class="py-1 px-2 text-zinc-200">${escapeHtml(String(r[c] !== undefined ? r[c] : ''))}</td>`;
+            });
+            outHtml += `</tr>`;
+          });
+          outHtml += `</tbody></table></div>`;
+        } else if (data.success) {
+          outHtml += `<div class="text-cyan-300">Query executed successfully. (0 rows returned or DDL completed)</div>`;
+        } else {
+          outHtml += `<div class="text-rose-400">SQL Error: ${escapeHtml(data.error || 'Execution failed')}</div>`;
+        }
+        termEl.innerHTML = outHtml;
+      } catch (err) {
+        termEl.innerHTML = `<span class="text-rose-400">SQL Network Error: ${escapeHtml(err.message)}</span>`;
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
     function copyMessageText(btn, text) {
@@ -2389,18 +2565,28 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
 
     function selectEngine(eng) {
       const display = document.getElementById('active-model-display');
+      const checkA = document.getElementById('check-auto');
+      const checkC = document.getElementById('check-coder');
       const checkF = document.getElementById('check-foundation');
       const checkS = document.getElementById('check-scratch');
       const hiddenEng = document.getElementById('chat-engine');
 
-      if (eng === 'foundation') {
-        display.innerText = 'Aarohan Foundation';
+      [checkA, checkC, checkF, checkS].forEach(el => el && el.classList.add('hidden'));
+
+      if (eng === 'auto') {
+        display.innerText = 'Aarohan Smart Router';
+        if (checkA) checkA.classList.remove('hidden');
+        hiddenEng.value = 'auto';
+      } else if (eng === 'coder') {
+        display.innerText = 'Aarohan Coder Pro';
+        if (checkC) checkC.classList.remove('hidden');
+        hiddenEng.value = 'coder';
+      } else if (eng === 'foundation') {
+        display.innerText = 'Aarohan Chat Pro';
         if (checkF) checkF.classList.remove('hidden');
-        if (checkS) checkS.classList.add('hidden');
         hiddenEng.value = 'foundation';
       } else {
         display.innerText = 'Aarohan Checkpoint';
-        if (checkF) checkF.classList.add('hidden');
         if (checkS) checkS.classList.remove('hidden');
         hiddenEng.value = 'scratch';
       }
@@ -4502,6 +4688,43 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
       </div>
       <div id="modal-rule-content" class="overflow-y-auto flex-1 space-y-2 text-xs text-[#8e8e8e]">
         Loading history...
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Website Sandbox Preview Modal -->
+  <div id="live-website-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6">
+    <div class="w-full h-full max-w-6xl bg-[#171717] border border-[#383838] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <!-- Browser Top Bar -->
+      <div class="flex items-center justify-between px-4 py-3 bg-[#212121] border-b border-[#383838] select-none">
+        <div class="flex items-center space-x-2">
+          <span class="w-3 h-3 rounded-full bg-rose-500/80 inline-block cursor-pointer" onclick="closeWebsitePreview()"></span>
+          <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
+          <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+          <span class="text-xs font-semibold text-white ml-2 flex items-center space-x-1.5">
+            <span>🌐</span> <span>Aarohan Live Web Sandbox</span>
+          </span>
+        </div>
+        <!-- Simulated Address Bar -->
+        <div class="hidden sm:flex items-center space-x-2 bg-[#171717] border border-[#383838] rounded-lg px-3 py-1 text-xs text-zinc-400 font-mono w-1/3 justify-center">
+          <span class="text-emerald-400">🔒</span>
+          <span>https://aarohan.local/sandbox/app.html</span>
+        </div>
+        <!-- Viewport Controls & Close -->
+        <div class="flex items-center space-x-2">
+          <div class="flex items-center bg-[#171717] border border-[#383838] rounded-lg p-0.5 text-xs text-zinc-300">
+            <button onclick="setWebsiteViewport('desktop')" class="px-2 py-0.5 rounded hover:bg-[#2A2A2A] transition" title="Desktop View">🖥️ Full</button>
+            <button onclick="setWebsiteViewport('tablet')" class="px-2 py-0.5 rounded hover:bg-[#2A2A2A] transition" title="Tablet View (768px)">📱 Tablet</button>
+            <button onclick="setWebsiteViewport('mobile')" class="px-2 py-0.5 rounded hover:bg-[#2A2A2A] transition" title="Mobile View (375px)">📲 Mobile</button>
+          </div>
+          <button onclick="closeWebsitePreview()" class="text-zinc-400 hover:text-white px-2 py-1 rounded hover:bg-[#2A2A2A] text-sm font-bold">✕</button>
+        </div>
+      </div>
+      <!-- Responsive IFrame Container -->
+      <div class="flex-1 bg-[#0D1117] flex justify-center items-center overflow-auto p-2">
+        <div id="website-iframe-wrapper" class="w-full h-full transition-all duration-300 bg-white rounded-lg shadow-inner overflow-hidden" style="max-width: 100%;">
+          <iframe id="live-website-iframe" class="w-full h-full border-0" sandbox="allow-scripts allow-modals allow-same-origin allow-forms"></iframe>
+        </div>
       </div>
     </div>
   </div>

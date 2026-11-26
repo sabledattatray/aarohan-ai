@@ -54,6 +54,7 @@ from aarohan.research import BoundedResearchEngine, KnowledgeGapDetector, Learni
 from aarohan.safety import AuditLogger, RateLimiter, SafetyFilter
 from aarohan.scheduler import LearningScheduler
 from aarohan.tools.analytics import AnalyticsEngine
+from aarohan.tools.code_verifier import CodeVerifier
 from aarohan.tools.math_verifier import MathVerifier
 from aarohan.tools.registry import ToolRegistry
 from aarohan.tools.sandbox import CodeSandbox
@@ -113,17 +114,17 @@ class ChatRequest(BaseModel):
         "3. Model Awareness: AAROHAN is an independent AI application that uses configured local models (such as Qwen2.5 or custom checkpoints). Never invent false claims about your underlying model.\n"
         "4. Multilingual Capabilities: You are fully capable of understanding, speaking, and writing in multiple languages, including English, Marathi (मराठी), and Hindi (हिन्दी). When the user asks if you can speak or write in Marathi, respond affirmatively and fluently in Marathi ('हो, मी मराठी बोलू आणि लिहू शकतो. मी तुम्हाला कशी मदत करू शकतो?'). When the user asks in Marathi or requests a Marathi response, respond in Marathi. When the user asks in Hindi or requests a Hindi response, respond in Hindi. Never provide robotic disclaimers denying your language abilities.\n"
         "5. Factual Grounding: For factual and general knowledge questions, provide accurate, truthful facts. Do not invent geographical or historical falsehoods (for example: India is located in South Asia, has 28 states and 8 union territories, and its capital is New Delhi).\n"
-        "6. Data & File Generation: When asked to create datasets, tables, CSV, or code, directly generate realistic, complete examples or scripts.\n"
-        "7. Output Structure: Use rich Markdown formatting with tables, bullet lists, and syntax-highlighted code blocks.\n"
+        "6. Data & File Generation: When asked to create websites, datasets, tables, CSV, or code, generate complete, working, and syntax-accurate implementations. Never output incomplete placeholders (such as '// TODO' or '...'). For websites, output complete, responsive single-file HTML5 with modern embedded CSS and interactive JavaScript. For Python, output executable, bug-free scripts. For SQL, output dialect-accurate queries with schema assumptions and indexing tips.\n"
+        "7. Output Structure: Use rich Markdown formatting with tables, bullet lists, and syntax-highlighted code blocks with exact language identifiers (html, python, javascript, sql, json, csv).\n"
         "8. Scientific & Mathematical Rigor: When providing scientific laws or physical formulas, provide exact established scientific formulations using standard LaTeX math notation ($...$ for inline and $$...$$ for display equations).\n"
         "9. Document & Resume Analysis: When a user shares a resume, CV, or document for analysis or review, do NOT simply repeat or parrot back the document text. Instead, provide a structured, in-depth evaluation: (1) Professional Profile & Strengths, (2) Technical & Domain Competency (e.g. BI, SQL, Analytics), (3) High-Impact Recommendations to strengthen achievements and quantifiable metrics, and (4) ATS & Executive Presentation tips.\n"
         "10. File & Document Capabilities: You CAN analyze and process documents including PDF, DOCX, TXT, CSV, and code files. Users can attach or upload files via the attachment icon in the chat input or paste document text directly into the chat. When asked if you can analyze a PDF or document, respond affirmatively and encourage the user to upload or paste the content.\n"
-        "11. ChatGPT-Grade Conversational Standard: Deliver thoughtful, highly structured, and deeply intelligent responses matching the quality, tone, and depth of ChatGPT. Begin directly without robotic pleasantries. Organize responses with bold section anchors, comparison tables, clean bullet points, and production-ready, thoroughly annotated code blocks with exact language syntax tags.",
+        "11. ChatGPT-Grade Conversational & Coding Standard: Deliver thoughtful, highly structured, and deeply intelligent responses matching the quality, tone, and depth of ChatGPT. Begin directly without robotic pleasantries. Organize responses with bold section anchors, comparison tables, clean bullet points, and production-ready, thoroughly annotated code blocks with exact language syntax tags.",
         description="System instruction",
     )
     memory_limit: int = Field(3, ge=1, le=10)
     retrieval_mode: str = Field("hybrid", pattern="^(keyword|vector|hybrid)$")
-    engine: str = Field("foundation", pattern="^(foundation|scratch)$")
+    engine: str = Field("foundation", pattern="^(foundation|scratch|coder|auto)$")
     max_new_tokens: int = Field(1536, ge=1, le=2048)
     temperature: float = Field(0.4, ge=0.01, le=2.0)
     messages: list[dict[str, str]] = Field(default_factory=list, description="Recent conversation turns")
@@ -237,6 +238,10 @@ class AnalyticsChartRequest(BaseModel):
 
 class CodeExecuteRequest(BaseModel):
     code: str = Field(..., min_length=1)
+
+
+class CodeVerifyRequest(BaseModel):
+    text: str = Field(..., min_length=1, description="Markdown text or code snippet to verify")
 
 
 class ImageGenRequest(BaseModel):
@@ -2541,6 +2546,20 @@ def create_app(
         res = code_sandbox.execute_python(req.code)
         audit.log("code_executed", actor=user["username"], target="sandbox", details={"success": res["success"]})
         return res
+
+    @app.post("/api/code/verify")
+    def code_verify_endpoint(
+        req: CodeVerifyRequest,
+        user: dict[str, Any] = Depends(get_current_user),
+    ) -> dict[str, Any]:
+        verifier = CodeVerifier()
+        blocks = verifier.verify_all_blocks(req.text)
+        all_valid = all(b.get("valid", False) for b in blocks) if blocks else True
+        return {
+            "verified": all_valid,
+            "blocks_count": len(blocks),
+            "blocks": blocks,
+        }
 
     # -------------------------------------------------------------------------
     # Document Intelligence

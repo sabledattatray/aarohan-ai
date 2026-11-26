@@ -28,10 +28,19 @@ class InferenceManager:
     ) -> None:
         self._engines: Dict[str, BaseInferenceEngine] = {}
 
-        # 1. Foundation engine
+        # 1. Foundation engine (Default chat with LoRA alignment)
         self._foundation_engine = FoundationInferenceEngine(model_name_or_path=default_foundation_model)
         self.register_engine("foundation", self._foundation_engine)
         self.register_engine("qwen", self._foundation_engine)
+
+        # 2. Dedicated Coder engine (High-precision websites, Python, JavaScript, SQL)
+        try:
+            self._coder_engine = FoundationInferenceEngine(model_name_or_path="Qwen/Qwen2.5-Coder-1.5B-Instruct")
+            self.register_engine("coder", self._coder_engine)
+            self.register_engine("code", self._coder_engine)
+        except Exception as e:
+            logger.info("Coder engine deferred until downloaded: %s", e)
+            self._coder_engine = self._foundation_engine
 
         # 2. Custom checkpoint engine (if paths provided)
         if custom_checkpoint_path and custom_tokenizer_path:
@@ -71,6 +80,19 @@ class InferenceManager:
             results[name] = engine.health_check()
         return results
 
+    def _resolve_engine_name(self, engine_name: str, prompt: str) -> str:
+        """Route to appropriate engine based on task requirements."""
+        eng = engine_name.lower()
+        if eng == "auto":
+            lower_p = prompt.lower()
+            code_keywords = ["website", "html", "css", "javascript", "python", "sql", "script", "code", "table", "dataset", "csv", "query"]
+            if any(k in lower_p for k in code_keywords) and "coder" in self._engines:
+                return "coder"
+            return "foundation"
+        if eng in ("coder", "code") and "coder" not in self._engines:
+            return "foundation"
+        return eng if eng in self._engines else "foundation"
+
     def generate(
         self,
         prompt: str,
@@ -81,7 +103,8 @@ class InferenceManager:
         max_new_tokens: int = 256,
         temperature: float = 0.7,
     ) -> GenerationResult:
-        engine = self.get_engine(engine_name)
+        resolved_engine = self._resolve_engine_name(engine_name, prompt)
+        engine = self.get_engine(resolved_engine)
         try:
             return engine.generate(
                 prompt,
@@ -91,9 +114,17 @@ class InferenceManager:
                 temperature=temperature,
             )
         except Exception as e:
-            logger.warning("Generation with engine '%s' failed: %s", engine_name, e)
-            # Graceful fallback to scratch engine if foundation fails
-            if engine_name in ("foundation", "qwen") and self._custom_engine:
+            logger.warning("Generation with engine '%s' failed: %s", resolved_engine, e)
+            if resolved_engine in ("coder", "code"):
+                logger.info("Falling back to foundation engine...")
+                return self._foundation_engine.generate(
+                    prompt,
+                    system_prompt=system_prompt,
+                    history=history,
+                    max_new_tokens=max_new_tokens,
+                    temperature=temperature,
+                )
+            if resolved_engine in ("foundation", "qwen") and self._custom_engine:
                 logger.info("Falling back to custom transformer engine...")
                 res = self._custom_engine.generate(
                     prompt,
@@ -102,7 +133,7 @@ class InferenceManager:
                     max_new_tokens=max_new_tokens,
                     temperature=temperature,
                 )
-                res.warning = f"Primary engine '{engine_name}' unavailable ({e}). Fallback applied."
+                res.warning = f"Primary engine '{resolved_engine}' unavailable ({e}). Fallback applied."
                 return res
             raise
 
@@ -116,14 +147,25 @@ class InferenceManager:
         max_new_tokens: int = 256,
         temperature: float = 0.7,
     ) -> Iterator[str]:
-        engine = self.get_engine(engine_name)
-        return engine.stream(
-            prompt,
-            system_prompt=system_prompt,
-            history=history,
-            max_new_tokens=max_new_tokens,
-            temperature=temperature,
-        )
+        resolved_engine = self._resolve_engine_name(engine_name, prompt)
+        try:
+            engine = self.get_engine(resolved_engine)
+            return engine.stream(
+                prompt,
+                system_prompt=system_prompt,
+                history=history,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+            )
+        except Exception as e:
+            logger.warning("Stream with engine '%s' failed: %s, falling back to foundation", resolved_engine, e)
+            return self._foundation_engine.stream(
+                prompt,
+                system_prompt=system_prompt,
+                history=history,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+            )
 
     def unload_all(self) -> None:
         for engine in set(self._engines.values()):
