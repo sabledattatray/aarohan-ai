@@ -105,6 +105,8 @@ class WebSearchEngine:
         re.compile(r"\b(?:look\s+up|find)\s+.*?\s+(?:on\s+the\s+web|online|on\s+google)\b", re.IGNORECASE),
         re.compile(r"\b(?:google|browse\s+the\s+web|web\s+search)\b", re.IGNORECASE),
         re.compile(r"\bsearch\s+for\s+.*?\s+(?:online|on\s+the\s+web)\b", re.IGNORECASE),
+        re.compile(r"\b(?:today(?:'s)?|latest|current|live)\s+(?:news|weather|price|rate|score|gold|silver|stock|petrol|diesel)\b", re.IGNORECASE),
+        re.compile(r"\b(?:who\s+won|score\s+of|weather\s+in|news\s+about)\b", re.IGNORECASE),
     ]
 
     def __init__(self, timeout_seconds: int = 10) -> None:

@@ -61,6 +61,7 @@ from aarohan.safety import AuditLogger, RateLimiter, SafetyFilter
 from aarohan.scheduler import LearningScheduler
 from aarohan.tools.analytics import AnalyticsEngine
 from aarohan.tools.code_verifier import CodeVerifier
+from aarohan.tools.currency import format_currency_response, is_currency_exchange_query
 from aarohan.tools.math_verifier import MathVerifier
 from aarohan.tools.registry import ToolRegistry
 from aarohan.tools.sandbox import CodeSandbox
@@ -1285,6 +1286,13 @@ def create_app(
             generated_tokens = 0
             checkpoint_name = "aarohan_geography_grounding"
             warning_msg = None
+        elif is_currency_exchange_query(processed_query) and (curr_resp := format_currency_response(processed_query)):
+            response_text = curr_resp
+            response_source = "aarohan_forex_engine"
+            model_invoked = False
+            generated_tokens = 0
+            checkpoint_name = "aarohan_live_forex"
+            warning_msg = None
         elif auto_dataset_link and any(kw in processed_query.lower() for kw in ["in excel", "export", "download", "dataset", "spreadsheet", "give this data"]):
             response_text = auto_dataset_link
             response_source = "aarohan_dataset_engine"
@@ -1702,6 +1710,9 @@ def create_app(
 
         if auto_dataset_link and any(kw in processed_query.lower() for kw in ["in excel", "export", "download", "dataset", "spreadsheet", "give this data"]):
             return StreamingResponse(_stream_static_response(auto_dataset_link, "aarohan_dataset_generator", "aarohan_dataset_engine", "DATASET_GENERATION"), media_type="text/event-stream")
+
+        if is_currency_exchange_query(processed_query) and (curr_resp := format_currency_response(processed_query)):
+            return StreamingResponse(_stream_static_response(curr_resp, "aarohan_live_forex", "aarohan_forex_engine", "CURRENCY_EXCHANGE"), media_type="text/event-stream")
 
         if identity_reply:
             def identity_stream():
