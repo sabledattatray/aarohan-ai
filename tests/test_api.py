@@ -217,3 +217,24 @@ def test_web_ui_dashboard(test_env):
     assert res.status_code == 200
     assert "Aarohan" in res.text
     assert "AI Inference & Chat" in res.text
+    assert "Dataset Studio" in res.text
+
+
+def test_dataset_api_endpoints(test_env):
+    client = test_env["client"]
+    # 1. Generate banking dataset in CSV
+    gen_res = client.post(
+        "/api/datasets/generate",
+        json={"domain": "banking", "rows": 50, "fmt": "csv"},
+    )
+    assert gen_res.status_code == 200
+    data = gen_res.json()
+    assert data["rows"] == 50
+    assert data["domain"] == "banking"
+    filename = data["filename"]
+
+    # 2. Download generated dataset
+    down_res = client.get(f"/api/datasets/download/{filename}")
+    assert down_res.status_code == 200
+    assert len(down_res.content) > 100
+    assert "Transaction_ID" in down_res.text

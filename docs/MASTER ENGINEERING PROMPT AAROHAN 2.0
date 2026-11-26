@@ -1,0 +1,1424 @@
+# MASTER ENGINEERING PROMPT — AAROHAN AI 2.0
+## Transform AAROHAN into a Complete Cognitive AI Assistant
+
+**Project Repository:** https://github.com/sabledattatray/aarohan-ai
+
+**Project Owner:** Datta Sable
+
+**Project Name:** AAROHAN AI
+
+**Mission:** Build an independent, local-first, continuously improving AI platform capable of understanding human language, reasoning, researching, generating datasets, creating images, analyzing documents, writing code, remembering useful knowledge and operating intelligent tools.
+
+---
+
+# 1. YOUR ROLE
+
+Act as a principal AI architect, senior Python engineer, machine learning researcher, NLP engineer, backend developer, frontend developer, database architect, cybersecurity engineer and QA automation engineer.
+
+You are responsible for upgrading the existing AAROHAN AI repository into a reliable, modular, extensible and production-quality AI assistant.
+
+Do not approach this as a simple chatbot UI project.
+
+Treat it as a complete AI platform consisting of:
+
+1. Language intelligence.
+2. Intent understanding.
+3. Foundation model inference.
+4. Reasoning and planning.
+5. Cognitive memory.
+6. Knowledge graph.
+7. Web research.
+8. Autonomous learning.
+9. Dataset generation.
+10. Image generation.
+11. Document understanding.
+12. Code generation and execution.
+13. Data analysis.
+14. Multimodal processing.
+15. Tool orchestration.
+16. User interface.
+17. Evaluation and continuous improvement.
+18. Security and privacy.
+
+The final product should offer an intelligent conversational experience comparable in usability and breadth of capabilities to leading AI assistants, while being honest about its actual model capabilities.
+
+Do not claim GPT-level intelligence unless independently demonstrated through reproducible benchmarks.
+
+# 2. FIRST ACTION: COMPLETE REPOSITORY AUDIT
+
+Before modifying anything, inspect the entire existing repository.
+
+GitHub:
+https://github.com/sabledattatray/aarohan-ai
+
+Inspect:
+
+- README.md
+- AAROHAN_Master_PRD.txt
+- pyproject.toml
+- requirements.txt
+- requirements-data.txt
+- aarohan/
+- frontend/
+- scripts/
+- tests/
+- data/
+- docs/
+- artifacts/
+- tokenizer files
+- model configurations
+- existing API endpoints
+- inference engines
+- memory implementation
+- knowledge graph
+- learning engine
+- existing database schemas
+- frontend components
+- configuration files
+
+Also inspect Git history and current implementation status.
+
+Create:
+
+`docs/ARCHITECTURE_AUDIT.md`
+
+The audit must identify:
+
+- What is implemented and working.
+- What is implemented but incomplete.
+- What exists only as a planned feature.
+- What is broken.
+- What needs optimization.
+- What needs replacement.
+- What can be reused.
+- What is missing.
+
+Do not assume that documentation describes actual implementation.
+
+Run the existing test suite before making changes and record the baseline.
+
+**Non-negotiable rules:**
+
+- Do not delete existing working features.
+- Do not replace the custom AAROHAN Transformer with another model.
+- Do not rename an external foundation model as an independently trained AAROHAN model.
+- Do not overwrite model checkpoints, tokenizer files or datasets.
+- Do not remove existing API endpoints without a compatibility plan.
+- Do not redesign working UI components unnecessarily.
+- Do not introduce expensive paid services as mandatory dependencies.
+- Do not create fake functionality or simulated success messages.
+- Reuse existing implementations where they are correct.
+
+# 3. TARGET ARCHITECTURE
+
+Implement a modular architecture.
+
+```text
+                         AAROHAN AI
+                              |
+                      CHAT INTERFACE
+                              |
+                     REQUEST PROCESSOR
+                              |
+                  LANGUAGE UNDERSTANDING
+                              |
+                  INTENT CLASSIFICATION
+                              |
+                    CONTEXT MANAGEMENT
+                              |
+                      AI ORCHESTRATOR
+                              |
+        +---------------------+----------------------+
+        |                     |                      |
+   MODEL ENGINE          COGNITIVE MEMORY       TOOL REGISTRY
+        |                     |                      |
+   Foundation LLM         Episodic Memory          Web Search
+   Custom Transformer     Semantic Memory          Python
+   Model Router           Working Memory           SQL
+   Embeddings             Procedural Memory         Files
+                          Knowledge Graph           Images
+                          Learning Memory           Documents
+                                                   Analytics
+        |                     |                      |
+        +---------------------+----------------------+
+                              |
+                       RESPONSE SYNTHESIS
+                              |
+                   SOURCE AND FACT CHECKING
+                              |
+                      STREAMING RESPONSE
+                              |
+                       CHAT INTERFACE
+                              |
+                   USER FEEDBACK AND MEMORY
+                              |
+                     EVALUATION ENGINE
+                              |
+                     CONTROLLED LEARNING
+```
+
+Every module must have a clearly defined interface.
+
+Use dependency injection and configurable providers wherever practical.
+
+No individual tool should be tightly coupled to a specific foundation model.
+
+# 4. INTELLIGENT LANGUAGE UNDERSTANDING ENGINE
+
+This is a top-priority feature.
+
+AAROHAN must understand what users mean, not merely what they type.
+
+Create:
+
+`aarohan/nlp/`
+
+Implement:
+
+- text normalization
+- spelling correction
+- grammar-aware normalization
+- intent classification
+- entity extraction
+- language detection
+- conversational context resolution
+- ambiguity detection
+- query rewriting
+- technical terminology protection
+
+## 4.1 Spelling and grammar intelligence
+
+Support:
+
+- Misspelled words.
+- Missing letters.
+- Extra letters.
+- Incorrect word spacing.
+- Missing punctuation.
+- Incorrect sentence structure.
+- Common English typing mistakes.
+- Indian English expressions.
+- Common Hinglish phrases.
+- Informal conversational language.
+- Incomplete questions.
+
+Examples:
+
+Input:
+"how to conect sql wit powerbi"
+
+Normalized intent:
+"How do I connect SQL Server with Power BI?"
+
+Input:
+"creat a 10k banking datset"
+
+Normalized intent:
+"Generate a synthetic banking dataset containing 10,000 records."
+
+Input:
+"explane me this code"
+
+Normalized intent:
+"Explain this code."
+
+Input:
+"wht is fabric and hw it wrks"
+
+Normalized intent:
+"What is Microsoft Fabric and how does it work?"
+
+Input:
+"make excel and give download"
+
+Normalized intent:
+"Create an Excel file and provide a downloadable file."
+
+## 4.2 Important normalization rules
+
+- Never change the original user message.
+- Preserve original and normalized text separately.
+- Never modify SQL queries, code, URLs or identifiers as ordinary prose.
+- Protect names, numbers, dates, technical acronyms and product names.
+- Use conversational context before deciding the meaning of incomplete sentences.
+- Do not unnecessarily display spelling corrections to users.
+- Do not ask for clarification when the intended meaning is sufficiently clear.
+- When multiple interpretations are genuinely possible, ask one concise question.
+
+## 4.3 Intent categories
+
+Create a structured intent router supporting:
+
+- GENERAL_CHAT
+- KNOWLEDGE_QUESTION
+- RESEARCH
+- WEB_SEARCH
+- IMAGE_GENERATION
+- IMAGE_UNDERSTANDING
+- DATASET_GENERATION
+- DATA_ANALYSIS
+- CHART_GENERATION
+- EXCEL_GENERATION
+- DOCUMENT_CREATION
+- DOCUMENT_ANALYSIS
+- CODE_GENERATION
+- CODE_EXECUTION
+- SQL_ASSISTANCE
+- MATHEMATICAL_CALCULATION
+- SUMMARIZATION
+- TRANSLATION
+- MEMORY_RECALL
+- LEARNING_REQUEST
+- MULTIMODAL_REQUEST
+
+Allow multiple intents in one user request.
+
+For example, "Research Indian banking data, create a dataset and make a chart" should invoke multiple coordinated tools.
+
+# 5. FOUNDATION MODEL AND MODEL ROUTING
+
+Preserve the existing custom Transformer implementation.
+
+Create a unified model interface.
+
+Suggested structure:
+
+`aarohan/models/`
+
+- base.py
+- foundation.py
+- custom_transformer.py
+- model_registry.py
+- model_router.py
+- inference.py
+- quantization.py
+- generation.py
+
+Requirements:
+
+1. Support existing Qwen2.5-0.5B-Instruct configuration.
+2. Support compatible Hugging Face open-weight models.
+3. Support optional Ollama or llama.cpp backends.
+4. Support quantized inference when compatible.
+5. Support GPU and CPU inference.
+6. Detect available hardware.
+7. Select the appropriate configured model.
+8. Provide graceful fallback when GPU memory is insufficient.
+9. Support streaming output.
+10. Expose generation parameters through configuration.
+11. Track model version, model source and license.
+12. Provide model-loading diagnostics.
+
+Keep model routing configurable.
+
+Do not download large models automatically.
+
+Do not load multiple large models into 6GB VRAM simultaneously.
+
+Provide model selection in the UI:
+
+- AAROHAN Foundation
+- AAROHAN Custom Model
+- Other locally installed compatible models
+
+Clearly distinguish independently trained models from external pretrained models.
+
+# 6. REASONING AND INTELLIGENT ORCHESTRATION
+
+Create:
+
+`aarohan/agent/`
+
+Implement a central orchestration engine.
+
+The orchestrator must:
+
+1. Understand the request.
+2. Identify the expected output.
+3. Determine whether a tool is required.
+4. Select the appropriate model.
+5. Retrieve relevant memory.
+6. Create a task plan for complex requests.
+7. Execute permitted tools.
+8. Validate tool outputs.
+9. Synthesize the final response.
+10. Include relevant references.
+11. Store approved memories.
+12. Record execution metrics.
+
+Support:
+
+- Multi-step task planning.
+- Tool selection.
+- Tool chaining.
+- Context management.
+- Retry policies.
+- Timeouts.
+- Error recovery.
+- Task cancellation.
+- Progress reporting.
+- Structured tool outputs.
+
+Do not invoke every tool for every request.
+
+A simple question should receive a direct answer without unnecessary research or tool execution.
+
+Never fabricate a successful tool execution.
+
+For ambiguous or risky actions, request confirmation.
+
+# 7. COGNITIVE MEMORY SYSTEM
+
+Preserve and improve the existing six-layer memory architecture.
+
+Create or extend:
+
+`aarohan/memory/`
+
+Implement:
+
+1. Working memory.
+2. Episodic memory.
+3. Semantic memory.
+4. Procedural memory.
+5. Knowledge graph.
+6. Learning memory.
+
+Requirements:
+
+- Persistent storage.
+- Semantic retrieval.
+- BM25/full-text retrieval.
+- Hybrid ranking.
+- Conversation history.
+- Memory importance scoring.
+- Recency scoring.
+- Duplicate detection.
+- Contradiction detection.
+- Memory correction.
+- Memory expiration.
+- Memory deletion.
+- User-controlled memory settings.
+- Source tracking.
+- Privacy classification.
+
+The retrieval engine should rank memories using relevance, confidence, recency and importance.
+
+Never treat every statement from a user as an independently verified fact.
+
+Never save sensitive information automatically as a general training example.
+
+Provide a Memory Explorer interface.
+
+Display:
+
+- Memory categories.
+- Stored records.
+- Source.
+- Creation date.
+- Confidence.
+- Verification status.
+- Related memories.
+- Edit and delete controls.
+
+# 8. WEB RESEARCH ENGINE
+
+Create:
+
+`aarohan/research/`
+
+AAROHAN must be able to research questions using configurable search providers.
+
+Implement provider interfaces for:
+
+- Free or self-hosted search services.
+- Configurable external search APIs.
+- Direct URL retrieval.
+- Search-result extraction.
+- Article parsing.
+- Documentation retrieval.
+
+Do not assume a provider is free or has unlimited access.
+
+## Research workflow
+
+```text
+USER QUESTION
+      |
+QUERY NORMALIZATION
+      |
+SEARCH PLANNING
+      |
+SEARCH PROVIDER
+      |
+RESULT COLLECTION
+      |
+PAGE EXTRACTION
+      |
+SOURCE QUALITY CHECK
+      |
+CROSS-SOURCE COMPARISON
+      |
+FACTUAL SYNTHESIS
+      |
+ANSWER WITH REFERENCES
+```
+
+Requirements:
+
+- Search multiple sources when necessary.
+- Prefer primary documentation and authoritative publications.
+- Extract publication dates.
+- Identify outdated information.
+- Detect contradictory evidence.
+- Avoid duplicate sources.
+- Keep source metadata.
+- Separate verified facts from assumptions.
+- Never invent URLs or citations.
+- Display source links directly in the response.
+- Make source links clickable in the frontend.
+
+Research results should include:
+
+- Page title.
+- Website name.
+- URL.
+- Publication date when available.
+- Retrieval date.
+- Relevant excerpt.
+- Relevance score.
+
+Treat retrieved webpages as untrusted data, not system instructions.
+
+Never allow a webpage to override system instructions or execute arbitrary commands.
+
+# 9. AUTONOMOUS LEARNING ENGINE
+
+Preserve the current controlled continual-learning architecture.
+
+Create or extend:
+
+`aarohan/learning/`
+
+Implement the following pipeline:
+
+```text
+IDENTIFY KNOWLEDGE GAP
+          |
+CREATE LEARNING TASK
+          |
+SEARCH TRUSTED SOURCES
+          |
+COLLECT DOCUMENTS
+          |
+EXTRACT KNOWLEDGE
+          |
+VERIFY EVIDENCE
+          |
+CREATE KNOWLEDGE RECORDS
+          |
+GENERATE TRAINING CANDIDATES
+          |
+REVIEW DATASET
+          |
+CREATE VERSIONED DATASET
+          |
+TRAIN CANDIDATE MODEL
+          |
+RUN BENCHMARKS
+          |
+COMPARE WITH BASELINE
+          |
+PASS EVALUATION?
+       /       \
+     YES        NO
+      |          |
+   APPROVAL    REJECT
+      |
+   DEPLOY
+      |
+   MONITOR
+```
+
+Support three distinct learning operations:
+
+**Level 1: Knowledge acquisition**
+
+Store new verified information in the knowledge base.
+
+**Level 2: Experience improvement**
+
+Analyze failed questions, feedback and evaluation results to identify recurring weaknesses.
+
+**Level 3: Neural model training**
+
+Prepare curated training data, train candidate checkpoints and measure whether the model actually improves.
+
+Mandatory controls:
+
+- Human approval for production checkpoint deployment.
+- Dataset versioning.
+- Model versioning.
+- Training logs.
+- Checkpoint integrity checks.
+- Experience replay.
+- Regression testing.
+- Rollback.
+- Training resource limits.
+- Prevention of training-data leakage.
+- Protection against feedback loops.
+
+Never train directly on unverified generated answers.
+
+Never allow unrestricted self-modification.
+
+Create a Learning Dashboard showing actual learning progress rather than simulated progress.
+
+# 10. DATASET GENERATION STUDIO
+
+This is a major feature.
+
+Create:
+
+`aarohan/generation/datasets/`
+
+Users must be able to request datasets in ordinary language.
+
+Examples:
+
+- Create 10,000 Indian banking transactions.
+- Generate a customer collection dataset.
+- Create an employee attendance dataset.
+- Generate a sales dataset for Power BI.
+- Create a loan repayment dataset.
+- Generate synthetic ecommerce orders.
+- Create a SQL Server practice database.
+- Generate a dataset with intentional missing values.
+- Create an Excel dataset with multiple worksheets.
+
+## Supported formats
+
+- CSV
+- XLSX
+- JSON
+- JSONL
+- SQL
+- Parquet
+- TXT
+
+## Dataset configuration
+
+Support:
+
+- Number of rows.
+- Number of columns.
+- Column names.
+- Data types.
+- Date ranges.
+- Numeric ranges.
+- Categories.
+- Relationships.
+- Null percentages.
+- Duplicate percentages.
+- Outlier percentages.
+- Unique constraints.
+- Referential integrity.
+- Realistic distributions.
+- Custom business rules.
+
+Use deterministic generation with an optional random seed.
+
+## Dataset Studio UI
+
+Display a dataset-generation panel containing:
+
+- Natural-language prompt.
+- Row count.
+- Format selection.
+- Schema editor.
+- Preview.
+- Generate button.
+- Download controls.
+
+After generation:
+
+- Validate the schema.
+- Validate row count.
+- Check data types.
+- Check required fields.
+- Generate a preview.
+- Save the output file.
+- Return a real download link.
+- Report generation errors honestly.
+
+Never invent real customer records or expose private personal information.
+
+Clearly label synthetic datasets as synthetic.
+
+Use Python, Pandas, Polars and PyArrow where appropriate.
+
+For Excel files, use openpyxl and support multiple worksheets.
+
+# 11. IMAGE GENERATION AND IMAGE UNDERSTANDING
+
+Create:
+
+`aarohan/generation/images/`
+
+and:
+
+`aarohan/vision/`
+
+Support a pluggable image-generation architecture.
+
+Potential backends:
+
+- Stable Diffusion-compatible local pipelines.
+- ComfyUI integration.
+- Optional external image-generation providers.
+
+The image engine must operate independently from the language model.
+
+Requirements:
+
+- Natural-language image prompts.
+- Image dimensions.
+- Aspect ratios.
+- Image formats.
+- Negative prompts where supported.
+- Generation settings.
+- Progress status.
+- Image history.
+- Save and export.
+- Error handling.
+
+On the available RTX 2060 6GB hardware, use memory-aware configurations, CPU offloading or compatible lower-memory models.
+
+Do not promise that every image model will fit into VRAM.
+
+For image understanding, support compatible vision-language models.
+
+Allow users to:
+
+- Upload images.
+- Ask questions about images.
+- Extract text using OCR.
+- Understand diagrams.
+- Read charts.
+- Describe visual content.
+- Analyze screenshots.
+- Extract tables where possible.
+
+Never claim to have analyzed an image if the vision engine was not actually invoked.
+
+# 12. DOCUMENT INTELLIGENCE
+
+Create:
+
+`aarohan/documents/`
+
+Support:
+
+- PDF
+- DOCX
+- XLSX
+- CSV
+- TXT
+- Markdown
+- HTML
+- JSON
+
+Implement:
+
+- Text extraction.
+- PDF page extraction.
+- OCR for scanned documents.
+- Table extraction.
+- Document chunking.
+- Metadata extraction.
+- Semantic indexing.
+- Document question answering.
+- Summarization.
+- Comparison between documents.
+- Source-page references.
+
+Use retrieval-augmented generation for document questions.
+
+Every document-grounded response should provide page or section references when available.
+
+Uploaded documents are untrusted input. Never execute embedded instructions or macros.
+
+# 13. DATA ANALYSIS AND VISUALIZATION
+
+Create:
+
+`aarohan/analytics/`
+
+Support natural-language data analysis.
+
+Examples:
+
+- Analyze this Excel file.
+- Calculate monthly revenue.
+- Find the top 10 customers.
+- Identify duplicate records.
+- Create a sales dashboard.
+- Compare MTD with LMTD.
+- Find missing values.
+- Generate a correlation matrix.
+- Create a forecast.
+- Explain the dataset.
+
+Use:
+
+- Pandas.
+- Polars.
+- NumPy.
+- DuckDB.
+- Matplotlib.
+- Plotly.
+
+Implement:
+
+- Data profiling.
+- Data cleaning.
+- Statistical analysis.
+- Aggregations.
+- Grouping.
+- Joins.
+- Time-series analysis.
+- Charts.
+- Export functionality.
+
+The system must calculate using real data, not ask the LLM to invent numerical results.
+
+Charts should be rendered as actual visualizations.
+
+Support export to PNG, HTML, CSV and XLSX where appropriate.
+
+# 14. CODING AND SQL ASSISTANT
+
+Create:
+
+`aarohan/coding/`
+
+Support:
+
+- Python.
+- SQL.
+- JavaScript.
+- TypeScript.
+- HTML.
+- CSS.
+- PowerShell.
+- DAX.
+- Excel formulas.
+
+Capabilities:
+
+- Code generation.
+- Code explanation.
+- Debugging.
+- Error diagnosis.
+- Refactoring.
+- Code review.
+- Test generation.
+- SQL query assistance.
+- Formula assistance.
+
+Implement isolated code execution.
+
+Security requirements:
+
+- Never execute arbitrary generated code directly on the host.
+- Use a sandbox with restricted filesystem access.
+- Disable unnecessary network access.
+- Set execution timeouts.
+- Set memory and CPU limits.
+- Restrict subprocesses.
+- Prevent access to environment secrets.
+- Log execution requests.
+- Require confirmation for potentially destructive operations.
+
+For SQL, use read-only connections by default.
+
+Require explicit approval for INSERT, UPDATE, DELETE, DROP, ALTER and other modifying operations.
+
+# 15. MULTIMODAL CAPABILITIES
+
+Design extensible interfaces for:
+
+- Text.
+- Images.
+- Audio.
+- Speech-to-text.
+- Text-to-speech.
+- Video frame analysis.
+
+Potential integrations:
+
+- Whisper-compatible speech recognition.
+- Local text-to-speech engines.
+- Vision-language models.
+- OCR engines.
+- Video frame extraction.
+
+Audio and video must be optional modules and should not block the core application.
+
+Provide a clean upload and processing interface.
+
+# 16. CHATGPT-QUALITY INTERACTION EXPERIENCE
+
+Improve the existing frontend without destroying its current visual identity.
+
+Retain the dark premium AAROHAN aesthetic.
+
+The interface should provide:
+
+**Sidebar**
+
+- New conversation.
+- Recent conversations.
+- Search history.
+- Pinned conversations.
+- Projects or workspaces.
+- Memory explorer.
+- Knowledge graph.
+- Learning dashboard.
+- Dataset studio.
+- Image studio.
+- Document library.
+- Settings.
+
+**Chat area**
+
+- Streaming responses.
+- Markdown rendering.
+- Syntax-highlighted code.
+- Copy buttons.
+- Code download.
+- Tables.
+- Mathematical notation.
+- Clickable hyperlinks.
+- Source citations.
+- Image previews.
+- File previews.
+- Chart rendering.
+- Downloadable generated files.
+- Tool execution status.
+- Helpful/not helpful feedback.
+
+**Composer**
+
+- Multiline text input.
+- File upload.
+- Image upload.
+- Attachment preview.
+- Model selection.
+- Tool selection.
+- Stop generation.
+- Regenerate response.
+- Edit and resend message.
+
+Support keyboard shortcuts, responsive layouts, accessible controls and proper loading/error states.
+
+Do not display fake thinking indicators or fabricated research progress.
+
+# 17. TOOL REGISTRY AND PLUGIN ARCHITECTURE
+
+Create a standardized tool interface.
+
+Every tool should define:
+
+- Tool name.
+- Description.
+- Input schema.
+- Output schema.
+- Permissions.
+- Timeout.
+- Execution status.
+- Error response.
+- Audit record.
+
+Register tools dynamically from a controlled registry.
+
+Allow future integrations for:
+
+- Web search.
+- File operations.
+- Python.
+- SQL.
+- Excel.
+- Image generation.
+- Document processing.
+- Data analysis.
+- External applications.
+
+The model should choose tools based on the request, but the application must independently enforce tool permissions.
+
+# 18. RESPONSE QUALITY AND FACTUAL RELIABILITY
+
+Create a response-quality layer.
+
+Requirements:
+
+- Answer the actual question.
+- Use retrieved evidence where needed.
+- Distinguish fact from assumption.
+- Show uncertainty when appropriate.
+- Avoid fabricated citations.
+- Avoid invented statistics.
+- Explain calculations.
+- Include working source links.
+- Provide useful examples.
+- Maintain conversational context.
+- Avoid unnecessary clarification.
+- Avoid repeating the same answer.
+- Handle follow-up questions.
+- Use appropriate response length.
+
+For mathematical questions, use a calculation engine.
+
+For current information, use web research.
+
+For uploaded files, use document retrieval.
+
+For data analysis, use actual computation.
+
+For image requests, invoke an actual image-generation backend.
+
+Never substitute a textual description for an operation that was requested to be performed.
+
+# 19. SECURITY AND PRIVACY
+
+Create a dedicated security layer.
+
+Implement:
+
+- Input validation.
+- Output validation.
+- Authentication where required.
+- Authorization.
+- Session protection.
+- Prompt-injection defenses.
+- File-upload restrictions.
+- Path traversal prevention.
+- Secret management.
+- Rate limiting.
+- Audit logs.
+- Sandboxed execution.
+- Resource limits.
+- Model-download verification.
+- Safe tool execution.
+- User data isolation.
+
+Protect against malicious instructions inside websites, uploaded files, documents and generated datasets.
+
+Local-first must remain the default.
+
+External services must be optional, explicitly configured and clearly disclosed.
+
+Do not send user conversations or uploaded files to external providers without the relevant configuration and user consent.
+
+# 20. OBSERVABILITY AND SYSTEM DASHBOARD
+
+Create a complete system-health dashboard.
+
+Show real metrics:
+
+- Active model.
+- Model version.
+- GPU utilization.
+- GPU memory.
+- CPU utilization.
+- RAM usage.
+- Inference latency.
+- Tokens per second.
+- Context usage.
+- Memory records.
+- Indexed documents.
+- Knowledge graph entities.
+- Research tasks.
+- Learning tasks.
+- Dataset generation history.
+- Model training history.
+- Failed tool executions.
+- Evaluation scores.
+
+Do not fabricate metrics when telemetry is unavailable.
+
+Provide graceful handling when optional dependencies are not installed.
+
+# 21. CONFIGURATION AND RESOURCE MANAGEMENT
+
+Create a centralized configuration system.
+
+Use environment variables and configuration files.
+
+Include settings for:
+
+- Model paths.
+- Model backend.
+- GPU device.
+- Maximum VRAM budget.
+- Context length.
+- Generation parameters.
+- Embedding model.
+- Database.
+- Vector store.
+- Search providers.
+- Image providers.
+- File storage.
+- Sandbox settings.
+- Resource limits.
+- Logging.
+- Authentication.
+
+Never commit API keys, passwords or private credentials.
+
+Provide `.env.example` with placeholders only.
+
+Do not make the application dependent on a paid API.
+
+# 22. TESTING AND QUALITY ASSURANCE
+
+Build comprehensive tests.
+
+Create test groups for:
+
+1. NLP normalization.
+2. Spelling-error understanding.
+3. Intent detection.
+4. Conversation context.
+5. Model loading.
+6. Model routing.
+7. Streaming inference.
+8. Memory retrieval.
+9. Memory privacy.
+10. Knowledge graph.
+11. Web research.
+12. Citation validation.
+13. Dataset generation.
+14. Excel generation.
+15. Image generation.
+16. Document processing.
+17. Data analysis.
+18. Code sandbox.
+19. Tool permissions.
+20. Learning workflows.
+21. Model evaluation.
+22. Frontend interaction.
+23. API integration.
+24. Security.
+
+Create a benchmark dataset containing at least:
+
+- 100 spelling-error queries.
+- 100 conversational follow-ups.
+- 100 general knowledge questions.
+- 100 technical questions.
+- 50 coding requests.
+- 50 data-generation requests.
+- 50 research requests.
+- 50 ambiguous requests.
+
+Use reproducible evaluation datasets.
+
+Test examples:
+
+Input:
+"how to creat pivot table in exel"
+
+Expected intent:
+Excel help.
+
+Input:
+"make a datset of 5000 custmers and save xlsx"
+
+Expected intent:
+Generate a 5,000-row synthetic customer dataset in XLSX format.
+
+Input:
+"what about the second option?"
+
+Expected behavior:
+Resolve the reference using conversation history.
+
+Input:
+"research the latest microsoft fabric features and give me sources"
+
+Expected behavior:
+Perform actual web research and return clickable references.
+
+Track:
+
+- Intent accuracy.
+- Normalization accuracy.
+- Tool-selection accuracy.
+- Retrieval precision.
+- Citation validity.
+- Task-completion rate.
+- Response latency.
+- Regression rate.
+
+Do not claim perfect accuracy.
+
+# 23. DEVELOPMENT PHASES
+
+Implement the project in these phases.
+
+## Phase 0 — Audit and baseline
+
+- Inspect repository.
+- Document architecture.
+- Run current tests.
+- Identify technical debt.
+- Create implementation roadmap.
+
+## Phase 1 — Core intelligence
+
+- NLP normalization.
+- Spelling correction.
+- Intent classification.
+- Context management.
+- Model abstraction.
+- Improved response orchestration.
+
+## Phase 2 — Cognitive memory
+
+- Six-layer memory improvements.
+- Retrieval ranking.
+- Knowledge graph.
+- Memory explorer.
+- Privacy controls.
+
+## Phase 3 — Research intelligence
+
+- Search providers.
+- Page extraction.
+- Evidence comparison.
+- Clickable citations.
+- Research history.
+
+## Phase 4 — Dataset and analytics studio
+
+- Synthetic dataset generation.
+- CSV and XLSX exports.
+- Schema validation.
+- Data analysis.
+- Chart generation.
+
+## Phase 5 — Multimodal capabilities
+
+- Image understanding.
+- Image generation.
+- Document intelligence.
+- OCR.
+- Audio extensions.
+
+## Phase 6 — Coding and tools
+
+- Code assistant.
+- Python sandbox.
+- SQL assistance.
+- Tool registry.
+- Permission system.
+
+## Phase 7 — Autonomous learning
+
+- Knowledge gap detection.
+- Research planning.
+- Candidate training datasets.
+- Training evaluation.
+- Checkpoint registry.
+- Rollback.
+
+## Phase 8 — Frontend and user experience
+
+- Unified chat.
+- Dataset Studio.
+- Image Studio.
+- Document Library.
+- Memory Explorer.
+- Learning Dashboard.
+- Settings.
+
+## Phase 9 — Integration and release
+
+- Full integration.
+- Security testing.
+- Performance optimization.
+- Regression testing.
+- Documentation.
+- Installation guide.
+- Release checklist.
+
+# 24. REQUIRED DEVELOPMENT BEHAVIOR
+
+Do not stop after creating the architecture or writing documentation.
+
+Actually implement the working features.
+
+For every phase:
+
+1. Inspect existing code.
+2. Identify affected modules.
+3. Design the implementation.
+4. Write the code.
+5. Add tests.
+6. Run tests.
+7. Fix errors.
+8. Verify API behavior.
+9. Verify frontend behavior.
+10. Update documentation.
+
+Use small, manageable changes.
+
+Do not rewrite the entire repository in one operation.
+
+Do not create empty modules and mark them complete.
+
+Do not return placeholder implementations.
+
+Do not fake successful API responses.
+
+Do not silently skip failed tests.
+
+Do not hide limitations.
+
+When a feature requires an unavailable model, provider or hardware resource, implement its provider interface, configuration, availability checks and a clear disabled state rather than pretending it works.
+
+Maintain a `docs/IMPLEMENTATION_STATUS.md` file containing:
+
+- Feature.
+- Implementation status.
+- Files changed.
+- Dependencies.
+- Tests.
+- Known limitations.
+- Next action.
+
+Use these statuses:
+
+- NOT STARTED
+- IN PROGRESS
+- IMPLEMENTED
+- TESTED
+- BLOCKED
+
+At the end of each phase, provide a concise engineering report.
+
+# 25. DOCUMENTATION
+
+Maintain:
+
+- README.md
+- AAROHAN_Master_PRD.txt
+- docs/ARCHITECTURE.md
+- docs/ARCHITECTURE_AUDIT.md
+- docs/IMPLEMENTATION_STATUS.md
+- docs/API_REFERENCE.md
+- docs/MODEL_GUIDE.md
+- docs/MEMORY_GUIDE.md
+- docs/LEARNING_ENGINE.md
+- docs/DATASET_STUDIO.md
+- docs/IMAGE_GENERATION.md
+- docs/SECURITY.md
+- docs/INSTALLATION.md
+- docs/TROUBLESHOOTING.md
+- docs/TESTING.md
+
+Document actual implemented functionality, not future promises.
+
+# 26. ACCEPTANCE CRITERIA
+
+AAROHAN 2.0 must not be declared complete until the following capabilities have been tested.
+
+| Requirement | Acceptance test |
+|---|---|
+| Spelling understanding | Understand intentionally misspelled queries. |
+| Context | Correctly interpret conversational follow-ups. |
+| Model routing | Switch between configured models. |
+| Streaming | Stream actual model output. |
+| Memory | Retrieve previously approved memories. |
+| Research | Search and return real source links. |
+| Dataset generation | Generate and download valid CSV and XLSX. |
+| Data analysis | Calculate results from actual uploaded data. |
+| Charts | Generate actual charts. |
+| Image generation | Produce an image using a working backend. |
+| Image understanding | Analyze an uploaded image using a vision backend. |
+| Documents | Read supported files and cite their pages. |
+| Coding | Generate and safely execute supported code. |
+| SQL | Generate and validate queries. |
+| Learning | Create and evaluate candidate learning tasks. |
+| Model training | Train and evaluate an experimental checkpoint. |
+| Rollback | Restore the previous stable model. |
+| Security | Reject unauthorized tool operations. |
+| UI | Complete end-to-end user workflows. |
+
+# 27. FINAL PRODUCT VISION
+
+The finished application should feel like a unified AI workspace.
+
+A user should be able to type:
+
+"Hi Aarohan, I need to learn Power BI. Create a sample banking dataset, analyze it, generate an Excel file, create some charts and explain how to build a dashboard."
+
+AAROHAN should:
+
+1. Understand the request even if it contains spelling mistakes.
+2. Identify all requested tasks.
+3. Create a realistic synthetic banking dataset.
+4. Validate the dataset.
+5. Generate a downloadable Excel workbook.
+6. Analyze the data using Python.
+7. Create charts.
+8. Explain the findings.
+9. Provide useful learning references.
+10. Remember the user's approved learning preference.
+
+Another user should be able to ask:
+
+"What is new in Microsoft Fabric this month?"
+
+AAROHAN should conduct actual web research, compare sources, identify publication dates, summarize relevant developments and provide clickable references.
+
+Another user should be able to ask:
+
+"Can you remember how we solved this SQL problem last time?"
+
+AAROHAN should retrieve relevant conversational memory and explain the previous solution.
+
+Another user should be able to ask:
+
+"Generate an image of a futuristic AI research laboratory."
+
+AAROHAN should invoke its actual image-generation backend and display the generated image.
+
+The platform must execute real operations, not merely describe how to perform them.
+
+---
+
+# FINAL INSTRUCTION TO ANTIGRAVITY
+
+Start with Phase 0.
+
+Inspect the existing repository thoroughly before writing code.
+
+Preserve the independent AAROHAN Transformer and its existing research identity.
+
+Prioritize working intelligence, reliable tool execution, factual accuracy, maintainability, security and measurable performance over cosmetic changes.
+
+Use free and open-source solutions wherever practical.
+
+Optimize for the existing NVIDIA RTX 2060 6GB GPU and available system RAM.
+
+Do not attempt to implement every feature simultaneously.
+
+Complete one phase at a time, verify it, document it and proceed.
+
+If context or execution limits interrupt development, save the exact progress in `docs/IMPLEMENTATION_STATUS.md` and continue from the last verified state.
+
+**The objective is not to create a chatbot that looks intelligent. The objective is to engineer an AI system that can understand, research, calculate, create, remember, use tools and improve its measurable capabilities over time.**
+
+Build AAROHAN to be an independent, extensible and trustworthy AI platform.

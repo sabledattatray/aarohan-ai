@@ -16,23 +16,28 @@ In accordance with PRD Prompt 15:
 from __future__ import annotations
 
 import json
+import logging
 import secrets
 from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from aarohan.continual import RollbackManager
 from aarohan.evaluator import MultiAreaEvaluator
 from aarohan.foundation_engine import FoundationEngine
+from aarohan.generation.datasets import DatasetGenerator
 from aarohan.memory import MemoryStore
+from aarohan.nlp import ContextResolver, Intent, IntentClassifier, TextNormalizer
 from aarohan.research import BoundedResearchEngine, KnowledgeGapDetector, LearningQueue
 from aarohan.safety import AuditLogger, SafetyFilter
 from aarohan.scheduler import LearningScheduler
 from scripts.chat_sft import generate_chat_response, stream_chat_response
+
+logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DB = PROJECT_ROOT / "data" / "memory" / "aarohan.sqlite"
@@ -132,6 +137,16 @@ class GraphRelationRequest(BaseModel):
     confidence: float = Field(0.7, ge=0.0, le=1.0)
 
 
+class DatasetGenRequest(BaseModel):
+    domain: str = Field("banking", description="Domain: banking, sales, ecommerce, employee")
+    topic: str | None = None
+    rows: int = Field(100, ge=1, le=10000)
+    row_count: int | None = None
+    fmt: str = Field("xlsx", pattern="^(csv|xlsx|json|sql)$")
+    format: str | None = None
+    include_analytics: bool = True
+
+
 def get_current_user(authorization: str | None = Header(None)) -> dict[str, Any]:
     """Optional bearer auth helper - falls back to default researcher if omitted for local UI."""
     if authorization and authorization.startswith("Bearer "):
@@ -167,6 +182,10 @@ def create_app(
     audit = AuditLogger(database_path)
     rollback_mgr = RollbackManager(registry_path)
     foundation_engine = FoundationEngine.get_instance()
+    normalizer = TextNormalizer()
+    intent_classifier = IntentClassifier()
+    context_resolver = ContextResolver()
+    dataset_generator = DatasetGenerator()
 
     # Initialize active deployment pointer if none set
     if not rollback_mgr.get_active() and checkpoint_path.is_file():
@@ -241,6 +260,56 @@ def create_app(
             },
         }
 
+    def _handle_auto_dataset(
+        processed_query: str,
+        resolved_query: str,
+        intent_res: Any,
+    ) -> str:
+        primary_intent = intent_res.primary_intent
+        is_dataset_req = (
+            primary_intent in (Intent.DATASET_GENERATION, Intent.EXCEL_GENERATION)
+            or any(m.intent in (Intent.DATASET_GENERATION, Intent.EXCEL_GENERATION) for m in intent_res.intents)
+        )
+        if not is_dataset_req:
+            return ""
+
+        try:
+            combined_q = f"{processed_query} {resolved_query}".lower()
+            domain = "banking"
+            if "ecommerce" in combined_q or "e-commerce" in combined_q or "product" in combined_q or "order" in combined_q:
+                domain = "ecommerce"
+            elif "sale" in combined_q or "revenue" in combined_q or "power bi" in combined_q or "fabric" in combined_q:
+                domain = "sales"
+            elif "employee" in combined_q or "hr" in combined_q or "salary" in combined_q or "staff" in combined_q:
+                domain = "employee"
+
+            fmt = "xlsx" if ("excel" in combined_q or "xlsx" in combined_q or "spreadsheet" in combined_q) else "csv"
+            if "json" in combined_q:
+                fmt = "json"
+            elif "sql" in combined_q:
+                fmt = "sql"
+
+            import re
+            row_match = re.search(r"(\d+)\s*(k|thousand|rows|records|transactions)?", combined_q)
+            rows = 100
+            if row_match:
+                num_val = int(row_match.group(1))
+                if row_match.group(2) in ("k", "thousand"):
+                    num_val *= 1000
+                rows = min(max(num_val, 10), 10000)
+
+            ds = dataset_generator.generate(domain=domain, rows=rows, fmt=fmt, include_analytics=True)
+            return (
+                f"\n\n---\n### 📊 Aarohan Dataset Generated\n"
+                f"- **Domain:** {domain.title()}\n"
+                f"- **File:** `{ds['filename']}` ({ds['rows']} records, {ds['column_count']} fields)\n"
+                f"- **Format:** {fmt.upper()}\n"
+                f"- **Download:** [📥 Click here to download {ds['filename']}](/api/datasets/download/{ds['filename']})\n\n"
+            )
+        except Exception as e:
+            logger.warning("Auto dataset generation error: %s", e)
+            return ""
+
     # -------------------------------------------------------------------------
     # AI Chat (Turn-Based & Streaming SSE)
     # -------------------------------------------------------------------------
@@ -257,13 +326,23 @@ def create_app(
 
         sanitized_query, pii_detected = SafetyFilter.redact_pii(req.query)
 
+        # Phase 1: Intelligent Language Normalization & Intent Routing
+        norm_result = normalizer.normalize(sanitized_query)
+        processed_query = norm_result.normalized
+        intent_res = intent_classifier.classify(processed_query)
+        primary_intent = intent_res.primary_intent
+        context_res = context_resolver.resolve(processed_query, history=req.messages if req.messages else None)
+        resolved_query = context_res.resolved_query
+
+        auto_dataset_link = _handle_auto_dataset(processed_query, resolved_query, intent_res)
+
         # Retrieve relevant memory evidence (prioritize factual semantic/verified knowledge over past dialogue)
         if req.retrieval_mode == "vector":
-            retrieved = store.vector_search(sanitized_query, limit=req.memory_limit * 2)
+            retrieved = store.vector_search(resolved_query, limit=req.memory_limit * 2)
         elif req.retrieval_mode == "hybrid":
-            retrieved = store.hybrid_search(sanitized_query, limit=req.memory_limit * 2)
+            retrieved = store.hybrid_search(resolved_query, limit=req.memory_limit * 2)
         else:
-            retrieved = store.search(sanitized_query, limit=req.memory_limit * 2)
+            retrieved = store.search(resolved_query, limit=req.memory_limit * 2)
 
         # Exclude raw user chat logs from factual evidence
         factual_retrieved = [m for m in retrieved if m.get("source") != "user_conversation"][:req.memory_limit]
@@ -273,7 +352,7 @@ def create_app(
         # Retrieve relevant Knowledge Graph entities
         entities = store.list_entities()
         matched_entities = [
-            e for e in entities if e["name"].lower() in sanitized_query.lower()
+            e for e in entities if e["name"].lower() in resolved_query.lower()
         ][:3]
 
         # Augment system prompt with concise retrieved knowledge if available
@@ -288,20 +367,20 @@ def create_app(
 
         messages = [
             {"role": "system", "content": system_content},
-            {"role": "user", "content": sanitized_query},
+            {"role": "user", "content": processed_query},
         ]
 
         # Generate model response using selected engine (foundation open-weights or custom scratch)
         if req.engine == "foundation":
             try:
                 foundation_res = foundation_engine.generate(
-                    prompt=sanitized_query,
+                    prompt=processed_query,
                     system_prompt=system_content,
                     history=req.messages if req.messages else None,
                     max_new_tokens=req.max_new_tokens,
                     temperature=req.temperature,
                 )
-                response_text = foundation_res["response"]
+                response_text = auto_dataset_link + foundation_res["response"]
                 generated_tokens = foundation_res["generated_tokens"]
                 checkpoint_name = foundation_res["model_name"]
                 warning_msg = None
@@ -317,7 +396,7 @@ def create_app(
                     max_new_tokens=req.max_new_tokens,
                     temperature=req.temperature,
                 )
-                response_text = scratch_res["response"]
+                response_text = auto_dataset_link + scratch_res["response"]
                 generated_tokens = scratch_res["generated_tokens"]
                 checkpoint_name = scratch_res["checkpoint"]
                 warning_msg = f"Foundation fallback triggered: {e}"
@@ -333,7 +412,7 @@ def create_app(
                 max_new_tokens=req.max_new_tokens,
                 temperature=req.temperature,
             )
-            response_text = scratch_res["response"]
+            response_text = auto_dataset_link + scratch_res["response"]
             generated_tokens = scratch_res["generated_tokens"]
             checkpoint_name = scratch_res["checkpoint"]
             warning_msg = scratch_res["warning"]
@@ -352,6 +431,8 @@ def create_app(
 
         return {
             "query": sanitized_query,
+            "normalized_query": processed_query,
+            "intent": primary_intent.value,
             "engine": req.engine,
             "model_response": {
                 "text": response_text,
@@ -398,13 +479,23 @@ def create_app(
 
         sanitized_query, pii_detected = SafetyFilter.redact_pii(req.query)
 
+        # Phase 1: Intelligent Language Normalization & Intent Routing
+        norm_result = normalizer.normalize(sanitized_query)
+        processed_query = norm_result.normalized
+        intent_res = intent_classifier.classify(processed_query)
+        primary_intent = intent_res.primary_intent
+        context_res = context_resolver.resolve(processed_query, history=req.messages if req.messages else None)
+        resolved_query = context_res.resolved_query
+
+        auto_dataset_link = _handle_auto_dataset(processed_query, resolved_query, intent_res)
+
         # Retrieve relevant memory evidence (prioritize factual semantic/verified knowledge)
         if req.retrieval_mode == "vector":
-            retrieved = store.vector_search(sanitized_query, limit=req.memory_limit * 2)
+            retrieved = store.vector_search(resolved_query, limit=req.memory_limit * 2)
         elif req.retrieval_mode == "hybrid":
-            retrieved = store.hybrid_search(sanitized_query, limit=req.memory_limit * 2)
+            retrieved = store.hybrid_search(resolved_query, limit=req.memory_limit * 2)
         else:
-            retrieved = store.search(sanitized_query, limit=req.memory_limit * 2)
+            retrieved = store.search(resolved_query, limit=req.memory_limit * 2)
 
         factual_retrieved = [m for m in retrieved if m.get("source") != "user_conversation"][:req.memory_limit]
         if not factual_retrieved:
@@ -426,14 +517,16 @@ def create_app(
 
         messages = [
             {"role": "system", "content": system_content},
-            {"role": "user", "content": sanitized_query},
+            {"role": "user", "content": processed_query},
         ]
 
         def event_generator():
-            # Send initial context event with retrieved memories
+            # Send initial context event with retrieved memories & intent
             init_event = {
                 "type": "context",
                 "engine": req.engine,
+                "intent": primary_intent.value,
+                "normalized_query": processed_query,
                 "retrieved_memory": [
                     {
                         "id": m["id"],
@@ -452,10 +545,15 @@ def create_app(
             full_text = ""
             token_count = 0
 
+            # If an automated dataset was synthesized, yield it directly
+            if auto_dataset_link:
+                full_text += auto_dataset_link
+                yield f"data: {json.dumps({'type': 'token', 'token': auto_dataset_link})}\n\n"
+
             if req.engine == "foundation":
                 try:
                     for chunk in foundation_engine.generate_stream(
-                        prompt=sanitized_query,
+                        prompt=processed_query,
                         system_prompt=system_content,
                         history=req.messages if req.messages else None,
                         max_new_tokens=req.max_new_tokens,
@@ -532,7 +630,7 @@ def create_app(
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT id, content, created_at, metadata
+                SELECT id, content, created_at, metadata_json
                 FROM memories
                 WHERE memory_type = 'episodic' AND source = 'user_conversation'
                 ORDER BY created_at DESC
@@ -544,7 +642,7 @@ def create_app(
 
         conversations = []
         for r in rows:
-            meta = json.loads(r["metadata"]) if r["metadata"] else {}
+            meta = json.loads(r["metadata_json"]) if r["metadata_json"] else {}
             conversations.append({
                 "id": r["id"],
                 "content": r["content"],
@@ -859,6 +957,52 @@ def create_app(
         return {"count": len(logs), "logs": logs}
 
     # -------------------------------------------------------------------------
+    # Dataset Generation Studio (Phase 4 PRD)
+    # -------------------------------------------------------------------------
+    @app.post("/api/datasets/generate")
+    def generate_dataset_endpoint(
+        req: DatasetGenRequest,
+        user: dict[str, Any] = Depends(get_current_user),
+    ) -> dict[str, Any]:
+        domain = req.domain or req.topic or "banking"
+        rows = req.rows or req.row_count or 100
+        fmt = req.fmt or req.format or "xlsx"
+        res = dataset_generator.generate(
+            domain=domain,
+            rows=rows,
+            fmt=fmt,
+            include_analytics=req.include_analytics,
+        )
+        audit.log(
+            "dataset_generated",
+            actor=user["username"],
+            target="dataset_studio",
+            details={"domain": domain, "rows": rows, "format": fmt, "filename": res["filename"]},
+        )
+        return res.to_dict()
+
+    @app.get("/api/datasets/download/{filename}")
+    def download_dataset_endpoint(filename: str) -> FileResponse:
+        safe_name = Path(filename).name
+        file_path = dataset_generator.output_dir / safe_name
+        if not file_path.is_file():
+            raise HTTPException(status_code=404, detail=f"Dataset {safe_name} not found")
+
+        ext = file_path.suffix.lower()
+        media_types = {
+            ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ".csv": "text/csv",
+            ".json": "application/json",
+            ".sql": "application/sql",
+        }
+        media_type = media_types.get(ext, "application/octet-stream")
+        return FileResponse(
+            path=str(file_path),
+            filename=safe_name,
+            media_type=media_type,
+        )
+
+    # -------------------------------------------------------------------------
     # Web Application Frontend (SPA Dashboard)
     # -------------------------------------------------------------------------
     @app.get("/", response_class=HTMLResponse)
@@ -966,6 +1110,10 @@ def get_dashboard_html() -> str:
       <button onclick="startNewChat()" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2.5 text-white hover:bg-[#212121]">
         <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
         <span>AI Inference & Chat</span>
+      </button>
+      <button onclick="openModal('dataset')" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2.5 text-[#b4b4b4] hover:text-white hover:bg-[#212121]">
+        <svg class="w-4 h-4 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        <span>Dataset Studio</span>
       </button>
       <button onclick="openModal('memory')" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2.5 text-[#b4b4b4] hover:text-white hover:bg-[#212121]">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
@@ -1110,7 +1258,14 @@ def get_dashboard_html() -> str:
 
             <!-- Attachment / Tools Popup Menu -->
             <div id="attachment-menu" class="hidden absolute bottom-12 left-0 w-64 bg-[#212121] border border-[#303030] rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-              <button type="button" onclick="openModal('memory'); toggleAttachmentMenu();" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center space-x-3 text-xs text-[#ececec]">
+              <button type="button" onclick="openModal('dataset'); toggleAttachmentMenu();" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center space-x-3 text-xs text-[#ececec]">
+                <span class="w-7 h-7 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center text-sm">📊</span>
+                <div>
+                  <div class="font-medium text-white">Dataset Studio</div>
+                  <div class="text-[10px] text-[#8e8e8e]">Generate Excel, CSV, JSON, SQL</div>
+                </div>
+              </button>
+              <button type="button" onclick="openModal('memory'); toggleAttachmentMenu();" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center space-x-3 text-xs text-[#ececec] mt-1">
                 <span class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center text-sm">🧠</span>
                 <div>
                   <div class="font-medium text-white">Cognitive Memory</div>
@@ -1176,6 +1331,7 @@ def get_dashboard_html() -> str:
 
       <!-- Modal Tabs -->
       <div class="flex items-center space-x-2 px-4 pt-3 border-b border-[#262626] text-xs">
+        <button onclick="switchModalTab('dataset')" id="mtab-dataset" class="pb-2 border-b-2 border-transparent text-[#8e8e8e] hover:text-white">Dataset Studio</button>
         <button onclick="switchModalTab('memory')" id="mtab-memory" class="pb-2 border-b-2 border-white text-white font-medium">Memory Explorer</button>
         <button onclick="switchModalTab('graph')" id="mtab-graph" class="pb-2 border-b-2 border-transparent text-[#8e8e8e] hover:text-white">Knowledge Graph</button>
         <button onclick="switchModalTab('queue')" id="mtab-queue" class="pb-2 border-b-2 border-transparent text-[#8e8e8e] hover:text-white">Learning Queue</button>
@@ -1184,6 +1340,52 @@ def get_dashboard_html() -> str:
 
       <!-- Modal Body -->
       <div class="p-5 flex-1 overflow-y-auto text-sm space-y-4">
+
+        <!-- Subpane 0: Dataset Studio -->
+        <div id="mpane-dataset" class="hidden space-y-3 text-xs">
+          <div class="p-4 rounded-xl bg-[#212121] border border-[#303030] space-y-3">
+            <div class="text-sm font-semibold text-white flex items-center justify-between">
+              <span>Synthetic Dataset Generation Studio</span>
+              <span class="text-[10px] bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded border border-teal-500/30">Phase 4 Engine</span>
+            </div>
+            <p class="text-[#8e8e8e]">Generate clean, realistic domain datasets with automatic mathematical integrity, formatted for Excel, Pandas, Power BI, and SQL pipelines.</p>
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="block text-[11px] text-[#8e8e8e] mb-1">Domain</label>
+                <select id="ds-domain" class="w-full bg-[#171717] border border-[#383838] rounded-lg px-2.5 py-1.5 text-white outline-none">
+                  <option value="banking" selected>Banking (Accounts & TXNs)</option>
+                  <option value="sales">Sales & Revenue (Power BI)</option>
+                  <option value="ecommerce">E-Commerce (Orders & SKUs)</option>
+                  <option value="employee">HR & Employee (Salaries)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] text-[#8e8e8e] mb-1">Record Count</label>
+                <select id="ds-rows" class="w-full bg-[#171717] border border-[#383838] rounded-lg px-2.5 py-1.5 text-white outline-none">
+                  <option value="100">100 records (Fast preview)</option>
+                  <option value="500">500 records</option>
+                  <option value="1000" selected>1,000 records</option>
+                  <option value="5000">5,000 records</option>
+                  <option value="10000">10,000 records</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] text-[#8e8e8e] mb-1">Format</label>
+                <select id="ds-format" class="w-full bg-[#171717] border border-[#383838] rounded-lg px-2.5 py-1.5 text-white outline-none">
+                  <option value="xlsx" selected>Excel (.xlsx)</option>
+                  <option value="csv">CSV (.csv)</option>
+                  <option value="json">JSON (.json)</option>
+                  <option value="sql">SQL INSERT (.sql)</option>
+                </select>
+              </div>
+            </div>
+            <button type="button" onclick="generateDatasetFromUi()" id="ds-gen-btn" class="w-full py-2.5 bg-white text-black hover:bg-slate-200 font-semibold rounded-xl transition text-xs flex items-center justify-center space-x-1.5 shadow">
+              <span>Generate & Download Dataset</span>
+            </button>
+            <div id="ds-result" class="hidden p-3 rounded-xl bg-[#171717] border border-[#303030] space-y-2">
+            </div>
+          </div>
+        </div>
 
         <!-- Subpane 1: Memory -->
         <div id="mpane-memory" class="space-y-3">
@@ -1602,6 +1804,47 @@ def get_dashboard_html() -> str:
       if (tab === 'settings') loadSettings();
     }
 
+    async function generateDatasetFromUi() {
+      const domain = document.getElementById('ds-domain').value;
+      const rows = parseInt(document.getElementById('ds-rows').value, 10);
+      const fmt = document.getElementById('ds-format').value;
+      const btn = document.getElementById('ds-gen-btn');
+      const resBox = document.getElementById('ds-result');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>Synthesizing records...</span>';
+      resBox.classList.remove('hidden');
+      resBox.innerHTML = '<div class="text-[#8e8e8e] animate-pulse">Generating realistic synthetic dataset and formatting file...</div>';
+
+      try {
+        const resp = await fetch('/api/datasets/generate', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({domain: domain, rows: rows, fmt: fmt, include_analytics: true})
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          resBox.innerHTML = `
+            <div class="text-white font-medium flex items-center justify-between">
+              <span>Ready: ${escapeHtml(data.filename)}</span>
+              <a href="/api/datasets/download/${escapeHtml(data.filename)}" download class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow">📥 Download</a>
+            </div>
+            <div class="text-[11px] text-[#8e8e8e]">Records: ${data.rows} | Fields: ${data.column_count} | Size: ${(data.file_size_bytes / 1024).toFixed(1)} KB</div>
+            <div class="text-[11px] text-[#b4b4b4] mt-1 font-mono overflow-x-auto max-h-36 bg-[#121212] p-2 rounded border border-[#2b2b2b]">
+              Columns: ${escapeHtml(data.columns.join(', '))}
+            </div>
+          `;
+        } else {
+          resBox.innerHTML = `<div class="text-rose-400">Error: ${escapeHtml(data.detail || 'Dataset synthesis failed')}</div>`;
+        }
+      } catch (err) {
+        resBox.innerHTML = `<div class="text-rose-400">Error: ${escapeHtml(err.message)}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Generate & Download Dataset</span>';
+      }
+    }
+
     // Memory Explorer
     async function loadMemoryItems() {
       const q = document.getElementById('mem-search-input') ? document.getElementById('mem-search-input').value : '';
@@ -1749,7 +1992,7 @@ def get_dashboard_html() -> str:
           modelMenu.classList.add('hidden');
         }
       }
-    });
+    }, true);
 
     window.addEventListener('DOMContentLoaded', initSystem);
   </script>

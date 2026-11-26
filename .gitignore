@@ -15,7 +15,10 @@ logs/
 experiments/
 data/memory/*.sqlite
 *.sqlite
+*.db
 *.pt
 *.pth
 *.safetensors
+artifacts/generated_datasets/
+
 
