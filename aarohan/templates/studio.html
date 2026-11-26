@@ -1688,17 +1688,25 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
     let currentConversationId = localStorage.getItem('aarohan_active_session_id') || ('session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7));
     let currentActiveWorkspace = 'chat';
 
-    // Markdown setup with syntax highlighting
+    // Markdown setup with syntax highlighting & robust code copy
     const renderer = new marked.Renderer();
-    renderer.code = function ({ text, lang }) {
+    renderer.code = function (...args) {
+      let text = '';
+      let lang = '';
+      if (typeof args[0] === 'object' && args[0] !== null) {
+        text = args[0].text || '';
+        lang = args[0].lang || '';
+      } else {
+        text = args[0] || '';
+        lang = args[1] || '';
+      }
       const language = lang && hljs.getLanguage(lang) ? lang : '';
       const highlighted = language ? hljs.highlight(text, { language }).value : hljs.highlightAuto(text).value;
-      const escaped = encodeURIComponent(text);
       return `
-        <div class="my-3 rounded-xl overflow-hidden border border-[#383838] bg-[#171717] shadow-lg">
+        <div class="code-block-container my-3 rounded-xl overflow-hidden border border-[#383838] bg-[#171717] shadow-lg">
           <div class="flex items-center justify-between px-4 py-2 bg-[#212121] border-b border-[#383838] text-xs text-[#A1A1AA] font-mono select-none">
             <span>${language || 'code'}</span>
-            <button type="button" onclick="copyCodeSnippet(this, decodeURIComponent('${escaped}'))" class="flex items-center space-x-1.5 hover:text-white transition">
+            <button type="button" onclick="copyCodeSnippet(this)" class="flex items-center space-x-1.5 hover:text-white transition cursor-pointer">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
               <span class="copy-label">Copy code</span>
             </button>
@@ -1709,23 +1717,56 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
     };
     marked.use({ renderer, breaks: true, gfm: true });
 
-    function copyCodeSnippet(btn, code) {
-      navigator.clipboard.writeText(code).then(() => {
-        const label = btn.querySelector('.copy-label');
-        if (label) {
-          const old = label.innerText;
-          label.innerText = 'Copied!';
-          setTimeout(() => { label.innerText = old; }, 2000);
-        }
-      });
+    function copyCodeSnippet(btn) {
+      const container = btn.closest('.code-block-container');
+      const codeEl = container ? container.querySelector('pre code') : btn.parentElement.nextElementSibling?.querySelector('code');
+      const textToCopy = codeEl ? (codeEl.innerText || codeEl.textContent) : '';
+      if (!textToCopy) return;
+
+      const doSuccess = () => {
+        const label = btn.querySelector('.copy-label') || btn;
+        const old = label.innerText;
+        label.innerText = 'Copied!';
+        setTimeout(() => { label.innerText = old; }, 2000);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textToCopy).then(doSuccess).catch(() => {
+          fallbackCopyText(textToCopy);
+          doSuccess();
+        });
+      } else {
+        fallbackCopyText(textToCopy);
+        doSuccess();
+      }
+    }
+
+    function fallbackCopyText(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
     }
 
     function copyMessageText(btn, text) {
-      navigator.clipboard.writeText(text).then(() => {
+      const doSuccess = () => {
         const orig = btn.innerHTML;
-        btn.innerHTML = '<span class="text-emerald-400 text-xs">Copied</span>';
+        btn.innerHTML = '<span class="text-[#10A37F] text-xs">Copied</span>';
         setTimeout(() => { btn.innerHTML = orig; }, 1800);
-      });
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(doSuccess).catch(() => {
+          fallbackCopyText(text);
+          doSuccess();
+        });
+      } else {
+        fallbackCopyText(text);
+        doSuccess();
+      }
     }
 
     // Auto-resizing textarea & submission listeners
@@ -2286,7 +2327,6 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
         if (stopBtn) stopBtn.classList.add('hidden');
         activeChatAbortController = null;
       }
-    }
     }
 
     // =========================================================================
@@ -3394,8 +3434,8 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
     }
 
     function escapeJsString(str) {
-      if (!str) return '';
-      return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
     }
 
     // Global click listener for closing popups
