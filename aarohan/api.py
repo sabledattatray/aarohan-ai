@@ -654,6 +654,17 @@ def create_app(
         if not is_dataset_req:
             return ""
 
+        # Guard: If user specifically asks for code or a python script, DO NOT auto-inject a pre-made dataset
+        is_code_request = any(
+            kw in q_lower
+            for kw in [
+                "python script", "write a python", "write script", "code to", "how to generate",
+                "python code", "create script", "script to", "write code", "sample code", "generate a script"
+            ]
+        )
+        if is_code_request:
+            return ""
+
         # Guard: Require an explicit imperative generation verb directed at creating data files
         has_explicit_dataset_action = any(
             kw in q_lower
@@ -668,7 +679,9 @@ def create_app(
         try:
             combined_q = f"{processed_query} {resolved_query}".lower()
             domain = "banking"
-            if "ecommerce" in combined_q or "e-commerce" in combined_q or "product" in combined_q or "order" in combined_q:
+            if "chem" in combined_q or "pharma" in combined_q or "lab" in combined_q:
+                domain = "chemical"
+            elif "ecommerce" in combined_q or "e-commerce" in combined_q or "product" in combined_q or "order" in combined_q:
                 domain = "ecommerce"
             elif "sale" in combined_q or "revenue" in combined_q or "power bi" in combined_q or "fabric" in combined_q:
                 domain = "sales"

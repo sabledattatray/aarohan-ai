@@ -148,7 +148,10 @@ class DatasetGenerator:
         if fmt not in {"csv", "xlsx", "json", "sql"}:
             fmt = "csv"
 
-        if "bank" in topic or "trans" in topic:
+        if "chem" in topic or "pharma" in topic or "lab" in topic:
+            data, columns_all = self._generate_chemical_data(rows)
+            file_prefix = "chemical_industry"
+        elif "bank" in topic or "trans" in topic:
             data, columns_all = self._generate_banking_data(rows)
             file_prefix = "banking_transactions"
         elif "sale" in topic or "powerbi" in topic or "power bi" in topic:
@@ -428,6 +431,58 @@ class DatasetGenerator:
                 "Payment_Mode": random.choice(modes),
                 "Delivery_Status": random.choice(statuses),
                 "Order_Date": o_date,
+            })
+        return data, columns
+
+    def _generate_chemical_data(self, n: int) -> tuple[list[dict[str, Any]], list[str]]:
+        columns = [
+            "Batch_ID", "Chemical_Compound", "CAS_Number", "Reactor_Vessel",
+            "Reaction_Temp_C", "Pressure_Bar", "Batch_Volume_Liters", "Yield_Kg",
+            "Purity_Pct", "Quality_Grade", "Inspection_Status", "Production_Date", "Plant_Location"
+        ]
+        compounds = [
+            ("Polyethylene Glycol", "25322-68-3", "Technical Grade"),
+            ("Sodium Hydroxide 50%", "1310-73-2", "Industrial Grade"),
+            ("Methanol Tech Grade", "67-56-1", "Technical Grade"),
+            ("Benzene Sulfonic Acid", "98-11-3", "Reagent ACS"),
+            ("Titanium Dioxide Slurry", "13463-67-7", "Industrial Grade"),
+            ("Ethyl Acetate Extra Pure", "141-78-6", "USP Pharma Grade"),
+            ("Sulfuric Acid 98%", "7664-93-9", "Technical Grade"),
+            ("Acetic Anhydride", "108-24-7", "Reagent ACS"),
+            ("Isopropanol Anhydrous", "67-63-0", "USP Pharma Grade"),
+            ("Ammonium Nitrate Solution", "6484-52-2", "Agricultural Grade"),
+        ]
+        reactors = ["Reactor-R101 (Glass-Lined)", "Reactor-R102 (SS316)", "Reactor-R103 (Hastelloy)", "Continuous-C201", "Autoclave-A301"]
+        plants = ["Dahej Petrochemical Complex", "Hazira Manufacturing Site", "Patalganga Specialty Plant", "Rohaa Chemical Zone"]
+        statuses = ["Approved", "Approved", "Approved", "Approved", "Quarantine Review", "Reprocess Required"]
+
+        base_date = datetime.now() - timedelta(days=90)
+        data = []
+
+        for i in range(1, n + 1):
+            comp_name, cas, default_grade = random.choice(compounds)
+            temp = round(random.uniform(45.0, 185.0), 2)
+            pressure = round(random.uniform(1.1, 18.5), 2)
+            vol = round(random.uniform(1500.0, 25000.0), 1)
+            yield_pct = random.uniform(0.88, 0.985)
+            yield_kg = round(vol * 0.92 * yield_pct, 2)
+            purity = round(random.uniform(96.5, 99.95), 2)
+            p_date = (base_date + timedelta(hours=i * (90 * 24 / max(n, 1)))).strftime("%Y-%m-%d %H:%M")
+
+            data.append({
+                "Batch_ID": f"CHEM-2026-{10000 + i}",
+                "Chemical_Compound": comp_name,
+                "CAS_Number": cas,
+                "Reactor_Vessel": random.choice(reactors),
+                "Reaction_Temp_C": temp,
+                "Pressure_Bar": pressure,
+                "Batch_Volume_Liters": vol,
+                "Yield_Kg": yield_kg,
+                "Purity_Pct": purity,
+                "Quality_Grade": default_grade,
+                "Inspection_Status": random.choice(statuses),
+                "Production_Date": p_date,
+                "Plant_Location": random.choice(plants),
             })
         return data, columns
 
