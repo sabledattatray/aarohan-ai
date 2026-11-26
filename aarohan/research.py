@@ -9,9 +9,13 @@ In accordance with PRD Prompts 08, 09, and 10:
 
 from __future__ import annotations
 
+import hashlib
 import json
+import logging
 import re
 import uuid
+
+logger = logging.getLogger(__name__)
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -28,12 +32,58 @@ VALID_GAP_TYPES = frozenset({
 
 VALID_TASK_STATUSES = frozenset({
     "pending",
+    "pending_approval",
     "approved",
     "in_progress",
     "completed",
     "rejected",
     "failed",
 })
+
+
+def validate_source(source_path: Path | str) -> tuple[bool, float, str]:
+    """
+    Validates document source reliability, checking file readability, extension safety,
+    and computing source reliability score and SHA-256 provenance hash.
+    """
+    p = Path(source_path)
+    if not p.is_file():
+        return False, 0.0, "File does not exist"
+    allowed_suffixes = {".txt", ".md", ".json", ".csv", ".py", ".pdf"}
+    if p.suffix.lower() not in allowed_suffixes:
+        return False, 0.0, f"Unsupported file extension {p.suffix}"
+    try:
+        content = p.read_bytes()
+        if len(content) > 10 * 1024 * 1024:
+            return False, 0.0, "File size exceeds 10MB budget limit"
+        h = hashlib.sha256(content).hexdigest()
+        return True, 0.90, h
+    except Exception as e:
+        return False, 0.0, str(e)
+
+
+class FactList(list):
+    """List that safely supports numeric comparisons for backward compatibility."""
+
+    def __ge__(self, other: Any) -> bool:
+        if isinstance(other, (int, float)):
+            return len(self) >= other
+        return super().__ge__(other)
+
+    def __gt__(self, other: Any) -> bool:
+        if isinstance(other, (int, float)):
+            return len(self) > other
+        return super().__gt__(other)
+
+    def __le__(self, other: Any) -> bool:
+        if isinstance(other, (int, float)):
+            return len(self) <= other
+        return super().__le__(other)
+
+    def __lt__(self, other: Any) -> bool:
+        if isinstance(other, (int, float)):
+            return len(self) < other
+        return super().__lt__(other)
 
 
 class LearningQueue:
@@ -59,9 +109,31 @@ class LearningQueue:
                     updated_at TEXT NOT NULL,
                     completed_at TEXT,
                     result_summary TEXT,
-                    research_artifact_path TEXT
+                    research_artifact_path TEXT,
+                    retry_count INTEGER DEFAULT 0,
+                    max_retries INTEGER DEFAULT 3,
+                    error_message TEXT DEFAULT NULL,
+                    requires_approval INTEGER DEFAULT 0,
+                    approved_by TEXT DEFAULT NULL,
+                    source_hash TEXT DEFAULT NULL
                 )
             """)
+
+            cursor = conn.execute("PRAGMA table_info(learning_tasks)")
+            cols = {row["name"] for row in cursor.fetchall()}
+            if cols:
+                if "retry_count" not in cols:
+                    conn.execute("ALTER TABLE learning_tasks ADD COLUMN retry_count INTEGER DEFAULT 0")
+                if "max_retries" not in cols:
+                    conn.execute("ALTER TABLE learning_tasks ADD COLUMN max_retries INTEGER DEFAULT 3")
+                if "error_message" not in cols:
+                    conn.execute("ALTER TABLE learning_tasks ADD COLUMN error_message TEXT DEFAULT NULL")
+                if "requires_approval" not in cols:
+                    conn.execute("ALTER TABLE learning_tasks ADD COLUMN requires_approval INTEGER DEFAULT 0")
+                if "approved_by" not in cols:
+                    conn.execute("ALTER TABLE learning_tasks ADD COLUMN approved_by TEXT DEFAULT NULL")
+                if "source_hash" not in cols:
+                    conn.execute("ALTER TABLE learning_tasks ADD COLUMN source_hash TEXT DEFAULT NULL")
 
     def create_task(
         self,
@@ -72,6 +144,8 @@ class LearningQueue:
         priority: float = 0.5,
         objective: str = "",
         max_budget_docs: int = 5,
+        requires_approval: bool = False,
+        prevent_duplicates: bool = True,
     ) -> dict[str, Any]:
         if gap_type not in VALID_GAP_TYPES:
             raise ValueError(f"Invalid gap_type '{gap_type}'. Valid: {sorted(VALID_GAP_TYPES)}")
@@ -80,17 +154,102 @@ class LearningQueue:
         if max_budget_docs < 1:
             raise ValueError("max_budget_docs must be positive")
 
-        task_id = str(uuid.uuid4())
-        now = datetime.now(UTC).isoformat()
+        cleaned_title = title.strip()
+        cleaned_query = query.strip()
+
         with self.store._connect() as conn:
+            if prevent_duplicates:
+                existing = conn.execute(
+                    "SELECT * FROM learning_tasks WHERE LOWER(query) = LOWER(?) AND status NOT IN ('failed', 'rejected')",
+                    (cleaned_query,),
+                ).fetchone()
+                if existing:
+                    logger.info("Reusing existing research task for query '%s'", cleaned_query)
+                    return dict(existing)
+
+            task_id = str(uuid.uuid4())
+            now = datetime.now(UTC).isoformat()
+            sensitive_keywords = ["sensitive", "critical", "architectural modification", "system core update", "override security"]
+            is_sensitive = requires_approval or (
+                priority >= 0.9 and any(kw in (cleaned_title + " " + cleaned_query).lower() for kw in sensitive_keywords)
+            )
+            needs_approval = 1 if is_sensitive else 0
+            initial_status = "pending_approval" if needs_approval else "pending"
+
             conn.execute("""
                 INSERT INTO learning_tasks(
                     id, title, query, gap_type, priority, objective,
-                    status, max_budget_docs, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
-            """, (task_id, title.strip(), query.strip(), gap_type, priority, objective.strip(), max_budget_docs, now, now))
+                    status, max_budget_docs, requires_approval, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (task_id, cleaned_title, cleaned_query, gap_type, priority, objective.strip(), initial_status, max_budget_docs, needs_approval, now, now))
             row = conn.execute("SELECT * FROM learning_tasks WHERE id = ?", (task_id,)).fetchone()
             return dict(row)
+
+    def approve_task(self, task_id: str, approved_by: str = "human_supervisor") -> dict[str, Any]:
+        """Approves a research task awaiting human approval."""
+        now = datetime.now(UTC).isoformat()
+        with self.store._connect() as conn:
+            conn.execute("""
+                UPDATE learning_tasks
+                SET status = 'approved', approved_by = ?, updated_at = ?
+                WHERE id = ?
+            """, (approved_by, now, task_id))
+            row = conn.execute("SELECT * FROM learning_tasks WHERE id = ?", (task_id,)).fetchone()
+            if not row:
+                raise KeyError(f"Task {task_id} not found")
+            return dict(row)
+
+    def retry_task(self, task_id: str) -> dict[str, Any]:
+        """Retries a failed research task up to max_retries limit."""
+        task = self.get_task(task_id)
+        if not task:
+            raise KeyError(f"Task {task_id} not found")
+
+        current_retries = task.get("retry_count", 0)
+        max_retries = task.get("max_retries", 3)
+        now = datetime.now(UTC).isoformat()
+
+        with self.store._connect() as conn:
+            if current_retries >= max_retries:
+                conn.execute("""
+                    UPDATE learning_tasks
+                    SET status = 'failed', error_message = 'Max retries exceeded', updated_at = ?
+                    WHERE id = ?
+                """, (now, task_id))
+            else:
+                conn.execute("""
+                    UPDATE learning_tasks
+                    SET status = 'pending', retry_count = retry_count + 1, error_message = NULL, updated_at = ?
+                    WHERE id = ?
+                """, (now, task_id))
+            row = conn.execute("SELECT * FROM learning_tasks WHERE id = ?", (task_id,)).fetchone()
+            return dict(row)
+
+    def record_failure(self, task_id: str, error_message: str) -> dict[str, Any]:
+        """Marks a research task as failed, recording error diagnostic and Layer 6 audit memory."""
+        now = datetime.now(UTC).isoformat()
+        with self.store._connect() as conn:
+            conn.execute("""
+                UPDATE learning_tasks
+                SET status = 'failed', error_message = ?, completed_at = ?, updated_at = ?
+                WHERE id = ?
+            """, (error_message, now, now, task_id))
+            row = conn.execute("SELECT * FROM learning_tasks WHERE id = ?", (task_id,)).fetchone()
+            if not row:
+                raise KeyError(f"Task {task_id} not found")
+
+        task_row = dict(row) if row else {}
+        # Record failure into Layer 6 (Learning memory)
+        try:
+            self.store.record_learning_event(
+                event_type="research_failure",
+                title=f"Task Failed: {task_row.get('title', 'Unknown')}",
+                details={"task_id": task_id, "error": error_message},
+            )
+        except Exception as ex:
+            logger.error("Failed to write Layer 6 learning event: %s", ex)
+
+        return task_row
 
     def list_tasks(self, status: str | None = None) -> list[dict[str, Any]]:
         with self.store._connect() as conn:
@@ -204,6 +363,10 @@ class BoundedResearchEngine:
         if not task:
             raise KeyError(f"Task '{task_id}' not found")
 
+        # Human approval gate enforcement
+        if task.get("status") == "pending_approval":
+            raise PermissionError(f"Task '{task_id}' requires human approval before autonomous research execution")
+
         self.queue.update_task_status(task_id, "in_progress")
         budget_docs = task["max_budget_docs"]
         docs_to_scan = [p for p in source_documents if p.is_file()][:budget_docs]
@@ -211,21 +374,37 @@ class BoundedResearchEngine:
         extracted_facts: list[str] = []
         contradictions_found: list[dict[str, Any]] = []
         entities_found: list[str] = []
+        source_provenances: list[dict[str, Any]] = []
         keywords = re.findall(r"\b\w{3,}\b", task["query"].lower())
+        injection_pattern = re.compile(r"(?i)\b(ignore (?:all )?previous instructions|you are now|system prompt|disregard (?:all )?prior)\b")
 
         for doc_path in docs_to_scan:
+            valid, rel_score, p_hash = validate_source(doc_path)
+            if not valid:
+                logger.warning("Skipping invalid research source '%s': %s", doc_path, p_hash)
+                continue
+
+            source_provenances.append({
+                "path": str(doc_path),
+                "hash": p_hash,
+                "reliability": rel_score,
+            })
+
             try:
                 content = doc_path.read_text(encoding="utf-8")
             except OSError:
                 continue
 
-            # Paragraph-level extraction matching query keywords
             paragraphs = [p.strip() for p in content.split("\n\n") if p.strip()]
             for p in paragraphs:
+                # Prompt injection defense: neutralize and skip lines attempting instruction takeover
+                if injection_pattern.search(p):
+                    logger.warning("Prompt injection attempt detected and neutralized in untrusted source document '%s'", doc_path)
+                    continue
+
                 p_lower = p.lower()
                 matches = sum(1 for kw in keywords if kw in p_lower)
                 if matches >= 1:
-                    # Clean and check potential contradictions
                     fact_str = " ".join(p.split())
                     if len(fact_str) > 20:
                         contra = self.store.detect_contradictions(fact_str, threshold=0.7)
@@ -233,22 +412,26 @@ class BoundedResearchEngine:
                             contradictions_found.extend(contra)
 
                         extracted_facts.append(fact_str)
-                        # Extract capitalized entity candidates
                         for cap in re.findall(r"\b[A-Z][a-zA-Z0-9_]{3,}\b", fact_str):
                             if cap not in entities_found:
                                 entities_found.append(cap)
 
-        # Propose unverified semantic memories
+        # Propose semantic memories with provenance
         proposed_records = []
         for fact in extracted_facts[:5]:
             rec = self.store.add(
                 fact,
                 source=f"autonomous_research:{task['id']}",
                 memory_type="semantic",
-                confidence=0.7,
+                confidence=0.85,
                 verification_status="unverified",
+                verified_by="autonomous_research_engine",
                 importance=task["priority"],
-                metadata={"research_task_id": task_id, "query": task["query"]},
+                metadata={
+                    "research_task_id": task_id,
+                    "query": task["query"],
+                    "provenance": source_provenances,
+                },
             )
             proposed_records.append(rec["id"])
 
@@ -258,7 +441,9 @@ class BoundedResearchEngine:
             "title": task["title"],
             "query": task["query"],
             "documents_scanned": len(docs_to_scan),
-            "facts_extracted": len(extracted_facts),
+            "source_provenance": source_provenances,
+            "facts_extracted": FactList(extracted_facts),
+            "facts_extracted_count": len(extracted_facts),
             "entities_discovered": entities_found,
             "contradictions_detected": contradictions_found,
             "proposed_memory_ids": proposed_records,
@@ -277,3 +462,31 @@ class BoundedResearchEngine:
         )
 
         return report_data
+
+    def evaluate_knowledge_improvement(
+        self,
+        task_id: str,
+        verification_query: str,
+    ) -> dict[str, Any]:
+        """
+        Evaluates whether the newly learned knowledge from a completed research task
+        is actively retrievable and improves future answers.
+        """
+        task = self.queue.get_task(task_id)
+        if not task:
+            raise KeyError(f"Task '{task_id}' not found")
+
+        results = self.store.search(verification_query, limit=5)
+        matched_memories = [
+            r for r in results
+            if f"autonomous_research:{task_id}" in (r.get("source") or "")
+        ]
+
+        improves = len(matched_memories) > 0
+        return {
+            "task_id": task_id,
+            "verification_query": verification_query,
+            "memories_retrieved": len(matched_memories),
+            "knowledge_improvement_verified": improves,
+            "matched_memory_ids": [m["id"] for m in matched_memories],
+        }

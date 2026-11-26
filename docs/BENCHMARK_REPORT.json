@@ -1,0 +1,34 @@
+{
+  "timestamp": "2026-11-26T17:18:27.342918+00:00",
+  "hardware": {
+    "ram_rss_mb": 2464.9,
+    "vram_allocated_mb": 974.56,
+    "gpu_name": "NVIDIA GeForce RTX 2060",
+    "cpu_count": 16
+  },
+  "memory_retrieval": {
+    "keyword_search_ms": 2.321,
+    "vector_search_ms": 1.143,
+    "hybrid_search_ms": 2.735
+  },
+  "knowledge_graph": {
+    "one_hop_traversal_ms": 1.586,
+    "multi_hop_bfs_traversal_ms": 5.925
+  },
+  "inference": {
+    "custom_transformer": {
+      "tokens_per_second": 46.2,
+      "ttft_ms": 3.65,
+      "model_id": "aarohan_custom_aarohan-release-candidate",
+      "device": "cuda"
+    },
+    "foundation_model": {
+      "tokens_per_second": 3.8,
+      "ttft_ms": 55.35,
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "device": "cuda",
+      "is_loaded": true
+    }
+  },
+  "status": "PASS"
+}

@@ -29,26 +29,84 @@ INJECTION_PATTERNS = [
 PII_PATTERNS = {
     "email": re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"),
     "phone": re.compile(r"\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"),
-    "api_key": re.compile(r"\b(?:api[_-]?key|secret[_-]?key|token)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{16,}['\"]?", re.IGNORECASE),
+    "api_key": re.compile(r"\b(?:api[_-]?key|secret[_-]?key|access[_-]?token|bearer)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{16,}['\"]?", re.IGNORECASE),
+    "private_key": re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----", re.MULTILINE),
+    "password": re.compile(r"\b(?:password|passwd|pwd)\s*[:=]\s*['\"]?[^\s'\"]{6,}['\"]?", re.IGNORECASE),
+    "credit_card": re.compile(r"\b(?:\d{4}[-\s]?){3}\d{4}\b"),
 }
+
+SPECIAL_DELIMITER_PATTERNS = [
+    re.compile(r"<\|(?:im_start|im_end|system|user|assistant|tool|separator)\|>"),
+    re.compile(r"\[(?:SYSTEM|INSTRUCTION|ADMIN|ROOT)\s*(?:PROMPT|OVERRIDE)?\]", re.IGNORECASE),
+    re.compile(r"```(?:system|instruction|prompt)"),
+    re.compile(r"---+\s*(?:BEGIN|START)\s+(?:SYSTEM|PROMPT|INSTRUCTION)", re.IGNORECASE),
+]
+
+ROLEPLAY_JAILBREAK_PATTERNS = [
+    re.compile(r"\b(?:DAN|Do\s+Anything\s+Now)\s+mode\b", re.IGNORECASE),
+    re.compile(r"\b(?:unrestricted|unfiltered|jailbroken)\s+(?:mode|ai|assistant|persona)\b", re.IGNORECASE),
+    re.compile(r"\bhypothetical\s+(?:unfiltered|unaligned)\s+engine\b", re.IGNORECASE),
+    re.compile(r"\bpretend\s+(?:you\s+have\s+no\s+(?:rules|filters|morals|limits))\b", re.IGNORECASE),
+    re.compile(r"\bas\s+my\s+(?:creator|developer|administrator)\s*,\s*i\s+(?:order|command)\s+you\b", re.IGNORECASE),
+]
 
 
 class SafetyFilter:
-    """Detects prompt injections and redacts sensitive private information."""
+    """Detects multi-layer prompt injections, adversarial framing, and redacts sensitive PII/secrets."""
 
     @staticmethod
-    def detect_prompt_injection(text: str) -> dict[str, Any]:
+    def normalize_leetspeak(text: str) -> str:
+        """Decodes simple character substitutions used to evade text filters."""
+        leet_map = {"0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s"}
+        normalized = text
+        for char, replacement in leet_map.items():
+            normalized = normalized.replace(char, replacement)
+        return normalized
+
+    @classmethod
+    def detect_prompt_injection(cls, text: str) -> dict[str, Any]:
         matched_patterns = []
+        threat_categories = []
+
+        # 1. Regex pattern matching on raw text
         for pat in INJECTION_PATTERNS:
             match = pat.search(text)
             if match:
                 matched_patterns.append(match.group(0))
+                threat_categories.append("instruction_override")
+
+        # 2. Special token / delimiter injection
+        for pat in SPECIAL_DELIMITER_PATTERNS:
+            match = pat.search(text)
+            if match:
+                matched_patterns.append(match.group(0))
+                threat_categories.append("delimiter_hijack")
+
+        # 3. Roleplay & authority jailbreak checks
+        for pat in ROLEPLAY_JAILBREAK_PATTERNS:
+            match = pat.search(text)
+            if match:
+                matched_patterns.append(match.group(0))
+                threat_categories.append("roleplay_jailbreak")
+
+        # 4. Normalized leetspeak check
+        leeted = cls.normalize_leetspeak(text.lower())
+        for pat in INJECTION_PATTERNS:
+            match = pat.search(leeted)
+            if match and match.group(0) not in matched_patterns:
+                matched_patterns.append(f"obfuscated:{match.group(0)}")
+                threat_categories.append("obfuscated_injection")
 
         is_suspicious = len(matched_patterns) > 0
+        risk_score = min(1.0, 0.4 * len(matched_patterns) + (0.3 if "delimiter_hijack" in threat_categories else 0.0))
+
         return {
             "flagged": is_suspicious,
             "threat_type": "prompt_injection" if is_suspicious else None,
+            "threat_subtype": threat_categories[0] if threat_categories else None,
+            "threat_categories": list(set(threat_categories)),
             "matched_patterns": matched_patterns,
+            "risk_score": round(risk_score, 2),
             "safe": not is_suspicious,
         }
 
@@ -61,6 +119,58 @@ class SafetyFilter:
                 detected.append(pii_type)
                 redacted = pat.sub(f"[REDACTED_{pii_type.upper()}]", redacted)
         return redacted, detected
+
+    @staticmethod
+    def sanitize_error_message(error: Exception | str) -> str:
+        """Strips absolute filesystem paths and credentials from user-facing error messages."""
+        raw_msg = str(error)
+        # Strip Windows drive paths (e.g. C:\Users\... or D:\Datta Sable\...)
+        sanitized = re.sub(r"[A-Za-z]:\\[\w\s.\\-]+", "[INTERNAL_PATH]", raw_msg)
+        # Strip Unix paths
+        sanitized = re.sub(r"/(?:home|var|etc|usr|tmp)/[\w\s./-]+", "[INTERNAL_PATH]", sanitized)
+        # Strip potential connection strings
+        sanitized = re.sub(r"(?:sqlite|postgres|mysql)://[^\s]+", "[CONNECTION_STRING]", sanitized)
+        return sanitized
+
+
+class RateLimiter:
+    """Thread-safe in-memory sliding window rate limiter per client identifier."""
+
+    def __init__(self, requests_per_minute: int = 60) -> None:
+        self.rpm = requests_per_minute
+        self.requests: dict[str, list[float]] = {}
+
+    def is_allowed(self, client_id: str, current_time: float | None = None) -> tuple[bool, int]:
+        import time
+        now = current_time if current_time is not None else time.time()
+        window_start = now - 60.0
+
+        timestamps = self.requests.get(client_id, [])
+        # Evict timestamps older than 60 seconds
+        active_timestamps = [t for t in timestamps if t > window_start]
+
+        if len(active_timestamps) >= self.rpm:
+            self.requests[client_id] = active_timestamps
+            remaining = 0
+            return False, remaining
+
+        active_timestamps.append(now)
+        self.requests[client_id] = active_timestamps
+        remaining = self.rpm - len(active_timestamps)
+        return True, remaining
+
+
+def validate_file_path(target_path: Path | str, allowed_dirs: list[Path | str]) -> Path:
+    """Prevents directory traversal attacks by validating resolved canonical paths against allowed roots."""
+    target = Path(target_path).resolve()
+    for allowed in allowed_dirs:
+        allowed_root = Path(allowed).resolve()
+        try:
+            target.relative_to(allowed_root)
+            return target
+        except ValueError:
+            continue
+    raise PermissionError(f"Access denied: path '{target}' is outside permitted directory boundaries")
 
 
 class AuditLogger:

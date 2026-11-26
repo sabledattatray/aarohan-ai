@@ -41,6 +41,8 @@ class Intent(str, Enum):
     MULTIMODAL_REQUEST = "MULTIMODAL_REQUEST"
     IDENTITY_AND_CREATOR = "IDENTITY_AND_CREATOR"
     SCIENTIFIC_LAW = "SCIENTIFIC_LAW"
+    FACTUAL_QUESTION = "FACTUAL_QUESTION"
+    REASONING = "REASONING"
 
 
 @dataclass
@@ -91,15 +93,33 @@ class IntentClassifier:
             r"\b(top \d+|monthly revenue|mtd|lmtd|missing values|duplicates?)\b",
         ],
         Intent.SQL_ASSISTANCE: [
-            r"\b(write|generate|explain|run|fix|optimize)\s+(a\s+)?sql\s+(query|queries|statement|command)\b",
+            r"\b(write|generate|explain|run|fix|optimize)\s+(a\s+)?sql\s+(query|queries|statement|command|joins?)\b",
             r"\bselect\s+[\*\w\s,]+\s+from\s+\w+\b",
             r"\b(insert\s+into|delete\s+from|create\s+table|alter\s+table|drop\s+table)\b",
             r"\b(sql\s+server|postgresql|mysql|sqlite\s+query|sql\s+join|sql\s+injection)\b",
             r"\bwrite\s+(a\s+)?(sql|query)\s+to\b",
+            r"\bexplain\s+sql\s+(joins?|queries|indexes|transactions)\b",
         ],
         Intent.CODE_GENERATION: [
             r"\b(code|script|function|program|algorithm|implement|class|api endpoint)\b.*\b(python|javascript|typescript|c\+\+|dax|powershell)\b",
-            r"\bwrite\s+(a|the)?\s*(python|code|script|function|routine)\b",
+            r"\bwrite\s+(a|the)?\s*(python|code|script|function|routine|program)\b",
+            r"\b(write|create|generate)\s+a\s+python\s+program\b",
+            r"\bprogram\s+to\s+(calculate|compute|find|solve|sort|reverse)\b",
+        ],
+        Intent.FACTUAL_QUESTION: [
+            r"\bwhat\s+is\s+(the\s+)?(capital|formula|chemical\s+formula|population|currency|definition|height|speed)\s+of\b",
+            r"\bwho\s+(invented|discovered|wrote|founded|built|created|painted|composed)\b",
+            r"\b(how\s+many\s+(planets|countries|states|bones|elements|continents|oceans))\b",
+            r"\bwhen\s+was\s+.*(invented|born|founded|built|established)\b",
+            r"\bwhat\s+(year|date)\s+did\b",
+        ],
+        Intent.REASONING: [
+            r"\bexplain\s+the\s+difference\s+between\b",
+            r"\bcompare\s+and\s+contrast\b",
+            r"\b(why\s+does|why\s+is|how\s+come|what\s+causes)\b",
+            r"\b(step\s+by\s+step|logical\s+reasoning|deduce|deduction|scenario\s+analysis)\b",
+            r"\b(pros\s+and\s+cons|advantages\s+and\s+disadvantages)\b",
+            r"\bexplain\s+how\s+.*works?\b",
         ],
         Intent.CODE_EXECUTION: [
             r"\b(run|execute|test|eval|evaluate)\s+(this|the)?\s*(code|script|python)\b",

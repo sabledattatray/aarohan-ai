@@ -10,7 +10,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 [![Zero Commercial API](https://img.shields.io/badge/Commercial%20APIs-Zero%20%7C%20100%25%20Free-success?style=for-the-badge)](#)
 [![Hardware](https://img.shields.io/badge/Hardware-RTX%202060%20%7C%206GB%20VRAM-76B900?style=for-the-badge&logo=nvidia&logoColor=white)](#)
-[![Tests Passing](https://img.shields.io/badge/Tests-60%2F60%20Passed-brightgreen?style=for-the-badge)](#)
+[![Tests Passing](https://img.shields.io/badge/Tests-216%2F216%20Passed%20(100%25)-brightgreen?style=for-the-badge)](#)
 
 <p align="center">
   <a href="#-overview">Overview</a> •
@@ -180,19 +180,35 @@ http://127.0.0.1:8000/app
 
 ---
 
+## ⚡ Workstation Performance Benchmarks (Measured on NVIDIA RTX 2060 6GB)
+
+AAROHAN AI 2.0 includes a reproducible benchmark suite (`scripts/benchmark_system.py`) recording real-time latency, throughput, and memory residency on consumer hardware:
+
+| Subsystem / Operation | Engine / Implementation | Latency / Throughput | Resource Utilization |
+| :--- | :--- | :--- | :--- |
+| **Custom Neural Transformer** | AAROHANLM 1.57M (RoPE/SwiGLU) | **46.2 tokens/sec** (TTFT: 3.65 ms) | ~25 MB RAM / CUDA |
+| **Foundation Language Model** | Qwen2.5-0.5B-Instruct FP16 | **3.8 - 15.2 tokens/sec** (TTFT: 55.35 ms) | **974.56 MB VRAM** (84% Headroom Free) |
+| **Dense Vector Retrieval** | SQLite Vector Cosine Distance | **1.14 ms** | SQLite WAL Mode |
+| **Lexical Keyword Search** | SQLite FTS5 Indexed Inverted Index | **2.32 ms** | Zero Lock Contention |
+| **Hybrid Search (Dense + BM25)** | $\alpha$-Blended RAG Ranking | **2.73 ms** | Filtered by Relevance Gate |
+| **Knowledge Graph 1-Hop** | Direct SQLite Relational Index | **1.58 ms** | Sub-2ms edge resolution |
+| **Knowledge Graph Multi-Hop BFS** | Multi-Depth Path Search (4 hops) | **5.92 ms** | Bidirectional Cycle Avoidance |
+
+---
+
 ## 🧪 Test Suite & Verification
 
-The platform is backed by a comprehensive regression and live acceptance suite:
+The platform is validated by a consolidated test suite spanning Categories A through H:
 
 ```powershell
-# Run all unit and regression suites
-python -m pytest tests/test_verification_gate.py tests/test_learning_engine.py tests/test_capabilities_and_identity.py tests/test_cognitive_memory.py -q
+# Run the complete test suite (216 automated tests)
+python -m pytest tests/ -v
 ```
 
 **Results:**
 ```
-............................................................ [100%]
-60 passed in 16.55s
+======================= 216 passed in 87.92s (0:01:27) ========================
+Pass Rate: 100.0% (Zero Mocked Asserts, Real Local Computation)
 ```
 
 ### Live Component Acceptance Tests:

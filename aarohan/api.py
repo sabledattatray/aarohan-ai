@@ -21,9 +21,9 @@ import secrets
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from aarohan.continual import RollbackManager
@@ -49,8 +49,10 @@ from aarohan.capabilities import get_capability_registry, resolve_capability_que
 from aarohan.nlp.task_router import TaskRouter, TaskType
 from aarohan.nlp import ContextResolver, Intent, IntentClassifier, TextNormalizer, resolve_identity_query, resolve_scientific_law
 from aarohan.research import BoundedResearchEngine, KnowledgeGapDetector, LearningQueue
-from aarohan.safety import AuditLogger, SafetyFilter
+from aarohan.safety import AuditLogger, SafetyFilter, RateLimiter, validate_file_path
 from aarohan.scheduler import LearningScheduler
+from aarohan.inference import InferenceManager
+from aarohan.rag import RAGPipeline
 from scripts.chat_sft import generate_chat_response, stream_chat_response
 
 logger = logging.getLogger(__name__)
@@ -60,6 +62,7 @@ DEFAULT_DB = PROJECT_ROOT / "data" / "memory" / "aarohan.sqlite"
 DEFAULT_CKPT = PROJECT_ROOT / "checkpoints" / "aarohan-sft-001.pt"
 DEFAULT_TOK = PROJECT_ROOT / "artifacts" / "tokenizers" / "wikitext2-bpe" / "tokenizer.json"
 DEFAULT_REG = PROJECT_ROOT / "checkpoints" / "deployment_registry.json"
+DEFAULT_FOUNDATION_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
 
 # In-memory authentication tokens (token -> user info)
 ACTIVE_TOKENS: dict[str, dict[str, Any]] = {
@@ -97,10 +100,14 @@ class ChatRequest(BaseModel):
 
 class MemoryAddRequest(BaseModel):
     content: str = Field(..., min_length=1)
-    memory_type: str = Field("semantic", pattern="^(working|episodic|semantic|procedural|knowledge_graph|learning)$")
+    memory_type: str = Field("semantic", pattern="^(working|episodic|semantic|procedural|reflective|knowledge_graph|learning)$")
     confidence: float = Field(0.5, ge=0.0, le=1.0)
     verification_status: str = Field("unverified", pattern="^(unverified|verified|rejected)$")
     source: str = "web_ui"
+    verified_by: Optional[str] = None
+    user_scope: Optional[str] = None
+    ttl_seconds: Optional[int] = Field(None, ge=1)
+    fact_type: str = Field("fact", pattern="^(fact|assumption|preference|instruction)$")
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -145,6 +152,7 @@ class GraphEntityRequest(BaseModel):
     name: str = Field(..., min_length=1)
     entity_type: str = "concept"
     description: str = ""
+    aliases: list[str] = Field(default_factory=list)
 
 
 class GraphRelationRequest(BaseModel):
@@ -152,6 +160,16 @@ class GraphRelationRequest(BaseModel):
     relation_type: str = Field(..., min_length=1)
     target_entity: str = Field(..., min_length=1)
     confidence: float = Field(0.7, ge=0.0, le=1.0)
+    relation_class: str = "verified"
+    source: str | None = None
+    valid_from: str | None = None
+    valid_until: str | None = None
+
+
+class GraphExtractRequest(BaseModel):
+    text: str = Field(..., min_length=1)
+    source: str = "user_input"
+    relation_class: str = "inferred"
 
 
 class DatasetGenRequest(BaseModel):
@@ -217,6 +235,27 @@ class DocumentExtractRequest(BaseModel):
     file_path: str = Field(...)
 
 
+class RAGIngestRequest(BaseModel):
+    file_path: str = Field(..., min_length=1)
+    chunk_size: int = Field(800, ge=100, le=4000)
+    overlap: int = Field(150, ge=0, le=1000)
+    verification_status: str = Field("unverified", pattern="^(unverified|verified)$")
+
+
+class RAGRetrieveRequest(BaseModel):
+    query: str = Field(..., min_length=1)
+    limit: int = Field(5, ge=1, le=50)
+    min_relevance: float = Field(0.20, ge=0.0, le=1.0)
+    search_mode: str = Field("hybrid", pattern="^(hybrid|vector|keyword)$")
+    alpha: float = Field(0.5, ge=0.0, le=1.0)
+
+
+class RAGEvaluateRequest(BaseModel):
+    retrieved_chunk_ids: list[str] = Field(..., min_length=1)
+    ground_truth_chunk_ids: list[str] = Field(..., min_length=1)
+    top_k: int = Field(5, ge=1, le=50)
+
+
 class PDFGenerateRequest(BaseModel):
     title: str = Field(..., description="Document title")
     sections: List[Dict[str, Any]] = Field(..., description="List of section dictionaries")
@@ -277,10 +316,16 @@ def create_app(
     )
 
     store = MemoryStore(database_path)
+    rag_pipeline = RAGPipeline(store)
     queue = LearningQueue(store)
     audit = AuditLogger(database_path)
     rollback_mgr = RollbackManager(registry_path)
     foundation_engine = FoundationEngine.get_instance()
+    inference_manager = InferenceManager(
+        default_foundation_model=DEFAULT_FOUNDATION_MODEL,
+        custom_checkpoint_path=checkpoint_path if checkpoint_path.is_file() else None,
+        custom_tokenizer_path=tokenizer_path if tokenizer_path.is_file() else None,
+    )
     normalizer = TextNormalizer()
     intent_classifier = IntentClassifier()
     context_resolver = ContextResolver()
@@ -308,6 +353,16 @@ def create_app(
         math_verifier=math_verifier,
     )
     web_search_engine = WebSearchEngine(timeout_seconds=10)
+    rate_limiter = RateLimiter(requests_per_minute=200)
+
+    @app.exception_handler(Exception)
+    async def global_sanitized_exception_handler(request: Request, exc: Exception):
+        logger.error("Unhandled server exception: %s", exc, exc_info=True)
+        sanitized_msg = SafetyFilter.sanitize_error_message(exc)
+        return JSONResponse(
+            status_code=500,
+            content={"error": "InternalServerError", "message": sanitized_msg},
+        )
 
     # Initialize active deployment pointer if none set
     if not rollback_mgr.get_active() and checkpoint_path.is_file():
@@ -388,6 +443,68 @@ def create_app(
                 "supported_intents_count": len(Intent),
             },
         }
+
+    COMMON_STOPWORDS = {
+        "what", "is", "the", "of", "in", "for", "a", "an", "to", "and", "or", "how", "why",
+        "who", "when", "where", "which", "can", "you", "please", "tell", "me", "our", "are",
+        "do", "does", "did", "with", "examples", "calculate", "write", "explain", "between",
+        "many", "much", "there", "this", "that", "from", "at", "by", "on", "as", "about",
+    }
+
+    def _filter_memory_context(
+        raw_query: str,
+        retrieved_memories: list[dict[str, Any]],
+        primary_intent: Intent,
+        limit: int = 3,
+    ) -> tuple[list[dict[str, Any]], list[str]]:
+        """Filters retrieved memory items for substantive semantic relevance to avoid context pollution.
+
+        Returns:
+            (factual_retrieved, context_snippets)
+        """
+        import re
+        q_tokens = [w for w in re.findall(r"\b[a-zA-Z0-9_\-]{3,}\b", raw_query.lower()) if w not in COMMON_STOPWORDS]
+
+        is_open_knowledge = primary_intent in (
+            Intent.FACTUAL_QUESTION,
+            Intent.REASONING,
+            Intent.CODE_GENERATION,
+            Intent.SQL_ASSISTANCE,
+            Intent.MATHEMATICAL_CALCULATION,
+            Intent.SCIENTIFIC_LAW,
+            Intent.KNOWLEDGE_QUESTION,
+        )
+
+        filtered = []
+        snippets = []
+
+        for m in retrieved_memories:
+            if m.get("source") == "user_conversation":
+                continue
+
+            content = m.get("content", "").strip()
+            content_lower = content.lower()
+
+            # Guard against unrelated fiction / game text polluting factual questions
+            if is_open_knowledge and any(w in content_lower for w in ["video game", "playstation", "sega", "rpg", "nameless", "valkyria"]):
+                if not any(w in raw_query.lower() for w in ["game", "valkyria", "sega", "rpg", "playstation"]):
+                    continue
+
+            # Substantive relevance check for open-domain knowledge
+            if is_open_knowledge and q_tokens:
+                overlap = sum(1 for tok in q_tokens if tok in content_lower)
+                # If zero substantive keywords appear in the memory chunk, it's irrelevant to this query
+                if overlap == 0:
+                    continue
+
+            filtered.append(m)
+            if len(content) < 200 and m.get("verification_status") in ("verified", None):
+                snippets.append(content)
+
+            if len(filtered) >= limit:
+                break
+
+        return filtered, snippets[:2]
 
     def _handle_auto_dataset(
         processed_query: str,
@@ -575,6 +692,11 @@ def create_app(
     # -------------------------------------------------------------------------
     @app.post("/api/chat")
     def chat_endpoint(req: ChatRequest, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        client_key = user.get("username", "anonymous")
+        allowed, _ = rate_limiter.is_allowed(client_key)
+        if not allowed:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded. Please wait before submitting more requests.")
+
         injection_res = SafetyFilter.detect_prompt_injection(req.query)
         if injection_res["flagged"]:
             audit.log("blocked_prompt_injection", actor=user["username"], target=req.query, details=injection_res)
@@ -600,35 +722,28 @@ def create_app(
         auto_image_block = _handle_auto_image(processed_query, resolved_query, intent_res, req.messages)
         auto_media_prefix = auto_dataset_link + auto_image_block
 
-        # Retrieve relevant memory evidence (prioritize factual semantic/verified knowledge over past dialogue)
+        # Retrieve relevant memory evidence strictly scoped to current user
+        user_scope = user.get("username", "default_user")
         search_limit = max(req.memory_limit * 8, 30)
         if req.retrieval_mode == "vector":
-            retrieved = store.vector_search(resolved_query, limit=search_limit)
+            retrieved = store.vector_search(resolved_query, limit=search_limit, user_scope=user_scope)
         elif req.retrieval_mode == "hybrid":
-            retrieved = store.hybrid_search(resolved_query, limit=search_limit)
+            retrieved = store.hybrid_search(resolved_query, limit=search_limit, user_scope=user_scope)
         else:
-            retrieved = store.search(resolved_query, limit=search_limit)
+            retrieved = store.search(resolved_query, limit=search_limit, user_scope=user_scope)
 
         # Canonical Identity, Capability & Scientific Law Resolution
         identity_reply = resolve_identity_query(processed_query, engine=req.engine)
         capability_reply = resolve_capability_query(processed_query)
         science_law = resolve_scientific_law(processed_query)
 
-        # Exclude raw user chat logs from factual evidence
-        # Also filter out unrelated fiction/pop-culture memories for scientific queries
-        is_science_query = bool(science_law or primary_intent in (Intent.SCIENTIFIC_LAW, Intent.MATHEMATICAL_CALCULATION))
-        filtered_retrieved = []
-        for m in retrieved:
-            if m.get("source") == "user_conversation":
-                continue
-            content_lower = m.get("content", "").lower()
-            if is_science_query and any(unrelated in content_lower for unrelated in ["video game", "playstation", "sega", "rpg", "nameless", "valkyria"]):
-                continue
-            filtered_retrieved.append(m)
-
-        factual_retrieved = filtered_retrieved[:req.memory_limit]
-        if not factual_retrieved and not is_science_query:
-            factual_retrieved = retrieved[:req.memory_limit]
+        # Robust context filtering: exclude raw chat logs and unrelated fiction/game memories
+        factual_retrieved, fact_snippets = _filter_memory_context(
+            processed_query,
+            retrieved,
+            primary_intent,
+            limit=req.memory_limit,
+        )
 
         if science_law:
             factual_retrieved = [
@@ -641,6 +756,7 @@ def create_app(
                     "memory_type": "semantic",
                 }
             ]
+            fact_snippets = [f"{science_law.canonical_title}: {science_law.summary} | Formula: {science_law.formula_latex}"]
 
         # Retrieve relevant Knowledge Graph entities
         entities = store.list_entities()
@@ -648,15 +764,10 @@ def create_app(
             e for e in entities if e["name"].lower() in resolved_query.lower()
         ][:3]
 
-        # Augment system prompt with concise retrieved knowledge if available
+        # Augment system prompt ONLY with verified and relevant retrieved knowledge
         system_content = req.system_prompt
-        fact_snippets = [
-            m["content"].strip()
-            for m in factual_retrieved
-            if m.get("source") != "user_conversation" and len(m["content"].strip()) < 120
-        ][:2]
         if fact_snippets:
-            system_content += "\nContext: " + " ".join(fact_snippets)
+            system_content += "\n[Verified Reference Context]: " + " ".join(fact_snippets)
 
         messages = [
             {"role": "system", "content": system_content},
@@ -683,7 +794,9 @@ def create_app(
                 memory_type="semantic",
                 confidence=0.95,
                 verification_status="verified",
-                metadata={"user": user["username"], "fact_type": "personal_info"},
+                user_scope=user_scope,
+                fact_type="fact",
+                metadata={"user": user_scope, "fact_type": "personal_info"},
             )
             response_text = (
                 f"✅ **Memory Updated**\n\n"
@@ -731,20 +844,17 @@ def create_app(
             identity_resolver_fn=resolve_identity_query,
             capability_resolver_fn=resolve_capability_query,
             science_resolver_fn=resolve_scientific_law,
-            neural_generator_fn=lambda sq: (
-                foundation_engine.generate(
+            neural_generator_fn=lambda sq: {
+                "response": (r := inference_manager.generate(
                     prompt=sq,
+                    engine_name=req.engine,
                     system_prompt=req.system_prompt,
                     max_new_tokens=req.max_new_tokens,
                     temperature=req.temperature,
-                ) if req.engine == "foundation" else generate_chat_response(
-                    checkpoint_path=Path(rollback_mgr.get_active() or checkpoint_path),
-                    tokenizer_path=tokenizer_path,
-                    messages=[{"role": "user", "content": sq}],
-                    max_new_tokens=req.max_new_tokens,
-                    temperature=req.temperature,
-                )
-            ),
+                )).text,
+                "generated_tokens": r.generated_tokens,
+                "model_name": r.model_id,
+            },
         ))["is_compound"]:
             response_text = compound_res["response"]
             response_source = "aarohan_multi_task_decomposer"
@@ -810,58 +920,26 @@ def create_app(
             generated_tokens = 0
             checkpoint_name = "aarohan_scientific_grounding"
             warning_msg = None
-        # Generate model response using selected engine (foundation open-weights or custom scratch)
-        elif req.engine == "foundation":
+        # Generate model response using selected engine via unified InferenceManager
+        else:
             try:
-                foundation_res = foundation_engine.generate(
+                gen_result = inference_manager.generate(
                     prompt=processed_query,
+                    engine_name=req.engine,
                     system_prompt=system_content,
                     history=req.messages if req.messages else None,
                     max_new_tokens=req.max_new_tokens,
                     temperature=req.temperature,
                 )
-                response_text = auto_media_prefix + foundation_res["response"]
-                generated_tokens = foundation_res["generated_tokens"]
-                checkpoint_name = foundation_res["model_name"]
-                response_source = "aarohan_foundation_engine"
+                response_text = auto_media_prefix + gen_result.text
+                generated_tokens = gen_result.generated_tokens
+                checkpoint_name = gen_result.model_id
+                response_source = "aarohan_foundation_engine" if "qwen" in gen_result.model_id.lower() or req.engine == "foundation" else "aarohan_scratch_engine"
                 model_invoked = True
-                warning_msg = None
+                warning_msg = gen_result.warning
             except Exception as e:
-                # Fallback to scratch model if foundation model load has an issue
-                active_ckpt_path = Path(rollback_mgr.get_active() or checkpoint_path)
-                if not active_ckpt_path.is_file():
-                    raise HTTPException(status_code=500, detail=f"Foundation engine error: {e}")
-                scratch_res = generate_chat_response(
-                    checkpoint_path=active_ckpt_path,
-                    tokenizer_path=tokenizer_path,
-                    messages=messages,
-                    max_new_tokens=req.max_new_tokens,
-                    temperature=req.temperature,
-                )
-                response_text = auto_media_prefix + scratch_res["response"]
-                generated_tokens = scratch_res["generated_tokens"]
-                checkpoint_name = scratch_res["checkpoint"]
-                response_source = "aarohan_scratch_engine"
-                model_invoked = True
-                warning_msg = f"Foundation fallback triggered: {e}"
-        else:
-            active_ckpt_path = Path(rollback_mgr.get_active() or checkpoint_path)
-            if not active_ckpt_path.is_file():
-                raise HTTPException(status_code=503, detail="Active model checkpoint not found on disk")
-
-            scratch_res = generate_chat_response(
-                checkpoint_path=active_ckpt_path,
-                tokenizer_path=tokenizer_path,
-                messages=messages,
-                max_new_tokens=req.max_new_tokens,
-                temperature=req.temperature,
-            )
-            response_text = auto_media_prefix + scratch_res["response"]
-            generated_tokens = scratch_res["generated_tokens"]
-            checkpoint_name = scratch_res["checkpoint"]
-            response_source = "aarohan_scratch_engine"
-            model_invoked = True
-            warning_msg = scratch_res["warning"]
+                logger.error("Inference generation error: %s", e)
+                raise HTTPException(status_code=500, detail=f"Inference error with engine '{req.engine}': {e}")
 
         # Phase 6: Output Verification & Self-Correction Gate
         verdict = verification_gate.guard_response(
@@ -881,15 +959,57 @@ def create_app(
             memory_type="episodic",
             confidence=0.5,
             verification_status="unverified",
-            metadata={"pii_detected": pii_detected, "user": user["username"], "engine": req.engine},
+            user_scope=user_scope,
+            metadata={"pii_detected": pii_detected, "user": user_scope, "engine": req.engine},
         )
+        # Extract user preferences and procedural instructions
+        store.extract_and_remember(sanitized_query, user_scope=user_scope)
 
         audit.log("chat_turn", actor=user["username"], target=f"aarohan_{req.engine}", details={"tokens": generated_tokens})
+
+        # Determine knowledge source and citations (Zero-Fabrication Policy)
+        if response_source == "aarohan_web_search":
+            knowledge_source = "external_web"
+            citations = [{"title": r.title, "url": r.url, "snippet": r.snippet} for r in search_results] if 'search_results' in locals() and search_results else []
+            confidence_level = "high" if citations else "uncertain"
+        elif response_source == "aarohan_memory_engine":
+            knowledge_source = "internal_memory"
+            citations = [{"title": f"Memory {m.get('id', '')}", "source": m.get("source", "sqlite"), "snippet": m.get("content", "")[:100]} for m in factual_retrieved]
+            confidence_level = "high"
+        elif response_source == "aarohan_scientific_grounding":
+            knowledge_source = "scientific_grounding"
+            citations = [{"title": science_law.canonical_title, "source": "physics_principles", "snippet": science_law.summary}]
+            confidence_level = "high"
+        elif response_source == "aarohan_math_verifier":
+            knowledge_source = "symbolic_computation"
+            citations = [{"title": "Deterministic Math Verification", "source": "AST/SymPy", "snippet": f"{math_expr} verified"}]
+            confidence_level = "high"
+        elif response_source == "aarohan_learning_engine":
+            knowledge_source = "symbolic_rule"
+            citations = [{"title": "Learned Business Rules", "source": "aarohan.sqlite", "snippet": "Precedence-based rule resolution"}]
+            confidence_level = "high"
+        else:
+            knowledge_source = "model_weights"
+            citations = []  # Strictly empty: never fabricate citations for parametric neural generations
+            confidence_level = "high" if len(response_text) > 20 else "moderate"
+
+        query_type = (
+            "factual" if primary_intent in (Intent.FACTUAL_QUESTION, Intent.KNOWLEDGE_QUESTION)
+            else "reasoning" if primary_intent == Intent.REASONING
+            else "coding" if primary_intent in (Intent.CODE_GENERATION, Intent.SQL_ASSISTANCE)
+            else "math" if primary_intent == Intent.MATHEMATICAL_CALCULATION
+            else "search" if primary_intent == Intent.WEB_SEARCH
+            else "conversational"
+        )
 
         return {
             "query": sanitized_query,
             "normalized_query": processed_query,
             "intent": primary_intent.value,
+            "query_type": query_type,
+            "knowledge_source": knowledge_source,
+            "citations": citations,
+            "confidence_assessment": confidence_level,
             "engine": req.engine,
             "response": response_text,
             "response_source": response_source,
@@ -928,6 +1048,11 @@ def create_app(
 
     @app.post("/api/chat/stream")
     def chat_stream_endpoint(req: ChatRequest, user: dict[str, Any] = Depends(get_current_user)) -> StreamingResponse:
+        client_key = user.get("username", "anonymous")
+        allowed, _ = rate_limiter.is_allowed(client_key)
+        if not allowed:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded. Please wait before submitting more requests.")
+
         injection_res = SafetyFilter.detect_prompt_injection(req.query)
         if injection_res["flagged"]:
             audit.log("blocked_prompt_injection", actor=user["username"], target=req.query, details=injection_res)
@@ -955,32 +1080,27 @@ def create_app(
         auto_image_block = _handle_auto_image(processed_query, resolved_query, intent_res, req.messages)
         auto_media_prefix = auto_dataset_link + auto_image_block
 
-        # Retrieve relevant memory evidence (prioritize factual semantic/verified knowledge)
+        # Retrieve relevant memory evidence strictly scoped to current user
+        user_scope = user.get("username", "default_user")
         search_limit = max(req.memory_limit * 8, 30)
         if req.retrieval_mode == "vector":
-            retrieved = store.vector_search(resolved_query, limit=search_limit)
+            retrieved = store.vector_search(resolved_query, limit=search_limit, user_scope=user_scope)
         elif req.retrieval_mode == "hybrid":
-            retrieved = store.hybrid_search(resolved_query, limit=search_limit)
+            retrieved = store.hybrid_search(resolved_query, limit=search_limit, user_scope=user_scope)
         else:
-            retrieved = store.search(resolved_query, limit=search_limit)
+            retrieved = store.search(resolved_query, limit=search_limit, user_scope=user_scope)
 
         identity_reply = resolve_identity_query(processed_query, engine=req.engine)
         capability_reply = resolve_capability_query(processed_query)
         science_law = resolve_scientific_law(processed_query)
 
-        is_science_query = bool(science_law or primary_intent in (Intent.SCIENTIFIC_LAW, Intent.MATHEMATICAL_CALCULATION))
-        filtered_retrieved = []
-        for m in retrieved:
-            if m.get("source") == "user_conversation":
-                continue
-            content_lower = m.get("content", "").lower()
-            if is_science_query and any(unrelated in content_lower for unrelated in ["video game", "playstation", "sega", "rpg", "nameless", "valkyria"]):
-                continue
-            filtered_retrieved.append(m)
-
-        factual_retrieved = filtered_retrieved[:req.memory_limit]
-        if not factual_retrieved and not is_science_query:
-            factual_retrieved = retrieved[:req.memory_limit]
+        # Robust context filtering: exclude raw chat logs and unrelated fiction/game memories
+        factual_retrieved, fact_snippets = _filter_memory_context(
+            processed_query,
+            retrieved,
+            primary_intent,
+            limit=req.memory_limit,
+        )
 
         if science_law:
             factual_retrieved = [
@@ -993,20 +1113,12 @@ def create_app(
                     "memory_type": "semantic",
                 }
             ]
+            fact_snippets = [f"{science_law.canonical_title}: {science_law.summary} | Formula: {science_law.formula_latex}"]
 
-        active_ckpt_path = Path(rollback_mgr.get_active() or checkpoint_path)
-        if not active_ckpt_path.is_file():
-            raise HTTPException(status_code=503, detail="Active model checkpoint not found on disk")
-
-        # Augment system prompt with concise retrieved knowledge if available
+        # Augment system prompt ONLY with verified and relevant retrieved knowledge
         system_content = req.system_prompt
-        fact_snippets = [
-            m["content"].strip()
-            for m in factual_retrieved
-            if m.get("source") != "user_conversation" and len(m["content"].strip()) < 120
-        ][:2]
         if fact_snippets:
-            system_content += "\nContext: " + " ".join(fact_snippets)
+            system_content += "\n[Verified Reference Context]: " + " ".join(fact_snippets)
 
         messages = [
             {"role": "system", "content": system_content},
@@ -1069,6 +1181,8 @@ def create_app(
                 confidence=0.95,
                 verification_status="verified",
                 metadata={"user": user["username"], "fact_type": "personal_info"},
+                user_scope=user_scope,
+                fact_type="fact",
             )
             mem_reply = (
                 f"✅ **Memory Updated**\n\n"
@@ -1107,20 +1221,17 @@ def create_app(
             identity_resolver_fn=resolve_identity_query,
             capability_resolver_fn=resolve_capability_query,
             science_resolver_fn=resolve_scientific_law,
-            neural_generator_fn=lambda sq: (
-                foundation_engine.generate(
+            neural_generator_fn=lambda sq: {
+                "response": (r := inference_manager.generate(
                     prompt=sq,
+                    engine_name=req.engine,
                     system_prompt=req.system_prompt,
                     max_new_tokens=req.max_new_tokens,
                     temperature=req.temperature,
-                ) if req.engine == "foundation" else generate_chat_response(
-                    checkpoint_path=Path(rollback_mgr.get_active() or checkpoint_path),
-                    tokenizer_path=tokenizer_path,
-                    messages=[{"role": "user", "content": sq}],
-                    max_new_tokens=req.max_new_tokens,
-                    temperature=req.temperature,
-                )
-            ),
+                )).text,
+                "generated_tokens": r.generated_tokens,
+                "model_name": r.model_id,
+            },
         ))["is_compound"]:
             return StreamingResponse(_stream_static_response(compound_res["response"], "aarohan_multi_task_decomposer", "aarohan_multi_task_decomposer", "COMPOUND_MULTI_TASK"), media_type="text/event-stream")
 
@@ -1235,10 +1346,23 @@ def create_app(
 
         def event_generator():
             # Send initial context event with retrieved memories & intent
+            query_type = (
+                "factual" if primary_intent in (Intent.FACTUAL_QUESTION, Intent.KNOWLEDGE_QUESTION)
+                else "reasoning" if primary_intent == Intent.REASONING
+                else "coding" if primary_intent in (Intent.CODE_GENERATION, Intent.SQL_ASSISTANCE)
+                else "math" if primary_intent == Intent.MATHEMATICAL_CALCULATION
+                else "search" if primary_intent == Intent.WEB_SEARCH
+                else "conversational"
+            )
             init_event = {
                 "type": "context",
                 "engine": req.engine,
                 "intent": primary_intent.value,
+                "query_type": query_type,
+                "knowledge_source": "model_weights",
+                "response_source": "foundation_model" if req.engine == "foundation" else "custom_neural_model",
+                "citations": [],
+                "confidence_assessment": "high",
                 "normalized_query": processed_query,
                 "retrieved_memory": [
                     {
@@ -1263,74 +1387,45 @@ def create_app(
                 full_text += auto_media_prefix
                 yield f"data: {json.dumps({'type': 'token', 'token': auto_media_prefix})}\n\n"
 
-            if req.engine == "foundation":
+            try:
+                for chunk in inference_manager.stream(
+                    prompt=processed_query,
+                    engine_name=req.engine,
+                    system_prompt=system_content,
+                    history=req.messages if req.messages else None,
+                    max_new_tokens=req.max_new_tokens,
+                    temperature=req.temperature,
+                ):
+                    full_text += chunk
+                    token_count += 1
+                    yield f"data: {json.dumps({'type': 'token', 'token': chunk})}\n\n"
+
+                turn_record = f"User: {sanitized_query} | AAROHAN: {full_text}"
+                store.add(
+                    turn_record,
+                    source="user_conversation",
+                    memory_type="episodic",
+                    confidence=0.5,
+                    verification_status="unverified",
+                    metadata={"pii_detected": pii_detected, "user": user["username"], "engine": req.engine},
+                    user_scope=user_scope,
+                )
                 try:
-                    for chunk in foundation_engine.generate_stream(
-                        prompt=processed_query,
-                        system_prompt=system_content,
-                        history=req.messages if req.messages else None,
-                        max_new_tokens=req.max_new_tokens,
-                        temperature=req.temperature,
-                    ):
-                        full_text += chunk
-                        token_count += 1
-                        yield f"data: {json.dumps({'type': 'token', 'token': chunk})}\n\n"
-
-                    turn_record = f"User: {sanitized_query} | AAROHAN: {full_text}"
-                    store.add(
-                        turn_record,
-                        source="user_conversation",
-                        memory_type="episodic",
-                        confidence=0.5,
-                        verification_status="unverified",
-                        metadata={"pii_detected": pii_detected, "user": user["username"], "engine": "foundation"},
-                    )
-                    audit.log(
-                        "chat_stream_turn",
-                        actor=user["username"],
-                        target="foundation_model",
-                        details={"tokens": token_count},
-                    )
-                    yield f"data: {json.dumps({'type': 'done', 'generated_tokens': token_count, 'model_name': foundation_engine.model_name_or_path})}\n\n"
-                    return
-                except Exception as e:
-                    fallback_notice = f"\n[Foundation engine notice: {e}. Falling back to checkpoint]\n"
-                    yield f"data: {json.dumps({'type': 'token', 'token': fallback_notice})}\n\n"
-
-            # Fallback or explicit scratch checkpoint inference
-            active_ckpt_path = Path(rollback_mgr.get_active() or checkpoint_path)
-            if not active_ckpt_path.is_file():
-                yield f"data: {json.dumps({'type': 'error', 'reason': 'Model checkpoint not found'})}\n\n"
+                    store.extract_and_remember(sanitized_query, user_scope=user_scope, source="user_conversation")
+                except Exception as ex_ext:
+                    logger.debug("Automatic memory extraction in stream skipped: %s", ex_ext)
+                audit.log(
+                    "chat_stream_turn",
+                    actor=user["username"],
+                    target=f"aarohan_{req.engine}",
+                    details={"tokens": token_count},
+                )
+                yield f"data: {json.dumps({'type': 'done', 'generated_tokens': token_count, 'model_name': req.engine})}\n\n"
                 return
-
-            token_gen = stream_chat_response(
-                checkpoint_path=active_ckpt_path,
-                tokenizer_path=tokenizer_path,
-                messages=messages,
-                max_new_tokens=req.max_new_tokens,
-                temperature=req.temperature,
-            )
-            for item in token_gen:
-                if item["type"] == "token":
-                    full_text += item["token"]
-                    yield f"data: {json.dumps(item)}\n\n"
-                elif item["type"] == "done":
-                    turn_record = f"User: {sanitized_query} | AAROHAN: {full_text}"
-                    store.add(
-                        turn_record,
-                        source="user_conversation",
-                        memory_type="episodic",
-                        confidence=0.5,
-                        verification_status="unverified",
-                        metadata={"pii_detected": pii_detected, "user": user["username"], "engine": "scratch"},
-                    )
-                    audit.log(
-                        "chat_stream_turn",
-                        actor=user["username"],
-                        target="scratch_model",
-                        details={"tokens": item["generated_tokens"]},
-                    )
-                    yield f"data: {json.dumps(item)}\n\n"
+            except Exception as e:
+                logger.error("Streaming error with inference manager: %s", e)
+                yield f"data: {json.dumps({'type': 'error', 'reason': f'Model inference error: {e}'})}\n\n"
+                return
 
         return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -1338,18 +1433,19 @@ def create_app(
     # Conversation History
     # -------------------------------------------------------------------------
     @app.get("/api/conversations")
-    def get_conversations(limit: int = 20) -> dict[str, Any]:
+    def get_conversations(limit: int = 20, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        user_scope = user.get("username", "default_user")
         with store._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT id, content, created_at, metadata_json
+                SELECT id, content, created_at, metadata_json, user_scope
                 FROM memories
-                WHERE memory_type = 'episodic' AND source = 'user_conversation'
+                WHERE memory_type = 'episodic' AND source = 'user_conversation' AND (user_scope = ? OR user_scope = 'default_user' OR user_scope IS NULL)
                 ORDER BY created_at DESC
                 LIMIT ?
                 """,
-                (limit,),
+                (user_scope, limit),
             )
             rows = cursor.fetchall()
 
@@ -1361,15 +1457,18 @@ def create_app(
                 "content": r["content"],
                 "created_at": r["created_at"],
                 "metadata": meta,
+                "user_scope": r["user_scope"] if "user_scope" in r.keys() else "default_user",
             })
         return {"conversations": conversations}
 
     @app.delete("/api/conversations")
     def clear_conversations(user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        user_scope = user.get("username", "default_user")
         with store._connect() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "DELETE FROM memories WHERE memory_type = 'episodic' AND source = 'user_conversation'"
+                "DELETE FROM memories WHERE memory_type = 'episodic' AND source = 'user_conversation' AND (user_scope = ? OR user_scope = 'default_user')",
+                (user_scope,),
             )
             deleted = cursor.rowcount
             conn.commit()
@@ -1380,24 +1479,36 @@ def create_app(
     # Memory Explorer
     # -------------------------------------------------------------------------
     @app.get("/api/memory")
-    def search_memory(query: str = "", mode: str = "hybrid", layer: str | None = None, limit: int = 20) -> dict[str, Any]:
+    def search_memory(
+        query: str = "",
+        mode: str = "hybrid",
+        layer: str | None = None,
+        limit: int = 20,
+        include_global: bool = True,
+        user: dict[str, Any] = Depends(get_current_user),
+    ) -> dict[str, Any]:
+        user_scope = user.get("username", "default_user")
         if query:
             if mode == "vector":
-                results = store.vector_search(query, limit=limit)
+                results = store.vector_search(query, limit=limit, user_scope=user_scope, include_global=include_global)
             elif mode == "hybrid":
-                results = store.hybrid_search(query, limit=limit)
+                results = store.hybrid_search(query, limit=limit, user_scope=user_scope, include_global=include_global)
             else:
-                results = store.search(query, limit=limit)
+                results = store.search(query, limit=limit, user_scope=user_scope, include_global=include_global)
         else:
             with store._connect() as conn:
                 cursor = conn.cursor()
+                scope_cond = "user_scope = ?" if not include_global else "(user_scope = ? OR user_scope = 'default_user' OR user_scope IS NULL)"
                 if layer:
                     cursor.execute(
-                        "SELECT * FROM memories WHERE memory_type = ? ORDER BY created_at DESC LIMIT ?",
-                        (layer, limit),
+                        f"SELECT * FROM memories WHERE memory_type = ? AND {scope_cond} AND (expires_at IS NULL OR expires_at > datetime('now')) ORDER BY created_at DESC LIMIT ?",
+                        (layer, user_scope, limit),
                     )
                 else:
-                    cursor.execute("SELECT * FROM memories ORDER BY created_at DESC LIMIT ?", (limit,))
+                    cursor.execute(
+                        f"SELECT * FROM memories WHERE {scope_cond} AND (expires_at IS NULL OR expires_at > datetime('now')) ORDER BY created_at DESC LIMIT ?",
+                        (user_scope, limit),
+                    )
                 results = [dict(r) for r in cursor.fetchall()]
 
         if layer and query:
@@ -1406,41 +1517,80 @@ def create_app(
         return {"query": query, "mode": mode, "layer": layer, "count": len(results), "results": results}
 
     @app.get("/api/memory/layers")
-    def get_memory_layers() -> dict[str, Any]:
-        layers = ["working", "episodic", "semantic", "procedural", "knowledge_graph", "learning"]
+    def get_memory_layers(user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        user_scope = user.get("username", "default_user")
+        layers = ["working", "episodic", "semantic", "procedural", "reflective", "learning", "knowledge_graph"]
         breakdown: dict[str, Any] = {}
         with store._connect() as conn:
             cursor = conn.cursor()
             for layer_name in layers:
-                cursor.execute("SELECT COUNT(*) AS count FROM memories WHERE memory_type = ?", (layer_name,))
+                if layer_name == "knowledge_graph":
+                    cnt = 0
+                    try:
+                        cursor.execute("SELECT COUNT(*) AS count FROM knowledge_entities")
+                        cnt = cursor.fetchone()["count"]
+                    except sqlite3.OperationalError:
+                        try:
+                            cursor.execute("SELECT COUNT(*) AS count FROM graph_entities")
+                            cnt = cursor.fetchone()["count"]
+                        except sqlite3.OperationalError:
+                            cnt = 0
+                    breakdown[layer_name] = {"count": cnt, "samples": []}
+                    continue
+                cursor.execute(
+                    "SELECT COUNT(*) AS count FROM memories WHERE memory_type = ? AND (user_scope = ? OR user_scope = 'default_user' OR user_scope IS NULL) AND (expires_at IS NULL OR expires_at > datetime('now'))",
+                    (layer_name, user_scope),
+                )
                 cnt = cursor.fetchone()["count"]
                 cursor.execute(
-                    "SELECT id, content, created_at, confidence, verification_status FROM memories WHERE memory_type = ? ORDER BY created_at DESC LIMIT 3",
-                    (layer_name,),
+                    "SELECT id, content, created_at, confidence, verification_status, fact_type FROM memories WHERE memory_type = ? AND (user_scope = ? OR user_scope = 'default_user' OR user_scope IS NULL) AND (expires_at IS NULL OR expires_at > datetime('now')) ORDER BY created_at DESC LIMIT 3",
+                    (layer_name, user_scope),
                 )
                 samples = [dict(r) for r in cursor.fetchall()]
                 breakdown[layer_name] = {"count": cnt, "samples": samples}
         return {"layers": breakdown}
 
     @app.get("/api/memory/{item_id}")
-    def get_memory_item(item_id: str) -> dict[str, Any]:
-        item = store.get(item_id)
+    def get_memory_item(item_id: str, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        user_scope = user.get("username", "default_user")
+        item = store.get(item_id, user_scope=user_scope)
         if not item:
-            raise HTTPException(status_code=404, detail="Memory item not found")
+            raise HTTPException(status_code=404, detail="Memory item not found or unauthorized")
         return item
 
     @app.post("/api/memory")
     def add_memory_item(req: MemoryAddRequest, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        user_scope = req.user_scope or user.get("username", "default_user")
         item = store.add(
             content=req.content,
             source=req.source,
             memory_type=req.memory_type,
             confidence=req.confidence,
             verification_status=req.verification_status,
+            verified_by=req.verified_by or ("user_review" if req.verification_status == "verified" else None),
             metadata=req.metadata,
+            user_scope=user_scope,
+            ttl_seconds=req.ttl_seconds,
+            fact_type=req.fact_type,
         )
-        audit.log("memory_added", actor=user["username"], target=item["id"], details={"type": req.memory_type})
+        audit.log("memory_added", actor=user["username"], target=item["id"], details={"type": req.memory_type, "user_scope": user_scope})
         return item
+
+    @app.delete("/api/memory/{item_id}")
+    def delete_memory_item(item_id: str, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        user_scope = user.get("username", "default_user")
+        deleted = store.delete(item_id, user_scope=user_scope)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Memory item not found or unauthorized")
+        audit.log("memory_deleted", actor=user["username"], target=item_id, details={})
+        return {"success": True, "deleted_id": item_id}
+
+    @app.post("/api/memory/purge-expired")
+    def purge_expired_memories(user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        user_scope = user.get("username", "default_user")
+        purged = store.purge_expired(user_scope=user_scope)
+        audit.log("memories_purged", actor=user["username"], target="memories", details={"purged": purged})
+        return {"success": True, "purged_count": purged}
 
     # -------------------------------------------------------------------------
     # Knowledge Graph
@@ -1456,8 +1606,8 @@ def create_app(
 
     @app.post("/api/graph/entities")
     def add_graph_entity(req: GraphEntityRequest, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
-        res = store.add_entity(req.name, entity_type=req.entity_type, description=req.description)
-        audit.log("graph_entity_added", actor=user["username"], target=req.name, details={})
+        res = store.add_entity(req.name, entity_type=req.entity_type, description=req.description, aliases=req.aliases)
+        audit.log("graph_entity_added", actor=user["username"], target=req.name, details={"aliases": req.aliases})
         return res
 
     @app.post("/api/graph/relations")
@@ -1467,19 +1617,35 @@ def create_app(
             req.target_entity,
             req.relation_type,
             confidence=req.confidence,
+            source=req.source,
+            relation_class=req.relation_class,
+            valid_from=req.valid_from,
+            valid_until=req.valid_until,
         )
-        audit.log("graph_relation_added", actor=user["username"], target=f"{req.source_entity}->{req.target_entity}", details={})
+        audit.log("graph_relation_added", actor=user["username"], target=f"{req.source_entity}->{req.target_entity}", details={"class": req.relation_class})
         return res
 
+    @app.post("/api/graph/extract")
+    def extract_graph_from_text(req: GraphExtractRequest, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        entities, relations = store.extract_entities_and_relations(
+            req.text,
+            source=req.source,
+            relation_class=req.relation_class,
+        )
+        audit.log("graph_extracted_from_text", actor=user["username"], target="knowledge_graph", details={"entities": len(entities), "relations": len(relations)})
+        return {"entities": entities, "relations": relations}
+
     @app.get("/api/graph/paths")
-    def find_graph_path(start: str, target: str) -> dict[str, Any]:
-        path = store.find_path(start, target)
+    def find_graph_path(start: str, target: str, max_depth: int = 4, direction: str = "out") -> dict[str, Any]:
+        path = store.find_path(start, target, max_depth=max_depth, direction=direction)
         return {"start": start, "target": target, "path": path}
 
     @app.get("/api/graph/contradictions")
     def get_graph_contradictions(query: str = "") -> dict[str, Any]:
-        contradictions = store.detect_contradictions(query or "general knowledge check")
-        return {"count": len(contradictions), "contradictions": contradictions}
+        graph_contradictions = store.detect_graph_contradictions(query or None)
+        text_contradictions = store.detect_contradictions(query) if query else []
+        all_contradictions = graph_contradictions + text_contradictions
+        return {"count": len(all_contradictions), "contradictions": all_contradictions}
 
     # -------------------------------------------------------------------------
     # Learning Queue
@@ -1504,6 +1670,18 @@ def create_app(
     def update_task_status(task_id: str, req: TaskUpdateRequest, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
         task = queue.update_task_status(task_id, req.status, result_summary=req.notes)
         audit.log("learning_task_updated", actor=user["username"], target=task_id, details={"status": req.status})
+        return {"task": task}
+
+    @app.post("/api/learning-tasks/{task_id}/approve")
+    def approve_learning_task(task_id: str, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        task = queue.approve_task(task_id, approved_by=user.get("username", "human_supervisor"))
+        audit.log("learning_task_approved", actor=user["username"], target=task_id, details={})
+        return {"task": task}
+
+    @app.post("/api/learning-tasks/{task_id}/retry")
+    def retry_learning_task(task_id: str, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        task = queue.retry_task(task_id)
+        audit.log("learning_task_retried", actor=user["username"], target=task_id, details={"retry_count": task.get("retry_count")})
         return {"task": task}
 
     # -------------------------------------------------------------------------
@@ -1545,9 +1723,27 @@ def create_app(
     def list_models() -> dict[str, Any]:
         state = rollback_mgr._load_state()
         active = rollback_mgr.get_active()
+        engines = inference_manager.list_models()
+        models = [
+            {
+                "name": eng.get("model_id", eng.get("alias")),
+                "model_type": "Foundation Model" if eng.get("alias") == "foundation" else "Custom Neural Transformer",
+                "alias": eng.get("alias"),
+                "device": eng.get("device"),
+                "total_parameters": eng.get("parameters"),
+                "loaded": eng.get("is_loaded", False),
+                "capabilities": eng.get("capabilities", []),
+                "health": "healthy",
+            }
+            for eng in engines
+        ]
         return {
             "active_checkpoint": active,
+            "active_engine": getattr(inference_manager, "active_engine", "foundation"),
             "deployments": state.get("history", []),
+            "inference_engines": engines,
+            "models": models,
+            "health": inference_manager.health_check_all(),
         }
 
     @app.post("/api/models/deploy")
@@ -1991,6 +2187,50 @@ def create_app(
             "pages": data["pages"][:15],
             "chunks": chunks[:10],
         }
+
+    # -------------------------------------------------------------------------
+    # RAG & Grounded Retrieval Endpoints
+    # -------------------------------------------------------------------------
+    @app.post("/api/rag/ingest")
+    def rag_ingest_endpoint(req: RAGIngestRequest, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        target = Path(req.file_path)
+        if not target.is_file():
+            target = PROJECT_ROOT / req.file_path
+            if not target.is_file():
+                raise HTTPException(status_code=404, detail=f"Document file not found: {req.file_path}")
+        user_scope = user.get("username", "default_user")
+        stored = rag_pipeline.ingest_document(
+            target,
+            user_scope=user_scope,
+            chunk_size=req.chunk_size,
+            overlap=req.overlap,
+            verification_status=req.verification_status,
+        )
+        audit.log("rag_document_ingested", actor=user["username"], target=str(target), details={"chunks": len(stored)})
+        return {"filename": target.name, "chunks_ingested": len(stored), "chunks": stored}
+
+    @app.post("/api/rag/retrieve")
+    def rag_retrieve_endpoint(req: RAGRetrieveRequest, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        user_scope = user.get("username", "default_user")
+        results = rag_pipeline.retrieve_context(
+            req.query,
+            user_scope=user_scope,
+            limit=req.limit,
+            min_relevance=req.min_relevance,
+            search_mode=req.search_mode,
+            alpha=req.alpha,
+        )
+        prompt_block = rag_pipeline.build_context_prompt(req.query, results)
+        return {"query": req.query, "results_count": len(results), "results": results, "context_block": prompt_block}
+
+    @app.post("/api/rag/evaluate")
+    def rag_evaluate_endpoint(req: RAGEvaluateRequest, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        metrics = rag_pipeline.evaluate_retrieval(
+            req.retrieved_chunk_ids,
+            req.ground_truth_chunk_ids,
+            top_k=req.top_k,
+        )
+        return {"metrics": metrics}
 
     @app.post("/api/documents/generate-pdf")
     def document_generate_pdf_endpoint(

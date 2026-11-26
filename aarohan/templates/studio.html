@@ -1093,22 +1093,22 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
         <p class="text-xs text-[#8e8e8e]">Manage local active neural inference models and configure VRAM residency.</p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div id="models-registry-cards" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="p-4 rounded-2xl bg-[#171717] border border-blue-500/30 space-y-3">
           <div class="flex items-center justify-between">
             <span class="text-sm font-bold text-white">Aarohan Foundation</span>
-            <span class="px-2 py-0.5 rounded text-[10px] bg-blue-500/20 text-blue-300">ACTIVE</span>
+            <span class="px-2 py-0.5 rounded text-[10px] bg-blue-500/20 text-blue-300 font-mono">ACTIVE</span>
           </div>
-          <p class="text-xs text-[#8e8e8e]">Qwen2.5-0.5B-Instruct float16 weights running on CUDA. 490M parameters.</p>
+          <p class="text-xs text-[#8e8e8e]">Qwen2.5-0.5B-Instruct float16 weights running on local CUDA. 490M parameters.</p>
           <div class="text-[11px] text-slate-400 font-mono">Footprint: ~1.2 GB VRAM</div>
         </div>
 
         <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-3">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-bold text-white">Aarohan Checkpoint (1.57M)</span>
-            <span class="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300">STANDBY</span>
+            <span class="text-sm font-bold text-white">Aarohan Checkpoint</span>
+            <span class="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300 font-mono">STANDBY</span>
           </div>
-          <p class="text-xs text-[#8e8e8e]">Custom pre-trained from-scratch transformer architecture with RoPE and SwiGLU.</p>
+          <p class="text-xs text-[#8e8e8e]">Custom pre-trained from-scratch transformer architecture with RoPE and SwiGLU. ~1.57M parameters.</p>
           <div class="text-[11px] text-slate-400 font-mono">Footprint: ~25 MB RAM</div>
         </div>
       </div>
@@ -1365,6 +1365,7 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
       if (id === 'memory') loadMemoryRecords();
       if (id === 'knowledge-graph') loadGraph();
       if (id === 'learning') loadLearningCenter();
+      if (id === 'models') loadModelsRegistry();
       if (id === 'system') loadSystemTelemetry();
       if (id === 'images') { loadImageGallery(); loadProviderTelemetry(); }
     }
@@ -1448,7 +1449,57 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
       el.innerHTML = parsedHtml;
     }
 
-    // Chat Submission Handler
+    function toggleElement(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('hidden');
+    }
+
+    function retryLastChatQuery() {
+      if (!currentLastQuery) return;
+      const input = document.getElementById('chat-input');
+      if (input) {
+        input.value = currentLastQuery;
+        handleChatSubmit();
+      }
+    }
+
+    // Dynamic Model Registry Telemetry
+    async function loadModelsRegistry() {
+      const container = document.getElementById('models-registry-cards');
+      if (!container) return;
+      try {
+        const res = await fetch('/api/models');
+        const data = await res.json();
+        const models = data.models || [];
+        if (models.length === 0) return;
+
+        container.innerHTML = models.map(m => `
+          <div class="p-4 rounded-2xl bg-[#171717] border ${m.loaded ? 'border-indigo-500/40' : 'border-[#262626]'} space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-sm font-bold text-white">${escapeHtml(m.name)}</span>
+                <span class="text-[10px] ml-2 text-[#8e8e8e] font-mono">${escapeHtml(m.model_type)}</span>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[10px] ${m.loaded ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-neutral-800 text-neutral-400'} font-mono">
+                ${m.loaded ? 'LOADED' : 'STANDBY'}
+              </span>
+            </div>
+            <p class="text-xs text-[#8e8e8e]">${escapeHtml(m.architecture || m.name)} · Total Params: <strong class="text-white">${m.total_parameters ? m.total_parameters.toLocaleString() : 'N/A'}</strong></p>
+            <div class="flex flex-wrap gap-2 text-[11px] text-slate-300 font-mono">
+              <span class="px-2 py-0.5 rounded bg-[#212121] border border-[#303030]">Device: ${escapeHtml(m.device || 'cpu')}</span>
+              <span class="px-2 py-0.5 rounded bg-[#212121] border border-[#303030]">Health: ${escapeHtml(m.health || 'healthy')}</span>
+            </div>
+            <div class="text-[10px] text-[#8e8e8e] pt-1 border-t border-[#232323]">
+              Capabilities: ${(m.capabilities || []).map(c => `<span class="mr-1.5 text-indigo-400 font-medium">${c}</span>`).join('· ')}
+            </div>
+          </div>
+        `).join('');
+      } catch(e) {
+        console.warn('Failed to load models telemetry:', e);
+      }
+    }
+
+    // Chat Submission Handler with Multi-Model Attribution & Graceful Degradation
     async function handleChatSubmit(e) {
       if (e) e.preventDefault();
       const input = document.getElementById('chat-input');
@@ -1472,15 +1523,24 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
       `;
 
       const assistantId = 'msg-' + Date.now();
+      const metaId = assistantId + '-meta';
+      const drawerId = assistantId + '-drawer';
+
       chatBox.innerHTML += `
         <div class="flex justify-start space-x-4 max-w-full">
           <div class="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5 shadow">
             ▲
           </div>
-          <div class="flex-1 space-y-3 min-w-0">
+          <div class="flex-1 space-y-2 min-w-0">
+            <!-- Model, Source & Grounding Attribution Badges -->
+            <div id="${metaId}" class="flex flex-wrap items-center gap-1.5 text-xs"></div>
+            <!-- Response Content Body -->
             <div id="${assistantId}" class="markdown-body text-[15px] text-[#ececec] leading-relaxed font-normal select-text">
               <span class="text-[#8e8e8e] animate-pulse">Thinking...</span>
             </div>
+            <!-- Collapsible Retrieved Context Drawer -->
+            <div id="${drawerId}" class="hidden p-3 rounded-xl bg-[#171717] border border-[#2b2b2b] text-xs space-y-2"></div>
+            <!-- Action Toolbar -->
             <div class="flex items-center space-x-2 text-xs text-[#8e8e8e] pt-1">
               <button type="button" onclick="copyMessageText(this, currentLastResponse)" class="p-1.5 rounded-md hover:bg-[#212121] hover:text-white transition" title="Copy response">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
@@ -1494,6 +1554,8 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
       if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
 
       const outputEl = document.getElementById(assistantId);
+      const metaEl = document.getElementById(metaId);
+      const drawerEl = document.getElementById(drawerId);
       let rawAccumulatedText = '';
 
       try {
@@ -1502,6 +1564,23 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({query: text, messages: activeConversationTurns.slice(-8), retrieval_mode: retrievalMode, engine: engine, max_new_tokens: 1024})
         });
+
+        if (!resp.ok) {
+          const errData = await resp.json().catch(() => ({ detail: 'HTTP ' + resp.status }));
+          outputEl.innerHTML = `
+            <div class="p-3.5 rounded-2xl bg-rose-950/40 border border-rose-800/50 text-rose-300 text-xs space-y-2">
+              <div class="font-semibold flex items-center space-x-1.5">
+                <span>⚠️</span> <span>Inference Service Error (${resp.status})</span>
+              </div>
+              <p class="text-rose-200/90">${escapeHtml(errData.detail || errData.error || 'The local model could not complete inference.')}</p>
+              <button onclick="retryLastChatQuery()" class="px-3 py-1 bg-rose-900/60 hover:bg-rose-800 text-white rounded-lg transition font-medium text-[11px]">
+                Retry Request
+              </button>
+            </div>
+          `;
+          return;
+        }
+
         const reader = resp.body.getReader();
         const decoder = new TextDecoder();
         currentLastResponse = '';
@@ -1515,7 +1594,46 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
             if (line.startsWith('data: ')) {
               try {
                 const ev = JSON.parse(line.slice(6));
-                if (ev.type === 'token') {
+                if (ev.type === 'context') {
+                  // Render distinct model and source badges
+                  const isFoundation = ev.engine === 'foundation' || ev.response_source === 'foundation_model';
+                  const isCustom = ev.engine === 'scratch' || ev.response_source === 'custom_neural_model';
+                  let modelBadge = '';
+                  if (isFoundation) {
+                    modelBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 flex items-center space-x-1"><span>🤖</span><span>Aarohan Foundation (Qwen2.5)</span></span>`;
+                  } else if (isCustom) {
+                    modelBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-950/80 text-amber-300 border border-amber-800/60 flex items-center space-x-1"><span>🔬</span><span>Aarohan Checkpoint (Custom)</span></span>`;
+                  } else if (ev.response_source === 'scientific_grounding_engine') {
+                    modelBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 flex items-center space-x-1"><span>⚛️</span><span>Scientific Grounding</span></span>`;
+                  }
+
+                  const srcLabel = ev.response_source || (isFoundation ? 'model_weights' : 'custom_weights');
+                  const sourceBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-[#212121] text-slate-300 border border-[#303030]">Source: ${escapeHtml(srcLabel)}</span>`;
+                  const verifyBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-950/60 text-emerald-300 border border-emerald-800/40">✓ Grounded</span>`;
+
+                  let contextBtn = '';
+                  if (ev.retrieved_memory && ev.retrieved_memory.length > 0) {
+                    contextBtn = `<button type="button" onclick="toggleElement('${drawerId}')" class="px-2 py-0.5 rounded-full text-[10px] bg-[#262626] hover:bg-[#333333] text-indigo-300 border border-indigo-900/50 flex items-center space-x-1 transition cursor-pointer"><span>📚</span><span>${ev.retrieved_memory.length} Context Records</span></button>`;
+
+                    drawerEl.innerHTML = `
+                      <div class="font-semibold text-white text-[11px] border-b border-[#262626] pb-1 flex justify-between items-center">
+                        <span>Retrieved Context Records (${ev.retrieved_memory.length})</span>
+                        <button type="button" onclick="toggleElement('${drawerId}')" class="text-slate-400 hover:text-white">&times;</button>
+                      </div>
+                      ${ev.retrieved_memory.map(m => `
+                        <div class="p-2 rounded-lg bg-[#212121] border border-[#2b2b2b] text-[11px] space-y-1">
+                          <div class="flex justify-between text-[#8e8e8e] font-mono text-[10px]">
+                            <span>ID: ${escapeHtml(m.id || 'n/a')}</span>
+                            <span>Conf: ${m.confidence ? Math.round(m.confidence * 100) + '%' : '100%'}</span>
+                          </div>
+                          <div class="text-slate-200">${escapeHtml(m.content || '')}</div>
+                        </div>
+                      `).join('')}
+                    `;
+                  }
+
+                  metaEl.innerHTML = modelBadge + sourceBadge + verifyBadge + contextBtn;
+                } else if (ev.type === 'token') {
                   rawAccumulatedText += ev.token;
                   currentLastResponse = rawAccumulatedText;
                   renderMarkdownWithMath(outputEl, rawAccumulatedText);
@@ -1525,6 +1643,15 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
                   activeConversationTurns.push({role: 'assistant', content: rawAccumulatedText});
                   renderMarkdownWithMath(outputEl, rawAccumulatedText);
                   loadRecentHistory();
+                } else if (ev.type === 'error') {
+                  outputEl.innerHTML = `
+                    <div class="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-800/50 text-amber-300 text-xs space-y-1.5">
+                      <div class="font-semibold flex items-center space-x-1.5">
+                        <span>🛡️</span> <span>Safety & Policy Notice</span>
+                      </div>
+                      <p class="text-amber-200/90">${escapeHtml(ev.reason || 'Input was flagged by safety filters.')}</p>
+                    </div>
+                  `;
                 }
               } catch(err) {}
             }
@@ -1532,7 +1659,17 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
           if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
         }
       } catch (err) {
-        outputEl.innerText = 'Error streaming response: ' + err.message;
+        outputEl.innerHTML = `
+          <div class="p-3.5 rounded-2xl bg-rose-950/40 border border-rose-800/50 text-rose-300 text-xs space-y-2">
+            <div class="font-semibold flex items-center space-x-1.5">
+              <span>⚠️</span> <span>Connection Interrupted</span>
+            </div>
+            <p class="text-rose-200/90">${escapeHtml(err.message || 'Lost connection to local neural inference server.')}</p>
+            <button onclick="retryLastChatQuery()" class="px-3 py-1 bg-rose-900/60 hover:bg-rose-800 text-white rounded-lg transition font-medium text-[11px]">
+              Retry Request
+            </button>
+          </div>
+        `;
       }
     }
 
