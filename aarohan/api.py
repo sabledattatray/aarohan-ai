@@ -55,14 +55,22 @@ class LoginRequest(BaseModel):
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, description="User input prompt")
     system_prompt: str = Field(
-        "You are Aarohan, an intelligent, sovereign AI cognitive assistant created to provide accurate, helpful, and insightful reasoning. Answer clearly, accurately, and politely.",
+        "You are Aarohan, an advanced sovereign AI cognitive assistant created by Datta Sable. "
+        "You are intelligent, proactive, and versatile. Answer directly, accurately, and politely.\n"
+        "Guidelines:\n"
+        "1. Identity: You are Aarohan, developed by Datta Sable. Never claim to be made by Anthropic, OpenAI, or Google.\n"
+        "2. Data & File Generation: When asked to create datasets, tables, CSV, or code, do NOT ask the user to share the data. "
+        "Directly generate realistic, complete examples, formatted markdown tables, copyable CSV blocks, or a complete Python script to generate the dataset.\n"
+        "3. Image Generation: As a text model, if asked to create an image, proactively generate clean SVG code, a Python Pillow/matplotlib script to draw it, or detailed image-generation prompts.\n"
+        "4. Output Structure: Use rich Markdown formatting with tables, bullet lists, and syntax-highlighted code blocks.",
         description="System instruction",
     )
     memory_limit: int = Field(3, ge=1, le=10)
     retrieval_mode: str = Field("hybrid", pattern="^(keyword|vector|hybrid)$")
     engine: str = Field("foundation", pattern="^(foundation|scratch)$")
-    max_new_tokens: int = Field(256, ge=1, le=1024)
+    max_new_tokens: int = Field(1024, ge=1, le=2048)
     temperature: float = Field(0.7, ge=0.01, le=2.0)
+    messages: list[dict[str, str]] = Field(default_factory=list, description="Recent conversation turns")
 
 
 class MemoryAddRequest(BaseModel):
@@ -289,6 +297,7 @@ def create_app(
                 foundation_res = foundation_engine.generate(
                     prompt=sanitized_query,
                     system_prompt=system_content,
+                    history=req.messages if req.messages else None,
                     max_new_tokens=req.max_new_tokens,
                     temperature=req.temperature,
                 )
@@ -448,6 +457,7 @@ def create_app(
                     for chunk in foundation_engine.generate_stream(
                         prompt=sanitized_query,
                         system_prompt=system_content,
+                        history=req.messages if req.messages else None,
                         max_new_tokens=req.max_new_tokens,
                         temperature=req.temperature,
                     ):
@@ -1228,6 +1238,7 @@ def get_dashboard_html() -> str:
   <script>
     let currentLastQuery = '';
     let currentLastResponse = '';
+    let activeConversationTurns = [];
 
     // Markdown setup with syntax highlighting
     const renderer = new marked.Renderer();
@@ -1380,6 +1391,7 @@ def get_dashboard_html() -> str:
       `;
       currentLastQuery = '';
       currentLastResponse = '';
+      activeConversationTurns = [];
       const input = document.getElementById('chat-input');
       if (input) {
         input.value = '';
@@ -1488,7 +1500,7 @@ def get_dashboard_html() -> str:
         const resp = await fetch('/api/chat/stream', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({query: text, retrieval_mode: retrievalMode, engine: engine, max_new_tokens: 256})
+          body: JSON.stringify({query: text, messages: activeConversationTurns.slice(-8), retrieval_mode: retrievalMode, engine: engine, max_new_tokens: 1024})
         });
         const reader = resp.body.getReader();
         const decoder = new TextDecoder();
@@ -1511,6 +1523,8 @@ def get_dashboard_html() -> str:
                   // Cognitive memory retrieved quietly; no visual pills cluttering response
                 } else if (ev.type === 'done') {
                   currentLastResponse = rawAccumulatedText;
+                  activeConversationTurns.push({role: 'user', content: text});
+                  activeConversationTurns.push({role: 'assistant', content: rawAccumulatedText});
                   outputEl.innerHTML = marked.parse(rawAccumulatedText);
                   loadRecentHistory();
                 }
