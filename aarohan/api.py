@@ -867,6 +867,7 @@ def get_dashboard_html() -> str:
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aarohan</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23000000'/%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='100%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' stop-color='%233b82f6'/%3E%3Cstop offset='50%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M16 6 L25 24 L20.5 24 L16 14.5 L11.5 24 L7 24 Z' fill='url(%23g)'/%3E%3Ccircle cx='16' cy='19' r='2' fill='%23ffffff'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -986,8 +987,8 @@ def get_dashboard_html() -> str:
           <div class="min-w-0">
             <div class="text-sm font-medium text-white truncate">Datta Sable</div>
             <div class="text-[11px] text-[#8e8e8e] flex items-center space-x-1">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-gpt inline-block"></span>
-              <span id="side-gpu-label">RTX 2060 · Local Free</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
+              <span>Online · Personal</span>
             </div>
           </div>
         </div>
@@ -1022,7 +1023,7 @@ def get_dashboard_html() -> str:
             <button onclick="selectEngine('foundation')" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center justify-between">
               <div>
                 <div class="text-sm font-semibold text-white flex items-center space-x-1.5">
-                  <span>Aarohan Foundation</span>
+                  <span>Aarohan</span>
                   <span class="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30">Fluent</span>
                 </div>
                 <div class="text-xs text-[#8e8e8e] mt-0.5">High intelligence, code synthesis, reasoning (Qwen2.5)</div>
@@ -1032,7 +1033,7 @@ def get_dashboard_html() -> str:
             <button onclick="selectEngine('scratch')" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center justify-between mt-1">
               <div>
                 <div class="text-sm font-semibold text-white flex items-center space-x-1.5">
-                  <span>Custom Checkpoint</span>
+                  <span>Aarohan Checkpoint</span>
                   <span class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30">1.57M</span>
                 </div>
                 <div class="text-xs text-[#8e8e8e] mt-0.5">Custom pre-trained from-scratch transformer weights</div>
@@ -1090,10 +1091,45 @@ def get_dashboard_html() -> str:
       <form id="chat-form" onsubmit="handleChatSubmit(event)" class="max-w-[48rem] w-full mx-auto">
         <div class="relative rounded-[26px] bg-[#212121] border border-[#383838] focus-within:border-[#555555] shadow-2xl p-3 pl-4 pr-3 flex items-end space-x-2 transition-all">
 
-          <!-- Tools / Attachment Button -->
-          <button type="button" onclick="openModal('memory')" class="w-8 h-8 rounded-full text-[#b4b4b4] hover:text-white hover:bg-[#2f2f2f] flex items-center justify-center transition flex-shrink-0 mb-0.5" title="Cognitive Memory Context">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-          </button>
+          <!-- Tools / Attachment Button with Dropdown -->
+          <div class="relative flex-shrink-0 mb-0.5">
+            <button type="button" onclick="toggleAttachmentMenu(event)" id="attachment-btn"
+                    class="w-8 h-8 rounded-full text-[#b4b4b4] hover:text-white hover:bg-[#2f2f2f] flex items-center justify-center transition active:scale-95" title="Add tools & memory context">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            </button>
+
+            <!-- Attachment / Tools Popup Menu -->
+            <div id="attachment-menu" class="hidden absolute bottom-12 left-0 w-64 bg-[#212121] border border-[#303030] rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <button type="button" onclick="openModal('memory'); toggleAttachmentMenu();" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center space-x-3 text-xs text-[#ececec]">
+                <span class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center text-sm">🧠</span>
+                <div>
+                  <div class="font-medium text-white">Cognitive Memory</div>
+                  <div class="text-[10px] text-[#8e8e8e]">Explore 6-layer memory records</div>
+                </div>
+              </button>
+              <button type="button" onclick="openModal('graph'); toggleAttachmentMenu();" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center space-x-3 text-xs text-[#ececec] mt-1">
+                <span class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-sm">🕸️</span>
+                <div>
+                  <div class="font-medium text-white">Knowledge Graph</div>
+                  <div class="text-[10px] text-[#8e8e8e]">Inspect entities & relations</div>
+                </div>
+              </button>
+              <button type="button" onclick="openModal('queue'); toggleAttachmentMenu();" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center space-x-3 text-xs text-[#ececec] mt-1">
+                <span class="w-7 h-7 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center text-sm">📋</span>
+                <div>
+                  <div class="font-medium text-white">Learning Queue</div>
+                  <div class="text-[10px] text-[#8e8e8e]">View autonomous learning tasks</div>
+                </div>
+              </button>
+              <button type="button" onclick="openModal('settings'); toggleAttachmentMenu();" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center space-x-3 text-xs text-[#ececec] mt-1">
+                <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm">⚙️</span>
+                <div>
+                  <div class="font-medium text-white">Settings & Stats</div>
+                  <div class="text-[10px] text-[#8e8e8e]">System parameters & GPU state</div>
+                </div>
+              </button>
+            </div>
+          </div>
 
           <!-- Textarea (Auto Resizing) -->
           <textarea id="chat-input" rows="1" placeholder="Message Aarohan..."
@@ -1117,7 +1153,7 @@ def get_dashboard_html() -> str:
   <!-- ========================================================================= -->
   <!-- CHATGPT-STYLE MODAL: Settings, Memory Explorer, Knowledge Graph           -->
   <!-- ========================================================================= -->
-  <div id="modal-container" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-container" onclick="if(event.target === this) closeModal()" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-[#171717] border border-[#303030] rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
 
       <!-- Modal Header -->
@@ -1269,6 +1305,29 @@ def get_dashboard_html() -> str:
       menu.classList.toggle('hidden');
     }
 
+    function toggleAttachmentMenu(event) {
+      if (event) event.stopPropagation();
+      const menu = document.getElementById('attachment-menu');
+      if (menu) menu.classList.toggle('hidden');
+    }
+
+    function showToast(msg) {
+      let toast = document.getElementById('chat-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'chat-toast';
+        toast.className = 'fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-[#212121] border border-[#383838] text-white text-xs px-3.5 py-1.5 rounded-full shadow-2xl transition-opacity duration-200 pointer-events-none opacity-0';
+        document.body.appendChild(toast);
+      }
+      toast.innerText = msg;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 1500);
+    }
+
     function selectEngine(eng) {
       document.getElementById('chat-engine').value = eng;
       const display = document.getElementById('active-model-display');
@@ -1280,7 +1339,7 @@ def get_dashboard_html() -> str:
         checkF.classList.remove('hidden');
         checkS.classList.add('hidden');
       } else {
-        display.innerText = 'Custom Checkpoint (1.57M)';
+        display.innerText = 'Aarohan Checkpoint (1.57M)';
         checkF.classList.add('hidden');
         checkS.classList.remove('hidden');
       }
@@ -1326,19 +1385,10 @@ def get_dashboard_html() -> str:
         input.style.height = 'auto';
         input.focus();
       }
+      showToast('New chat started');
     }
 
     async function initSystem() {
-      try {
-        const res = await fetch('/api/health');
-        const data = await res.json();
-        const sideGpu = document.getElementById('side-gpu-label');
-        if (sideGpu) {
-          sideGpu.innerText = data.system_resources.cuda_available ? (data.system_resources.gpu_name + ' · Free') : 'CPU Mode';
-        }
-      } catch (e) {
-        console.error('Status fetch error', e);
-      }
       loadRecentHistory();
     }
 
@@ -1528,12 +1578,20 @@ def get_dashboard_html() -> str:
 
     // Modal Control Functions (ChatGPT Settings Dialog)
     function openModal(tab) {
-      document.getElementById('modal-container').classList.remove('hidden');
+      const m = document.getElementById('modal-container');
+      if (m) {
+        m.classList.remove('hidden');
+        m.style.display = 'flex';
+      }
       switchModalTab(tab);
     }
 
     function closeModal() {
-      document.getElementById('modal-container').classList.add('hidden');
+      const m = document.getElementById('modal-container');
+      if (m) {
+        m.classList.add('hidden');
+        m.style.display = 'none';
+      }
     }
 
     function switchModalTab(tab) {
@@ -1687,6 +1745,18 @@ def get_dashboard_html() -> str:
       if (!str) return '';
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
+
+    window.addEventListener('click', function(e) {
+      const attMenu = document.getElementById('attachment-menu');
+      const attBtn = document.getElementById('attachment-btn');
+      if (attMenu && !attMenu.classList.contains('hidden') && !attMenu.contains(e.target) && attBtn && !attBtn.contains(e.target)) {
+        attMenu.classList.add('hidden');
+      }
+      const modelMenu = document.getElementById('model-dropdown-menu');
+      if (modelMenu && !modelMenu.classList.contains('hidden') && !modelMenu.contains(e.target) && !e.target.closest('#active-model-display') && !e.target.closest('button[onclick="toggleModelDropdown()"]')) {
+        modelMenu.classList.add('hidden');
+      }
+    });
 
     window.addEventListener('DOMContentLoaded', initSystem);
   </script>
