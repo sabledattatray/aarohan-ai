@@ -1012,8 +1012,8 @@ def get_dashboard_html() -> str:
         </button>
 
         <!-- ChatGPT Model Selector Pill -->
-        <div class="relative inline-block text-left">
-          <button type="button" onclick="toggleModelDropdown()" class="flex items-center space-x-1.5 py-1.5 px-3 rounded-xl hover:bg-[#212121] transition text-base font-semibold text-white">
+        <div class="relative inline-block text-left" id="model-dropdown-container">
+          <button type="button" id="model-dropdown-btn" onclick="toggleModelDropdown(event)" class="flex items-center space-x-1.5 py-1.5 px-3 rounded-xl hover:bg-[#212121] transition text-base font-semibold text-white">
             <span id="active-model-display">Aarohan</span>
             <svg class="w-4 h-4 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
           </button>
@@ -1026,7 +1026,7 @@ def get_dashboard_html() -> str:
                   <span>Aarohan</span>
                   <span class="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30">Fluent</span>
                 </div>
-                <div class="text-xs text-[#8e8e8e] mt-0.5">High intelligence, code synthesis, reasoning (Qwen2.5)</div>
+                <div class="text-xs text-[#8e8e8e] mt-0.5">Autonomous intelligence, code synthesis, cognitive reasoning</div>
               </div>
               <span id="check-foundation" class="text-blue-400 font-bold ml-2">✓</span>
             </button>
@@ -1300,9 +1300,10 @@ def get_dashboard_html() -> str:
       }
     }
 
-    function toggleModelDropdown() {
+    function toggleModelDropdown(event) {
+      if (event) event.stopPropagation();
       const menu = document.getElementById('model-dropdown-menu');
-      menu.classList.toggle('hidden');
+      if (menu) menu.classList.toggle('hidden');
     }
 
     function toggleAttachmentMenu(event) {
@@ -1746,15 +1747,21 @@ def get_dashboard_html() -> str:
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    window.addEventListener('click', function(e) {
+    document.addEventListener('click', function(e) {
       const attMenu = document.getElementById('attachment-menu');
       const attBtn = document.getElementById('attachment-btn');
-      if (attMenu && !attMenu.classList.contains('hidden') && !attMenu.contains(e.target) && attBtn && !attBtn.contains(e.target)) {
-        attMenu.classList.add('hidden');
+      if (attMenu && !attMenu.classList.contains('hidden')) {
+        if (!attMenu.contains(e.target) && (!attBtn || !attBtn.contains(e.target))) {
+          attMenu.classList.add('hidden');
+        }
       }
+
       const modelMenu = document.getElementById('model-dropdown-menu');
-      if (modelMenu && !modelMenu.classList.contains('hidden') && !modelMenu.contains(e.target) && !e.target.closest('#active-model-display') && !e.target.closest('button[onclick="toggleModelDropdown()"]')) {
-        modelMenu.classList.add('hidden');
+      const modelBtn = document.getElementById('model-dropdown-btn');
+      if (modelMenu && !modelMenu.classList.contains('hidden')) {
+        if (!modelMenu.contains(e.target) && (!modelBtn || !modelBtn.contains(e.target))) {
+          modelMenu.classList.add('hidden');
+        }
       }
     });
 
