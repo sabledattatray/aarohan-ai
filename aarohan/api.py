@@ -36,7 +36,7 @@ from aarohan.tools.analytics import AnalyticsEngine
 from aarohan.tools.sandbox import CodeSandbox
 from aarohan.tools.registry import ToolRegistry
 from aarohan.memory import MemoryStore
-from aarohan.nlp import ContextResolver, Intent, IntentClassifier, TextNormalizer
+from aarohan.nlp import ContextResolver, Intent, IntentClassifier, TextNormalizer, resolve_identity_query, resolve_scientific_law
 from aarohan.research import BoundedResearchEngine, KnowledgeGapDetector, LearningQueue
 from aarohan.safety import AuditLogger, SafetyFilter
 from aarohan.scheduler import LearningScheduler
@@ -65,15 +65,15 @@ class LoginRequest(BaseModel):
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, description="User input prompt")
     system_prompt: str = Field(
-        "You are Aarohan, an advanced sovereign AI cognitive assistant created by Datta Sable. "
-        "You are intelligent, proactive, and versatile. Answer directly, accurately, and politely.\n"
+        "You are AAROHAN, an independent AI assistant project created and developed by Datta Sable. "
+        "Official GitHub: https://github.com/sabledattatray/aarohan-ai.\n"
         "Guidelines:\n"
-        "1. Identity: You are Aarohan, developed by Datta Sable. Never claim to be made by Anthropic, OpenAI, or Google.\n"
-        "2. Data & File Generation: When asked to create datasets, tables, CSV, or code, do NOT ask the user to share the data. "
-        "Directly generate realistic, complete examples, formatted markdown tables, copyable CSV blocks, or a complete Python script to generate the dataset.\n"
-        "3. Image Generation: As a text model, if asked to create an image, proactively generate clean SVG code, a Python Pillow/matplotlib script to draw it, or detailed image-generation prompts.\n"
-        "4. Output Structure: Use rich Markdown formatting with tables, bullet lists, and syntax-highlighted code blocks.\n"
-        "5. Scientific & Mathematical Rigor: When providing scientific laws or physical formulas, provide the exact established scientific formulation (e.g. for the Third Law of Thermodynamics: as temperature T approaches absolute zero (0 K), the entropy S of a pure crystalline substance approaches zero: lim_{T->0} S = 0 or S = k_B ln Ω). Use standard LaTeX math notation ($...$ for inline and $$...$$ for display equations).",
+        "1. Identity: Your name is AAROHAN. You were created and developed by Datta Sable. You are NOT created by Anthropic, OpenAI, or Google.\n"
+        "2. Creator Attribution: When asked who created you, who made you, or who owns you, always clearly state that you were created and developed by Datta Sable as an independent AI project.\n"
+        "3. Model Awareness: AAROHAN is an independent AI application that uses configured local models (such as Qwen2.5 or custom checkpoints). Never invent false claims about your underlying model.\n"
+        "4. Data & File Generation: When asked to create datasets, tables, CSV, or code, directly generate realistic, complete examples or scripts.\n"
+        "5. Output Structure: Use rich Markdown formatting with tables, bullet lists, and syntax-highlighted code blocks.\n"
+        "6. Scientific & Mathematical Rigor: When providing scientific laws or physical formulas, provide exact established scientific formulations using standard LaTeX math notation ($...$ for inline and $$...$$ for display equations).",
         description="System instruction",
     )
     memory_limit: int = Field(3, ge=1, le=10)
@@ -398,10 +398,37 @@ def create_app(
         else:
             retrieved = store.search(resolved_query, limit=req.memory_limit * 2)
 
+        # Canonical Identity & Scientific Law Resolution
+        identity_reply = resolve_identity_query(processed_query, engine=req.engine)
+        science_law = resolve_scientific_law(processed_query)
+
         # Exclude raw user chat logs from factual evidence
-        factual_retrieved = [m for m in retrieved if m.get("source") != "user_conversation"][:req.memory_limit]
-        if not factual_retrieved:
+        # Also filter out unrelated fiction/pop-culture memories for scientific queries
+        is_science_query = bool(science_law or primary_intent in (Intent.SCIENTIFIC_LAW, Intent.MATHEMATICAL_CALCULATION))
+        filtered_retrieved = []
+        for m in retrieved:
+            if m.get("source") == "user_conversation":
+                continue
+            content_lower = m.get("content", "").lower()
+            if is_science_query and any(unrelated in content_lower for unrelated in ["video game", "playstation", "sega", "rpg", "nameless", "valkyria"]):
+                continue
+            filtered_retrieved.append(m)
+
+        factual_retrieved = filtered_retrieved[:req.memory_limit]
+        if not factual_retrieved and not is_science_query:
             factual_retrieved = retrieved[:req.memory_limit]
+
+        if science_law:
+            factual_retrieved = [
+                {
+                    "id": f"science_{science_law.law_id}",
+                    "content": f"{science_law.canonical_title}: {science_law.summary} | Formula: {science_law.formula_latex}",
+                    "source": "scientific_grounding_engine",
+                    "verification_status": "verified",
+                    "confidence": 1.0,
+                    "memory_type": "semantic",
+                }
+            ]
 
         # Retrieve relevant Knowledge Graph entities
         entities = store.list_entities()
@@ -424,8 +451,18 @@ def create_app(
             {"role": "user", "content": processed_query},
         ]
 
+        if identity_reply:
+            response_text = identity_reply
+            generated_tokens = len(identity_reply.split())
+            checkpoint_name = f"aarohan_{req.engine}"
+            warning_msg = None
+        elif science_law:
+            response_text = science_law.detailed_markdown
+            generated_tokens = len(science_law.detailed_markdown.split())
+            checkpoint_name = "aarohan_scientific_grounding"
+            warning_msg = None
         # Generate model response using selected engine (foundation open-weights or custom scratch)
-        if req.engine == "foundation":
+        elif req.engine == "foundation":
             try:
                 foundation_res = foundation_engine.generate(
                     prompt=processed_query,
@@ -551,9 +588,34 @@ def create_app(
         else:
             retrieved = store.search(resolved_query, limit=req.memory_limit * 2)
 
-        factual_retrieved = [m for m in retrieved if m.get("source") != "user_conversation"][:req.memory_limit]
-        if not factual_retrieved:
+        identity_reply = resolve_identity_query(processed_query, engine=req.engine)
+        science_law = resolve_scientific_law(processed_query)
+
+        is_science_query = bool(science_law or primary_intent in (Intent.SCIENTIFIC_LAW, Intent.MATHEMATICAL_CALCULATION))
+        filtered_retrieved = []
+        for m in retrieved:
+            if m.get("source") == "user_conversation":
+                continue
+            content_lower = m.get("content", "").lower()
+            if is_science_query and any(unrelated in content_lower for unrelated in ["video game", "playstation", "sega", "rpg", "nameless", "valkyria"]):
+                continue
+            filtered_retrieved.append(m)
+
+        factual_retrieved = filtered_retrieved[:req.memory_limit]
+        if not factual_retrieved and not is_science_query:
             factual_retrieved = retrieved[:req.memory_limit]
+
+        if science_law:
+            factual_retrieved = [
+                {
+                    "id": f"science_{science_law.law_id}",
+                    "content": f"{science_law.canonical_title}: {science_law.summary} | Formula: {science_law.formula_latex}",
+                    "source": "scientific_grounding_engine",
+                    "verification_status": "verified",
+                    "confidence": 1.0,
+                    "memory_type": "semantic",
+                }
+            ]
 
         active_ckpt_path = Path(rollback_mgr.get_active() or checkpoint_path)
         if not active_ckpt_path.is_file():
@@ -573,6 +635,69 @@ def create_app(
             {"role": "system", "content": system_content},
             {"role": "user", "content": processed_query},
         ]
+
+        if identity_reply:
+            def identity_stream():
+                init_event = {
+                    "type": "context",
+                    "engine": req.engine,
+                    "intent": primary_intent.value,
+                    "normalized_query": processed_query,
+                    "retrieved_memory": [],
+                    "safety": {"pii_redacted": pii_detected, "injection_scan": "passed"},
+                }
+                yield f"data: {json.dumps(init_event)}\n\n"
+                words = identity_reply.split(" ")
+                for i, w in enumerate(words):
+                    token = w + (" " if i < len(words) - 1 else "")
+                    yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
+                done_event = {
+                    "type": "done",
+                    "generated_tokens": len(words),
+                    "checkpoint": f"aarohan_{req.engine}",
+                }
+                yield f"data: {json.dumps(done_event)}\n\n"
+
+            return StreamingResponse(identity_stream(), media_type="text/event-stream")
+
+        if science_law:
+            def science_stream():
+                init_event = {
+                    "type": "context",
+                    "engine": req.engine,
+                    "intent": "SCIENTIFIC_LAW",
+                    "normalized_query": processed_query,
+                    "retrieved_memory": [
+                        {
+                            "id": f"science_{science_law.law_id}",
+                            "content": f"{science_law.canonical_title}: {science_law.summary} | Formula: {science_law.formula_latex}",
+                            "source": "scientific_grounding_engine",
+                            "verification_status": "verified",
+                            "confidence": 1.0,
+                            "memory_type": "semantic",
+                        }
+                    ],
+                    "safety": {"pii_redacted": pii_detected, "injection_scan": "passed"},
+                }
+                yield f"data: {json.dumps(init_event)}\n\n"
+                paragraphs = science_law.detailed_markdown.split("\n\n")
+                words_total = 0
+                for p_idx, p in enumerate(paragraphs):
+                    words = p.split(" ")
+                    for i, w in enumerate(words):
+                        words_total += 1
+                        token = w + (" " if i < len(words) - 1 else "")
+                        yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
+                    if p_idx < len(paragraphs) - 1:
+                        yield f"data: {json.dumps({'type': 'token', 'token': '\n\n'})}\n\n"
+                done_event = {
+                    "type": "done",
+                    "generated_tokens": words_total,
+                    "checkpoint": "aarohan_scientific_grounding",
+                }
+                yield f"data: {json.dumps(done_event)}\n\n"
+
+            return StreamingResponse(science_stream(), media_type="text/event-stream")
 
         def event_generator():
             # Send initial context event with retrieved memories & intent

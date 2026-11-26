@@ -67,6 +67,20 @@
 
     .nav-item-active { background-color: #212121; color: #ffffff !important; font-weight: 600; }
     .nav-item-active svg { color: #818cf8 !important; }
+
+    /* KaTeX Dark Mode & Spacing Adjustments */
+    .katex { color: #ffffff !important; font-size: 1.08em !important; }
+    .katex-display {
+      margin: 1.25rem 0 !important;
+      padding: 0.85rem 1.25rem !important;
+      background: rgba(255, 255, 255, 0.03) !important;
+      border: 1px solid #2e2e2e !important;
+      border-radius: 0.75rem !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+    }
+    .katex-display > .katex { text-align: center !important; }
+    .katex .mord, .katex .mrel, .katex .mbin, .katex .mop { color: #ffffff !important; }
   </style>
 </head>
 <body class="bg-black text-[#ececec] h-screen w-screen overflow-hidden flex font-sans antialiased selection:bg-neutral-700 selection:text-white">
@@ -1105,29 +1119,83 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
       if (id === 'images') loadImageGallery();
     }
 
-    // Mathematical formula renderer
+    // Mathematical formula renderer with KaTeX protection
     function renderMarkdownWithMath(el, text) {
       if (!el || !text) return;
-      let processed = text;
-      try {
-        processed = text.replace(/\[\s*([^\]]*?\\[a-zA-Z]+[^\]]*?)\s*\]/g, function(match, formula) {
-          return '$$ ' + formula.trim() + ' $$';
-        });
-      } catch (e) {}
-      el.innerHTML = marked.parse(processed);
-      if (window.renderMathInElement) {
-        try {
-          renderMathInElement(el, {
-            delimiters: [
-              {left: '$$', right: '$$', display: true},
-              {left: '\\[', right: '\\]', display: true},
-              {left: '$', right: '$', display: false},
-              {left: '\\(', right: '\\)', display: false}
-            ],
-            throwOnError: false
-          });
-        } catch(e) {}
+
+      const mathTokens = [];
+      function saveToken(content, isDisplay) {
+        const idx = mathTokens.length;
+        mathTokens.push({ content: content.trim(), isDisplay: isDisplay });
+        return `%%%AAROHAN_MATH_${idx}%%%`;
       }
+
+      let processed = text;
+
+      // 1. Double dollar display math: $$...$$
+      processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, function(match, formula) {
+        return saveToken(formula, true);
+      });
+
+      // 2. Bracket display math: \[...\]
+      processed = processed.replace(/\\\[([\s\S]*?)\\\]/g, function(match, formula) {
+        return saveToken(formula, true);
+      });
+
+      // 3. LaTeX environments: \begin{equation}...\end{equation}, \begin{align}...\end{align}
+      processed = processed.replace(/\\begin\{(equation\*?|align\*?|gather\*?|matrix|pmatrix|bmatrix)\}([\s\S]*?)\\end\{\1\}/g, function(match, env, inner) {
+        return saveToken(`\\begin{${env}}${inner}\\end{${env}}`, true);
+      });
+
+      // 4. Standalone bracket display math: e.g. [ T_3 = \frac{3}{2} T_1 ] or [ \lim_{T \to 0} S = 0 ]
+      processed = processed.replace(/(?:^|\n)\s*\[\s*([\s\S]*?(?:\\[a-zA-Z]+|[=><_\^+\-*/]).*?)\s*\]\s*(?=\n|$)/g, function(match, formula) {
+        return '\n\n' + saveToken(formula, true) + '\n\n';
+      });
+
+      // 5. Parenthesis inline math: \(...\)
+      processed = processed.replace(/\\\(([\s\S]*?)\\\)/g, function(match, formula) {
+        return saveToken(formula, false);
+      });
+
+      // 6. Parenthesized math variables: e.g. ( T_3 ), ( k_B ), ( \theta ), ( S = 0 )
+      processed = processed.replace(/\(\s*([A-Za-z]_[0-9A-Za-z]+|\\[a-zA-Z]+|[A-Za-z]\s*=\s*[^,\)\n]+)\s*\)/g, function(match, formula) {
+        return saveToken(formula, false);
+      });
+
+      // 7. Single dollar inline math: $...$
+      processed = processed.replace(/(?<!\\|\$)\$(?!\s|\$)(.+?)(?<!\s|\$)\$(?!\$)/g, function(match, formula) {
+        if (/^\d+(?:\.\d+)?$/.test(formula.trim())) return match;
+        return saveToken(formula, false);
+      });
+
+      // Parse markdown structure without corrupting math
+      let parsedHtml = marked.parse(processed);
+
+      // Re-insert rendered KaTeX math or formatted fallback
+      parsedHtml = parsedHtml.replace(/%%%AAROHAN_MATH_(\d+)%%%/g, function(match, idxStr) {
+        const item = mathTokens[parseInt(idxStr, 10)];
+        if (!item) return match;
+
+        if (window.katex && typeof window.katex.renderToString === 'function') {
+          try {
+            return window.katex.renderToString(item.content, {
+              displayMode: item.isDisplay,
+              throwOnError: false
+            });
+          } catch (e) {
+            console.warn('KaTeX render error:', e);
+          }
+        }
+
+        const safeContent = escapeHtml(item.content);
+        if (item.isDisplay) {
+          return `<div class="katex-display my-3 p-3 text-center bg-[#181818] rounded border border-[#2e2e2e] font-mono text-emerald-400 text-sm overflow-x-auto">${safeContent}</div>`;
+        } else {
+          return `<code class="bg-[#1e1e1e] text-emerald-400 px-1 py-0.5 rounded text-xs font-mono">${safeContent}</code>`;
+        }
+      });
+
+      el.innerHTML = parsedHtml;
     }
 
     // Chat Submission Handler

@@ -33,6 +33,8 @@ class Intent(str, Enum):
     MEMORY_RECALL = "MEMORY_RECALL"
     LEARNING_REQUEST = "LEARNING_REQUEST"
     MULTIMODAL_REQUEST = "MULTIMODAL_REQUEST"
+    IDENTITY_AND_CREATOR = "IDENTITY_AND_CREATOR"
+    SCIENTIFIC_LAW = "SCIENTIFIC_LAW"
 
 
 @dataclass
@@ -115,6 +117,16 @@ class IntentClassifier:
         ],
         Intent.DOCUMENT_ANALYSIS: [
             r"\b(read this pdf|analyze document|extract from docx|read file)\b",
+        ],
+        Intent.IDENTITY_AND_CREATOR: [
+            r"\b(your name|who are you|who made you|who created you|who developed you|who built you|creator|who is your creator|who owns you|who owns aarohan|anthropic|openai|what model powers you|underlying model)\b",
+        ],
+        Intent.SCIENTIFIC_LAW: [
+            r"\b(law|low)\s+of\s+(thermodynamics|motion|conservation|universal gravitation|physics|cooling|inertia)\b",
+            r"\b(first|second|third|zeroth|1st|2nd|3rd|0th)\s+(law|low)\s+of\s+thermodynamics\b",
+            r"\b(newton'?s?|kepler'?s?|coulomb'?s?|ohm'?s?|snell'?s?|boyle'?s?|charles'?|ideal gas)\s+(law|formula|equation)\b",
+            r"\bformula\s+of\s+(the\s+)?(first|second|third|zeroth|1st|2nd|3rd|0th)?\s*(law|low)\b",
+            r"\b(schrodinger|heisenberg|maxwell|einstein|planck)\s+(equation|formula|principle|relation)\b",
         ],
     }
 

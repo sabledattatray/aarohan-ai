@@ -8,8 +8,10 @@ Provides:
 """
 
 from aarohan.nlp.context import ContextResolver
+from aarohan.nlp.identity import resolve_identity_query
 from aarohan.nlp.intent import Intent, IntentClassifier, IntentResult
 from aarohan.nlp.normalizer import NormalizedQuery, TextNormalizer
+from aarohan.nlp.science import ScientificLaw, resolve_scientific_law
 
 __all__ = [
     "TextNormalizer",
@@ -18,4 +20,7 @@ __all__ = [
     "IntentResult",
     "IntentClassifier",
     "ContextResolver",
+    "resolve_identity_query",
+    "ScientificLaw",
+    "resolve_scientific_law",
 ]

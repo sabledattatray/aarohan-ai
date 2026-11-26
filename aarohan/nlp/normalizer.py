@@ -154,7 +154,7 @@ class TextNormalizer:
         (re.compile(r"\bdo\s+one\s+thing\b", re.IGNORECASE), "please"),
         (re.compile(r"\brevert\s+back\b", re.IGNORECASE), "reply"),
         (re.compile(r"\btell\s+me\s+about\b", re.IGNORECASE), "explain"),
-        (re.compile(r"\b(first|second|third|zeroth|newton'?s?|ohm'?s?|boyle'?s?|charles'?|kepler'?s?)\s+low\b", re.IGNORECASE), r"\g<1> law"),
+        (re.compile(r"\b(first|second|third|zeroth|1st|2nd|3rd|0th|newton'?s?|ohm'?s?|boyle'?s?|charles'?|kepler'?s?|coulomb'?s?)\s+low\b", re.IGNORECASE), r"\g<1> law"),
         (re.compile(r"\blow\s+of\s+(thermodynamics|motion|conservation|gravity|physics|cooling|inertia|universal\s+gravitation)\b", re.IGNORECASE), r"law of \g<1>"),
         (re.compile(r"\b(scientific|physical|physics)\s+lows?\b", re.IGNORECASE), r"\g<1> laws"),
     ]
