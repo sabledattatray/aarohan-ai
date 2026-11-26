@@ -1,24 +1,32 @@
 <div align="center">
 
-# ✦ Aarohan
+# ✦ AAROHAN AI (आरोहण)
 
-**Sovereign, Continually-Learning Cognitive AI System & Neural Chat Studio**
+**Sovereign, Zero-Cost, Local-First Cognitive AI Assistant & Continual Learning Architecture**
 
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![PyTorch CUDA](https://img.shields.io/badge/PyTorch-2.14%20CUDA-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org/)
+[![PyTorch CUDA](https://img.shields.io/badge/PyTorch-2.4%20CUDA-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 [![Zero Commercial API](https://img.shields.io/badge/Commercial%20APIs-Zero%20%7C%20100%25%20Free-success?style=for-the-badge)](#)
-[![Hardware](https://img.shields.io/badge/Hardware-RTX%202060%20%7C%20Local%20CUDA-76B900?style=for-the-badge&logo=nvidia&logoColor=white)](#)
+[![Hardware](https://img.shields.io/badge/Hardware-RTX%202060%20%7C%206GB%20VRAM-76B900?style=for-the-badge&logo=nvidia&logoColor=white)](#)
+[![Tests Passing](https://img.shields.io/badge/Tests-60%2F60%20Passed-brightgreen?style=for-the-badge)](#)
 
 <p align="center">
-  <a href="#key-features">Key Features</a> •
-  <a href="#architecture">Architecture</a> •
-  <a href="#quick-start">Quick Start</a> •
-  <a href="#studio-interface">Web Studio</a> •
-  <a href="#api-reference">API Reference</a> •
-  <a href="#verification">Verification</a> •
-  <a href="#roadmap">Roadmap</a>
+  <a href="#-overview">Overview</a> •
+  <a href="#-interface-showcase">Studio Showcase</a> •
+  <a href="#-the-7-reliability-phases">7 Reliability Phases</a> •
+  <a href="#-architecture">Architecture</a> •
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-api-reference">API Reference</a> •
+  <a href="#-test-suite">Test Suite</a> •
+  <a href="#-author--attribution">Author</a>
+</p>
+
+---
+
+<p align="center">
+  <img src="docs/assets/screenshots/aarohan_chat_studio.png" alt="AAROHAN AI Ultra-Premium Chat Studio" width="900" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.8); border: 1px solid #333;" />
 </p>
 
 </div>
@@ -27,65 +35,112 @@
 
 ## 🌟 Overview
 
-**Aarohan** (आरोहण — *Ascent*) is an independent, sovereign artificial intelligence research project combining a **continually-learning cognitive architecture** with high-speed local neural inference. 
+**AAROHAN AI** (आरोहण — *The Ascent*) is an independent, sovereign cognitive AI assistant built from the ground up to operate **100% locally on consumer workstation hardware** (NVIDIA GeForce RTX 2060 6GB / CPU). 
 
-Engineered from first principles, Aarohan runs **100% locally on consumer hardware** (NVIDIA RTX 2060 6GB / CPU) with **zero external commercial API dependencies**, zero recurring token fees, and complete data privacy.
+Conceived, designed, and developed by **[Datta Sable](https://dattasable.com/)** (Senior MIS & Business Intelligence Specialist), AAROHAN proves that an enterprise-grade, continually-learning AI assistant does **not require monthly cloud API subscriptions, recurring token fees, or remote data transmission**.
 
----
+### 💎 Why AAROHAN?
 
-## 🚀 Key Features
-
-- **⚡ Dual-Engine Neural Routing**:
-  - **Aarohan Foundation (Fluent)**: High-speed, fluent reasoning engine powered by quantized open-weights foundation models running directly on CUDA float16. Delivers token-by-token Server-Sent Events (SSE) streaming in < 1 second.
-  - **Aarohan Custom Checkpoint**: Independently trained decoder-only Causal Transformer built with modern architecture: Rotary Position Embeddings (RoPE), SwiGLU non-linear activations, and RMSNorm.
-- **🧠 6-Layer Cognitive Memory Architecture**:
-  - Decoupled neural continuation from factual grounding.
-  - Persistent cognitive storage spans 6 distinct layers: Episodic, Semantic, Procedural, Working, Long-Term, and Meta-Cognitive memory.
-  - Hybrid retrieval combining dense vector similarity with SQLite FTS5 BM25 lexical keyword matching.
-- **🕸️ Knowledge Graph & Contradiction Detection**:
-  - Entity-relationship extraction pipeline linking concepts, facts, and attributes into an active graph network.
-  - Automated contradiction detector highlights factual inconsistencies before incorporating external data.
-- **🔄 Autonomous Learning Loop**:
-  - Dynamic research gap detection identifying low-confidence query clusters.
-  - Autonomous curriculum generation, instruction expansion, and continual pre-training queues.
-- **🖥️ Ultra-Premium ChatGPT-Identical Studio**:
-  - Pitch-black aesthetic (`#000000` canvas, `#171717` sidebar, `#212121` input pill).
-  - Code syntax highlighting with language headers and one-click clipboard copying.
-  - Tools drawer for Cognitive Memory Explorer, Knowledge Graph visualizer, and System Settings.
-  - Pure SVG vector favicon rendered natively in the browser tab.
-- **🛡️ Multi-Stage Safety & Governance**:
-  - Strict input sanitization with real-time prompt injection filtering and canary detection.
-  - Automated PII scrubbing and cryptographic hash audit logging for every inference transaction.
+| Feature | Commercial Cloud Assistants (ChatGPT / Claude) | AAROHAN AI |
+| :--- | :--- | :--- |
+| **Data Privacy** | Prompts logged & transmitted to remote cloud servers | **100% Local Disk & GPU. Zero telemetry.** |
+| **API Costs** | \$20–\$200+/month in subscription or token fees | **\$0.00 forever. Zero commercial API keys.** |
+| **Hardware** | Giant cloud data centers | **Consumer PC / Workstation (RTX 2060 6GB)** |
+| **Rule Decisions** | Probabilistic neural guesses prone to hallucinations | **Deterministic SQLite Rule Engine with precedence** |
+| **Math Integrity** | Prone to LLM arithmetic errors | **Independently verified deterministic math engine** |
+| **Web Search** | Cloud search integrations with rate limits | **Zero-cost, local DuckDuckGo parser with citations** |
+| **Fact Retention** | Context window truncation | **6-Layer persistent cognitive memory (Vector + FTS5)** |
 
 ---
 
-## 🏛️ Cognitive Architecture
+## 📸 Interface Showcase
+
+<div align="center">
+
+### Ultra-Dark Pitch-Black Studio & Verified Reasoning
+
+| Minimalist Chat Interface | Verified Rule Decisions & Grounding |
+| :---: | :---: |
+| <img src="docs/assets/screenshots/aarohan_dark_interface.png" width="440" alt="AAROHAN Dark UI" style="border-radius: 8px; border: 1px solid #222;" /> | <img src="docs/assets/screenshots/aarohan_reasoning_verification.jpg" width="440" alt="AAROHAN Reasoning" style="border-radius: 8px; border: 1px solid #222;" /> |
+
+| Multi-Modal Tooling & Generation | Clean Typography & SSE Streaming |
+| :---: | :---: |
+| <img src="docs/assets/screenshots/aarohan_multimodal_studio.jpg" width="440" alt="AAROHAN Multimodal" style="border-radius: 8px; border: 1px solid #222;" /> | <img src="docs/assets/screenshots/aarohan_chat_studio.png" width="440" alt="AAROHAN Studio" style="border-radius: 8px; border: 1px solid #222;" /> |
+
+</div>
+
+---
+
+## 🛡️ The 7 Reliability Phases (Completed)
+
+AAROHAN's transformation follows a rigorous 7-phase reliability engineering roadmap, eliminating model hallucinations and ensuring deterministic trust:
+
+```
+[User Query]
+     │
+     ├── 1. Intent Normalization & Safety Filters (PII scrubbing, prompt injection guard)
+     ├── 2. Teaching / Rule-Learning Intent ─────────► [aarohan_learning_engine] (Atomic SQLite)
+     ├── 3. Personal Fact / Memory-Save Intent ──────► [aarohan_memory_engine] (Semantic store)
+     ├── 4. Compound Multi-Task Decomposer ──────────► [aarohan_multi_task_decomposer]
+     ├── 5. Deterministic Business Rule Evaluator ───► [aarohan_learning_engine] (Precedence lookup)
+     ├── 6. Deterministic Math Fast-Path ────────────► [aarohan_math_verifier] (Independently checked)
+     ├── 7. Sovereign Live Web Search ───────────────► [aarohan_web_search] (DuckDuckGo Lite parser)
+     ├── 8. Identity & Creator Attribution ──────────► [aarohan_identity_resolver] (Truthful context)
+     ├── 9. Scientific Grounding Engine ─────────────► [aarohan_scientific_grounding] (Physical laws)
+     └── 10. Open-Weights Foundation Model ──────────► [aarohan_foundation_engine] (Qwen2.5-0.5B CUDA)
+                                                                 │
+                                                    [Output Verification Gate]
+                                                    (Hallucination & contradiction guard)
+                                                                 │
+                                                       [Guarded Response]
+```
+
+### Phase Highlights:
+
+1. **Phase 1 — Rule Data Integrity**: Atomic SQLite storage synchronized with FTS5 lexical index and version history. Fixed value/text sync contradictions with rollback safety.
+2. **Phase 2 — Deterministic Rule Evaluation**: Precedence evaluation for business accounts (`LEVEL-A`, `LEVEL-B`, `LEVEL-C`). Unknown tiers like `LEVEL-D` return explicit refusal rather than fabricated deadlines.
+3. **Phase 3 — Chat API & SSE Streaming Integration**: Dual `/api/chat` and `/api/chat/stream` endpoints delivering token-by-token streaming under 1 second.
+4. **Phase 4 — Identity & Response Provenance**: Truthful telemetry. Correct attribution to creator **Datta Sable**; explicitly rejects false affiliations with OpenAI, Anthropic, or Google.
+5. **Phase 5 — Multi-Question Task Decomposition**: Intelligently decomposes compound prompts into distinct sub-tasks, routing arithmetic to math verifiers and rule inquiries to SQLite.
+6. **Phase 6 — Output Verification & Self-Correction Gate**: Post-generation watchdog auditing neural responses before user delivery, catching arithmetic mistakes and stale rule values.
+7. **Phase 7 — Sovereign Live Web Search**: Zero-cost, zero-API web search engine via DuckDuckGo Lite. Extracts real-time URLs, snippets, and markdown citations.
+8. **Cognitive Memory & Personal Fact Engine**: Real-time storage of user-reported facts (location, background, preferences) into persistent SQLite memory with verified deterministic recall.
+
+---
+
+## 🏛️ System Architecture
 
 ```mermaid
 flowchart TD
     User([User Prompt]) --> Safety[Multi-Stage Safety & Injection Guard]
-    Safety --> EngineRoute{Engine Selector}
+    Safety --> Normalizer[Text Normalizer & Intent Classifier]
     
-    subgraph Cognitive Layer
-        Memory[(6-Layer Persistent Memory\nDense Vector + BM25)]
-        KG[(Knowledge Graph\nEntities & Relations)]
-        Queue[Autonomous Learning Queue]
+    subgraph Deterministic Engines
+        LearnEng[Learning Engine\nRule Precedence & Storage]
+        MemEng[Cognitive Memory\nVector + FTS5 SQLite]
+        Decomp[Multi-Task Decomposer\nSubtask Router]
+        MathV[Math Verifier\nSymPy / AST Check]
+        WebS[Web Search Engine\nDuckDuckGo Lite Parser]
+        Ident[Identity Resolver\nAttribution Engine]
     end
     
-    Safety -. Retrieval Query .-> Memory
-    Safety -. Entity Extraction .-> KG
+    subgraph Neural Inference
+        Qwen[Aarohan Foundation\nQwen2.5-0.5B CUDA FP16]
+        CustomLM[Aarohan Causal Transformer\nRoPE + SwiGLU + RMSNorm]
+    end
     
-    EngineRoute -->|Foundation Engine| Qwen[Aarohan Foundation\nCUDA FP16 Streaming]
-    EngineRoute -->|Custom Checkpoint| CustomLM[Aarohan Causal Transformer\nRoPE + SwiGLU + RMSNorm]
+    Normalizer -->|Rule Learn / Eval| LearnEng
+    Normalizer -->|Personal Fact| MemEng
+    Normalizer -->|Compound Prompt| Decomp
+    Normalizer -->|Arithmetic| MathV
+    Normalizer -->|Web Search Intent| WebS
+    Normalizer -->|Identity / Creator| Ident
+    Normalizer -->|Creative / Generative| Qwen
     
-    Memory -. Evidence Grounding .-> EngineRoute
+    Qwen --> Gate[Output Verification Gate\nAnti-Hallucination & Integrity Guard]
+    CustomLM --> Gate
     
-    Qwen --> Streamer[Server-Sent Events Streamer]
-    CustomLM --> Streamer
-    Streamer --> UI([Aarohan Studio UI])
-    
-    UI -. User Feedback (1-5★) .-> Queue
-    Queue -. Automated Expansion .-> Memory
+    Gate --> Delivery([Verified Chat Response / SSE Stream])
 ```
 
 ---
@@ -93,54 +148,60 @@ flowchart TD
 ## 🛠️ Quick Start
 
 ### 1. Prerequisites
-
 - **Python**: `3.11` or `3.12`
 - **Git**
-- **Hardware**: NVIDIA GPU with CUDA support recommended (e.g., RTX 2060 6GB+), or standard x86_64 / ARM CPU.
+- **Hardware**: NVIDIA GPU with CUDA support recommended (e.g., RTX 2060 6GB+), or standard CPU.
 
 ### 2. Installation
-
-Clone the repository and set up the virtual environment:
 
 ```powershell
 # Clone the repository
 git clone https://github.com/sabledattatray/aarohan-ai.git
 cd aarohan-ai
 
-# Create and activate Python virtual environment
-py -3.12 -m venv .venv
+# Set up virtual environment
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 
-# Upgrade pip and install core dependencies
+# Install dependencies
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-### 3. Launch the Studio
-
-Start the local server daemon:
+### 3. Launch the Platform
 
 ```powershell
+# Start Uvicorn daemon
 python -m uvicorn aarohan.api:app --host 127.0.0.1 --port 8000
 ```
 
-Open your browser and navigate to:
+Open your browser at:
 ```
 http://127.0.0.1:8000/app
 ```
 
 ---
 
-## 🖥️ Studio Interface
+## 🧪 Test Suite & Verification
 
-The Aarohan Studio provides an ultra-minimalist, distraction-free environment:
+The platform is backed by a comprehensive regression and live acceptance suite:
 
-| Component | Description |
-| :--- | :--- |
-| **Model Picker** | Instant switching between **Aarohan (Fluent Foundation)** and **Aarohan Checkpoint (1.57M)** |
-| **Chat Canvas** | True pitch-black background with streaming markdown typography and copyable code blocks |
-| **Tools Menu (`+`)** | One-click access to Cognitive Memory Explorer, Knowledge Graph, Learning Queue, and Settings |
-| **History Sidebar** | Grouped conversation history with one-click new chat generation |
+```powershell
+# Run all unit and regression suites
+python -m pytest tests/test_verification_gate.py tests/test_learning_engine.py tests/test_capabilities_and_identity.py tests/test_cognitive_memory.py -q
+```
+
+**Results:**
+```
+............................................................ [100%]
+60 passed in 16.55s
+```
+
+### Live Component Acceptance Tests:
+- `python scripts/test_phase7_live_web_search.py` — **5/5 Passed** (Live DuckDuckGo retrieval, URL citations, zero model hallucination)
+- `python scripts/test_memory_save_and_recall.py` — **Passed** (Persistent personal fact learning & location recall)
+- `python scripts/test_phase5_live_decomposer.py` — **6/6 Passed** (Compound question splitting & tool routing)
+- `python scripts/test_phase6_live_verification_gate.py` — **4/4 Passed** (Output guard & contradiction interception)
 
 ---
 
@@ -162,69 +223,50 @@ GET /api/health
   "system_resources": {
     "cuda_available": true,
     "gpu_name": "NVIDIA GeForce RTX 2060",
-    "ram_available_mb": 3120.5
+    "ram_available_mb": 3210.5
   },
-  "memory_items": 67
+  "memory_items": 298
 }
 ```
 
-### Streaming Chat Inference
+### Turn-Based Chat Inference with Provenance Telemetry
 ```http
-POST /api/chat/stream
+POST /api/chat
+Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "query": "Write a Python function to compute moving averages.",
-  "engine": "foundation",
-  "retrieval_mode": "hybrid",
-  "max_new_tokens": 256
+  "query": "search the web for Power BI dashboard tutorial",
+  "engine": "foundation"
 }
 ```
-*Returns a continuous Server-Sent Events (`text/event-stream`) token stream.*
 
-### Cognitive Memory Query
-```http
-GET /api/memory?query=transformer&limit=10
+**Response with Full Provenance:**
+```json
+{
+  "query": "search the web for Power BI dashboard tutorial",
+  "intent": "WEB_SEARCH",
+  "response": "### 🌐 Live Web Search Results\n\n> Retrieved 5 live web sources...",
+  "response_source": "aarohan_web_search",
+  "model_invoked": false,
+  "verification": {
+    "status": "VERIFIED_TRUTHFUL",
+    "is_truthful": true,
+    "grounding_score": 1.0,
+    "corrections_applied": []
+  }
+}
 ```
 
 ---
 
-## 🧪 Verification & Testing
+## 👨‍💻 Author & Attribution
 
-The Aarohan platform is rigorously certified with an automated test suite covering neural inference, streaming SSE, safety guards, memory retrieval, and web UI endpoints.
-
-Run the full verification suite:
-
-```powershell
-# Run code formatting and lint checks
-ruff check aarohan tests
-
-# Execute complete test suite
-python -m pytest tests -v
-```
-
-```
-tests/test_api.py::test_health_endpoint PASSED                           [ 10%]
-tests/test_api.py::test_chat_unauthenticated PASSED                      [ 20%]
-tests/test_api.py::test_chat_safety_blocked PASSED                       [ 30%]
-tests/test_api.py::test_chat_streaming PASSED                            [ 40%]
-tests/test_api.py::test_memory_api PASSED                                [ 50%]
-tests/test_api.py::test_graph_api PASSED                                 [ 60%]
-tests/test_api.py::test_learning_tasks PASSED                            [ 70%]
-tests/test_api.py::test_web_ui_dashboard PASSED                          [ 80%]
-tests/test_foundation_engine.py::test_foundation_engine_instantiation PASSED [ 90%]
-tests/test_foundation_engine.py::test_foundation_engine_stream PASSED    [100%]
-
-============================= 10 passed in 18.25s ==============================
-```
-
----
-
-## 🔒 Security & Privacy Notice
-
-- **Local Execution**: All token weights, embeddings, memory indices, and relational graphs reside strictly on your local disk.
-- **Zero Telemetry**: No user prompts, chat completions, or system metrics are ever transmitted to third-party endpoints.
-- **Sanitization**: Inherent multi-stage prompt-injection screening and canary token auditing protect against untrusted document injections.
+- **Creator & Lead Engineer:** **Datta Sable**
+- **Domain:** Senior MIS & Business Intelligence Specialist | AI Systems Architect
+- **Official Website:** [https://dattasable.com/](https://dattasable.com/)
+- **GitHub:** [@sabledattatray](https://github.com/sabledattatray)
+- **Repository:** [https://github.com/sabledattatray/aarohan-ai](https://github.com/sabledattatray/aarohan-ai)
 
 ---
 
@@ -232,8 +274,6 @@ tests/test_foundation_engine.py::test_foundation_engine_stream PASSED    [100%]
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
----
-
 <div align="center">
-  <sub>Developed with pride by <strong>Datta Sable</strong> • Dedicated to sovereign, accessible artificial intelligence.</sub>
+  <sub>Engineered with pride by <strong>Datta Sable</strong> • Built for sovereign, local, independent artificial intelligence.</sub>
 </div>

@@ -42,11 +42,51 @@ def client(tmp_path):
 # 1. Identity Verification Tests
 # -----------------------------------------------------------------------------
 def test_identity_who_are_you():
-    for q in ["Who are you?", "who are you", "what is your name", "what's your name"]:
+    for q in [
+        "Who are you?", "who are you", "what is your name", "what's your name",
+        "whats your name", "whats your nam", "whats ur name", "your name",
+    ]:
         reply = resolve_identity_query(q)
         assert reply is not None
         assert "My name is AAROHAN" in reply
         assert "Datta Sable" in reply
+
+
+def test_identity_what_is_my_name():
+    for q in ["What is my name?", "what is my name", "who am i", "tell me my name", "whats my name"]:
+        reply = resolve_identity_query(q)
+        assert reply is not None
+        assert "Your name is Datta Sable" in reply
+        assert "AAROHAN AI" in reply
+
+
+def test_identity_user_background():
+    for q in [
+        "What is my professional background?",
+        "tell me about my professional background",
+        "who is datta sable",
+        "what is datta sable background",
+    ]:
+        reply = resolve_identity_query(q)
+        assert reply is not None
+        assert "independent AI engineer" in reply and "Datta Sable" in reply
+        assert "Anthropic" not in reply or "not affiliated with Anthropic" in reply
+
+
+def test_identity_website():
+    for q in [
+        "What is my website?",
+        "whats my website",
+        "what is your website",
+        "whats your website",
+        "my website",
+        "what is the official website",
+        "what is the github repo",
+    ]:
+        reply = resolve_identity_query(q)
+        assert reply is not None
+        assert "https://dattasable.com/" in reply
+        assert "https://github.com/sabledattatray/aarohan-ai" in reply
 
 
 def test_identity_who_created_you():
@@ -66,11 +106,17 @@ def test_identity_who_created_you():
 
 def test_identity_which_model_powers_you():
     # Foundation engine
-    reply_foundation = resolve_identity_query("Which model powers you?", engine="foundation")
-    assert reply_foundation is not None
-    assert "Qwen2.5-0.5B-Instruct" in reply_foundation
-    assert "Alibaba Cloud" in reply_foundation
-    assert "running locally" in reply_foundation
+    for q in [
+        "Which model powers you?",
+        "1. Which AI model powers you right now?",
+        "which ai model powers you right now",
+        "what model powers you",
+    ]:
+        reply_foundation = resolve_identity_query(q, engine="foundation")
+        assert reply_foundation is not None
+        assert "Qwen2.5-0.5B-Instruct" in reply_foundation
+        assert "Alibaba Cloud" in reply_foundation
+        assert "running locally" in reply_foundation
 
     # Scratch checkpoint engine
     reply_scratch = resolve_identity_query("what model powers you", engine="scratch")

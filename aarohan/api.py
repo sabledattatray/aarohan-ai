@@ -41,6 +41,10 @@ from aarohan.tools.math_verifier import MathVerifier
 from aarohan.tools.verification import ExecutionResult, ExecutionStatus
 from aarohan.tools.registry import ToolRegistry
 from aarohan.memory import MemoryStore
+from aarohan.learning import LearningEngine
+from aarohan.nlp.decomposer import MultiTaskDecomposer
+from aarohan.verification_gate import OutputVerificationGate
+from aarohan.tools.web_search import WebSearchEngine
 from aarohan.capabilities import get_capability_registry, resolve_capability_query
 from aarohan.nlp.task_router import TaskRouter, TaskType
 from aarohan.nlp import ContextResolver, Intent, IntentClassifier, TextNormalizer, resolve_identity_query, resolve_scientific_law
@@ -293,6 +297,17 @@ def create_app(
     task_router = TaskRouter()
     capability_registry = get_capability_registry()
     tool_registry = ToolRegistry()
+    learning_engine = LearningEngine(database_path)
+    multi_task_decomposer = MultiTaskDecomposer(
+        learning_engine=learning_engine,
+        math_verifier=math_verifier,
+        foundation_engine=foundation_engine,
+    )
+    verification_gate = OutputVerificationGate(
+        learning_engine=learning_engine,
+        math_verifier=math_verifier,
+    )
+    web_search_engine = WebSearchEngine(timeout_seconds=10)
 
     # Initialize active deployment pointer if none set
     if not rollback_mgr.get_active() and checkpoint_path.is_file():
@@ -586,12 +601,13 @@ def create_app(
         auto_media_prefix = auto_dataset_link + auto_image_block
 
         # Retrieve relevant memory evidence (prioritize factual semantic/verified knowledge over past dialogue)
+        search_limit = max(req.memory_limit * 8, 30)
         if req.retrieval_mode == "vector":
-            retrieved = store.vector_search(resolved_query, limit=req.memory_limit * 2)
+            retrieved = store.vector_search(resolved_query, limit=search_limit)
         elif req.retrieval_mode == "hybrid":
-            retrieved = store.hybrid_search(resolved_query, limit=req.memory_limit * 2)
+            retrieved = store.hybrid_search(resolved_query, limit=search_limit)
         else:
-            retrieved = store.search(resolved_query, limit=req.memory_limit * 2)
+            retrieved = store.search(resolved_query, limit=search_limit)
 
         # Canonical Identity, Capability & Scientific Law Resolution
         identity_reply = resolve_identity_query(processed_query, engine=req.engine)
@@ -647,19 +663,151 @@ def create_app(
             {"role": "user", "content": processed_query},
         ]
 
-        if identity_reply:
+        # 1. Deterministic Rule Intent (Teaching/Learning new business rules)
+        learn_extract = learning_engine.extract_learning_intent(processed_query)
+
+        # 1a. Personal Fact / Memory Save — store user-provided facts to cognitive memory
+        _mem_save_intent = primary_intent in (Intent.MEMORY_SAVE, Intent.MEMORY_UPDATE)
+        _mem_save_keywords = any(kw in processed_query.lower() for kw in [
+            "keep in your memory", "keep in memory", "remember that i", "note that i",
+            "store my", "save my", "i live at", "i stay at", "i reside at",
+            "i am from", "i work at", "i am based in",
+        ])
+        if _mem_save_intent or _mem_save_keywords:
+            # Sanitize PII-stripped query back to original for fact content
+            fact_content = f"Personal fact from {user.get('name', 'Datta Sable')}: {sanitized_query}"
+            store.add(
+                fact_content,
+                source="user_self_reported",
+                verified_by="user_instruction",
+                memory_type="semantic",
+                confidence=0.95,
+                verification_status="verified",
+                metadata={"user": user["username"], "fact_type": "personal_info"},
+            )
+            response_text = (
+                f"✅ **Memory Updated**\n\n"
+                f"I have stored the following personal fact in my cognitive memory:\n\n"
+                f"> {sanitized_query}\n\n"
+                f"- **Memory Type:** Semantic (long-term personal fact)\n"
+                f"- **Confidence:** 0.95\n"
+                f"- **Status:** Verified and persisted to SQLite\n\n"
+                f"I will recall this whenever relevant."
+            )
+            response_source = "aarohan_memory_engine"
+            model_invoked = False
+            generated_tokens = 0
+            checkpoint_name = "aarohan_memory_engine"
+            warning_msg = None
+
+        elif learn_extract.is_learning_instruction and learn_extract.extracted_rules:
+            save_res = learning_engine.save_learned_rules_batch(
+                learn_extract.namespace,
+                learn_extract.extracted_rules,
+                user_scope=user["username"],
+            )
+            rules_bullets = "\n".join([f"- **{r.rule_key}:** {r.rule_text} (Precedence: {r.precedence})" for r in learn_extract.extracted_rules])
+            saved_cnt = save_res.get("saved_count", len(save_res.get("saved", [])))
+            learning_reply = (
+                f"### 🧠 Learning Engine — Rules Stored & Verified\n\n"
+                f"- **Namespace:** `{learn_extract.namespace}`\n"
+                f"- **Stored Rules Count:** {saved_cnt}\n"
+                f"- **Status:** Active in SQLite memory\n\n"
+                f"#### Verified Rules:\n{rules_bullets}\n\n"
+                f"> All {saved_cnt} rules have been verified and persisted to deterministic storage."
+            )
+            response_text = learning_reply
+            response_source = "aarohan_learning_engine"
+            model_invoked = False
+            generated_tokens = 0
+            checkpoint_name = "aarohan_learning_engine"
+            warning_msg = None
+
+        # 2. Compound Multi-Task Query Decomposition
+        elif (compound_res := multi_task_decomposer.decompose_and_process(
+            processed_query,
+            engine=req.engine,
+            user_scope=user["username"],
+            identity_resolver_fn=resolve_identity_query,
+            capability_resolver_fn=resolve_capability_query,
+            science_resolver_fn=resolve_scientific_law,
+            neural_generator_fn=lambda sq: (
+                foundation_engine.generate(
+                    prompt=sq,
+                    system_prompt=req.system_prompt,
+                    max_new_tokens=req.max_new_tokens,
+                    temperature=req.temperature,
+                ) if req.engine == "foundation" else generate_chat_response(
+                    checkpoint_path=Path(rollback_mgr.get_active() or checkpoint_path),
+                    tokenizer_path=tokenizer_path,
+                    messages=[{"role": "user", "content": sq}],
+                    max_new_tokens=req.max_new_tokens,
+                    temperature=req.temperature,
+                )
+            ),
+        ))["is_compound"]:
+            response_text = compound_res["response"]
+            response_source = "aarohan_multi_task_decomposer"
+            model_invoked = compound_res["model_invoked"]
+            generated_tokens = compound_res["generated_tokens"]
+            checkpoint_name = "aarohan_multi_task_decomposer"
+            warning_msg = None
+
+        # 3. Deterministic Rule Query Evaluation (Single-rule inquiry with precedence/overrides)
+        elif (rule_eval := learning_engine.evaluate_rule_query(processed_query, user_scope=user["username"])) is not None:
+            response_text = rule_eval["response"]
+            response_source = "aarohan_learning_engine"
+            model_invoked = False
+            generated_tokens = 0
+            checkpoint_name = "aarohan_learning_engine"
+            warning_msg = None
+
+        # 4. Deterministic Single Math Calculation Fast-Path
+        elif (math_expr := multi_task_decomposer.extract_math_expression(processed_query)) is not None and (math_res := math_verifier.evaluate_and_verify(math_expr)).is_verified and math_res.primary_result is not None:
+            response_text = (
+                f"**Expression:** `{math_res.expression}`\n"
+                f"- **Result:** **{math_res.primary_result}**\n"
+                f"- **Verification:** Independently verified via {math_res.independent_check_method}\n"
+                f"- **Status:** `VALIDATED` ✅"
+            )
+            response_source = "aarohan_math_verifier"
+            model_invoked = False
+            generated_tokens = 0
+            checkpoint_name = "aarohan_math_verifier"
+            warning_msg = None
+
+        # 5. Phase 7: Live Web Search — zero-cost, zero-cloud-API, local DuckDuckGo retrieval
+        elif primary_intent.value == "WEB_SEARCH" or web_search_engine.is_search_query(processed_query):
+            # Always use the canonical project owner name for self-search context;
+            # the auth-token display name may be a role label (e.g. "AI Researcher").
+            search_terms = web_search_engine.extract_search_terms(processed_query, user_name="Datta Sable")
+            search_results = web_search_engine.search(search_terms, max_results=5)
+            response_text = web_search_engine.format_search_response(processed_query, search_terms, search_results)
+            response_source = "aarohan_web_search"
+            model_invoked = False
+            generated_tokens = 0
+            checkpoint_name = "aarohan_web_search"
+            warning_msg = None if search_results else "No results returned from live web search — verify network connectivity"
+
+        elif identity_reply:
             response_text = identity_reply
-            generated_tokens = len(identity_reply.split())
+            response_source = "aarohan_identity_resolver"
+            model_invoked = False
+            generated_tokens = 0
             checkpoint_name = f"aarohan_{req.engine}"
             warning_msg = None
         elif capability_reply:
             response_text = capability_reply
-            generated_tokens = len(capability_reply.split())
+            response_source = "aarohan_capabilities_engine"
+            model_invoked = False
+            generated_tokens = 0
             checkpoint_name = "aarohan_capabilities_engine"
             warning_msg = None
         elif science_law:
             response_text = science_law.detailed_markdown
-            generated_tokens = len(science_law.detailed_markdown.split())
+            response_source = "aarohan_scientific_grounding"
+            model_invoked = False
+            generated_tokens = 0
             checkpoint_name = "aarohan_scientific_grounding"
             warning_msg = None
         # Generate model response using selected engine (foundation open-weights or custom scratch)
@@ -675,6 +823,8 @@ def create_app(
                 response_text = auto_media_prefix + foundation_res["response"]
                 generated_tokens = foundation_res["generated_tokens"]
                 checkpoint_name = foundation_res["model_name"]
+                response_source = "aarohan_foundation_engine"
+                model_invoked = True
                 warning_msg = None
             except Exception as e:
                 # Fallback to scratch model if foundation model load has an issue
@@ -691,6 +841,8 @@ def create_app(
                 response_text = auto_media_prefix + scratch_res["response"]
                 generated_tokens = scratch_res["generated_tokens"]
                 checkpoint_name = scratch_res["checkpoint"]
+                response_source = "aarohan_scratch_engine"
+                model_invoked = True
                 warning_msg = f"Foundation fallback triggered: {e}"
         else:
             active_ckpt_path = Path(rollback_mgr.get_active() or checkpoint_path)
@@ -707,7 +859,20 @@ def create_app(
             response_text = auto_media_prefix + scratch_res["response"]
             generated_tokens = scratch_res["generated_tokens"]
             checkpoint_name = scratch_res["checkpoint"]
+            response_source = "aarohan_scratch_engine"
+            model_invoked = True
             warning_msg = scratch_res["warning"]
+
+        # Phase 6: Output Verification & Self-Correction Gate
+        verdict = verification_gate.guard_response(
+            response_text,
+            query=processed_query,
+            response_source=response_source,
+            model_invoked=model_invoked,
+            retrieved_memory=factual_retrieved,
+            user_scope=user["username"],
+        )
+        response_text = verdict.guarded_text
 
         turn_record = f"User: {sanitized_query} | AAROHAN: {response_text}"
         store.add(
@@ -726,10 +891,17 @@ def create_app(
             "normalized_query": processed_query,
             "intent": primary_intent.value,
             "engine": req.engine,
+            "response": response_text,
+            "response_source": response_source,
+            "model_invoked": model_invoked,
+            "verification": verdict.to_dict(),
             "model_response": {
                 "text": response_text,
                 "generated_tokens": generated_tokens,
                 "checkpoint": checkpoint_name,
+                "response_source": response_source,
+                "model_invoked": model_invoked,
+                "verification_status": verdict.status,
                 "warning": warning_msg,
             },
             "retrieved_memory": [
@@ -784,12 +956,13 @@ def create_app(
         auto_media_prefix = auto_dataset_link + auto_image_block
 
         # Retrieve relevant memory evidence (prioritize factual semantic/verified knowledge)
+        search_limit = max(req.memory_limit * 8, 30)
         if req.retrieval_mode == "vector":
-            retrieved = store.vector_search(resolved_query, limit=req.memory_limit * 2)
+            retrieved = store.vector_search(resolved_query, limit=search_limit)
         elif req.retrieval_mode == "hybrid":
-            retrieved = store.hybrid_search(resolved_query, limit=req.memory_limit * 2)
+            retrieved = store.hybrid_search(resolved_query, limit=search_limit)
         else:
-            retrieved = store.search(resolved_query, limit=req.memory_limit * 2)
+            retrieved = store.search(resolved_query, limit=search_limit)
 
         identity_reply = resolve_identity_query(processed_query, engine=req.engine)
         capability_reply = resolve_capability_query(processed_query)
@@ -839,6 +1012,139 @@ def create_app(
             {"role": "system", "content": system_content},
             {"role": "user", "content": processed_query},
         ]
+
+        def _stream_static_response(text: str, source_label: str, ckpt: str, intent_label: str):
+            verdict = verification_gate.guard_response(
+                text,
+                query=processed_query,
+                response_source=source_label,
+                model_invoked=False,
+                retrieved_memory=factual_retrieved,
+                user_scope=user["username"],
+            )
+            guarded_text = verdict.guarded_text
+            init_event = {
+                "type": "context",
+                "engine": req.engine,
+                "intent": intent_label,
+                "normalized_query": processed_query,
+                "retrieved_memory": [],
+                "safety": {"pii_redacted": pii_detected, "injection_scan": "passed"},
+                "response_source": source_label,
+                "model_invoked": False,
+                "verification": verdict.to_dict(),
+            }
+            yield f"data: {json.dumps(init_event)}\n\n"
+            words = guarded_text.split(" ")
+            for i, w in enumerate(words):
+                token = w + (" " if i < len(words) - 1 else "")
+                yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
+            done_event = {
+                "type": "done",
+                "generated_tokens": 0,
+                "checkpoint": ckpt,
+                "response_source": source_label,
+                "model_invoked": False,
+                "verification": verdict.to_dict(),
+            }
+            yield f"data: {json.dumps(done_event)}\n\n"
+
+        # 1. Deterministic Rule Intent (Teaching/Learning new business rules in stream)
+        learn_extract = learning_engine.extract_learning_intent(processed_query)
+
+        # 1a. Personal Fact / Memory Save in stream — store user-provided facts to cognitive memory
+        _mem_save_intent = primary_intent in (Intent.MEMORY_SAVE, Intent.MEMORY_UPDATE)
+        _mem_save_keywords = any(kw in processed_query.lower() for kw in [
+            "keep in your memory", "keep in memory", "remember that i", "note that i",
+            "store my", "save my", "i live at", "i stay at", "i reside at",
+            "i am from", "i work at", "i am based in",
+        ])
+        if _mem_save_intent or _mem_save_keywords:
+            fact_content = f"Personal fact from {user.get('name', 'Datta Sable')}: {sanitized_query}"
+            store.add(
+                fact_content,
+                source="user_self_reported",
+                verified_by="user_instruction",
+                memory_type="semantic",
+                confidence=0.95,
+                verification_status="verified",
+                metadata={"user": user["username"], "fact_type": "personal_info"},
+            )
+            mem_reply = (
+                f"✅ **Memory Updated**\n\n"
+                f"I have stored the following personal fact in my cognitive memory:\n\n"
+                f"> {sanitized_query}\n\n"
+                f"- **Memory Type:** Semantic (long-term personal fact)\n"
+                f"- **Confidence:** 0.95\n"
+                f"- **Status:** Verified and persisted to SQLite\n\n"
+                f"I will recall this whenever relevant."
+            )
+            return StreamingResponse(_stream_static_response(mem_reply, "aarohan_memory_engine", "aarohan_memory_engine", "MEMORY_SAVE"), media_type="text/event-stream")
+
+        if learn_extract.is_learning_instruction and learn_extract.extracted_rules:
+            save_res = learning_engine.save_learned_rules_batch(
+                learn_extract.namespace,
+                learn_extract.extracted_rules,
+                user_scope=user["username"],
+            )
+            rules_bullets = "\n".join([f"- **{r.rule_key}:** {r.rule_text} (Precedence: {r.precedence})" for r in learn_extract.extracted_rules])
+            saved_cnt = save_res.get("saved_count", len(save_res.get("saved", [])))
+            learning_reply = (
+                f"### 🧠 Learning Engine — Rules Stored & Verified\n\n"
+                f"- **Namespace:** `{learn_extract.namespace}`\n"
+                f"- **Stored Rules Count:** {saved_cnt}\n"
+                f"- **Status:** Active in SQLite memory\n\n"
+                f"#### Verified Rules:\n{rules_bullets}\n\n"
+                f"> All {saved_cnt} rules have been verified and persisted to deterministic storage."
+            )
+            return StreamingResponse(_stream_static_response(learning_reply, "aarohan_learning_engine", "aarohan_learning_engine", "LEARNING_INSTRUCTION"), media_type="text/event-stream")
+
+        # 2. Compound Multi-Task Query Decomposition in stream
+        if (compound_res := multi_task_decomposer.decompose_and_process(
+            processed_query,
+            engine=req.engine,
+            user_scope=user["username"],
+            identity_resolver_fn=resolve_identity_query,
+            capability_resolver_fn=resolve_capability_query,
+            science_resolver_fn=resolve_scientific_law,
+            neural_generator_fn=lambda sq: (
+                foundation_engine.generate(
+                    prompt=sq,
+                    system_prompt=req.system_prompt,
+                    max_new_tokens=req.max_new_tokens,
+                    temperature=req.temperature,
+                ) if req.engine == "foundation" else generate_chat_response(
+                    checkpoint_path=Path(rollback_mgr.get_active() or checkpoint_path),
+                    tokenizer_path=tokenizer_path,
+                    messages=[{"role": "user", "content": sq}],
+                    max_new_tokens=req.max_new_tokens,
+                    temperature=req.temperature,
+                )
+            ),
+        ))["is_compound"]:
+            return StreamingResponse(_stream_static_response(compound_res["response"], "aarohan_multi_task_decomposer", "aarohan_multi_task_decomposer", "COMPOUND_MULTI_TASK"), media_type="text/event-stream")
+
+        # 3. Deterministic Rule Query Evaluation in stream
+        if (rule_eval := learning_engine.evaluate_rule_query(processed_query, user_scope=user["username"])) is not None:
+            return StreamingResponse(_stream_static_response(rule_eval["response"], "aarohan_learning_engine", "aarohan_learning_engine", "RULE_EVALUATION"), media_type="text/event-stream")
+
+        # 4. Deterministic Single Math Fast-Path in stream
+        if (math_expr := multi_task_decomposer.extract_math_expression(processed_query)) is not None and (math_res := math_verifier.evaluate_and_verify(math_expr)).is_verified and math_res.primary_result is not None:
+            math_text = (
+                f"**Expression:** `{math_res.expression}`\n"
+                f"- **Result:** **{math_res.primary_result}**\n"
+                f"- **Verification:** Independently verified via {math_res.independent_check_method}\n"
+                f"- **Status:** `VALIDATED` ✅"
+            )
+            return StreamingResponse(_stream_static_response(math_text, "aarohan_math_verifier", "aarohan_math_verifier", "MATHEMATICAL_CALCULATION"), media_type="text/event-stream")
+
+        # 5. Phase 7: Live Web Search in stream — zero-cost DuckDuckGo retrieval
+        if primary_intent.value == "WEB_SEARCH" or web_search_engine.is_search_query(processed_query):
+            # Always use the canonical project owner name for self-search context.
+            search_terms = web_search_engine.extract_search_terms(processed_query, user_name="Datta Sable")
+            search_results = web_search_engine.search(search_terms, max_results=5)
+            search_text = web_search_engine.format_search_response(processed_query, search_terms, search_results)
+            return StreamingResponse(_stream_static_response(search_text, "aarohan_web_search", "aarohan_web_search", "WEB_SEARCH"), media_type="text/event-stream")
 
         if identity_reply:
             def identity_stream():

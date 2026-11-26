@@ -22,6 +22,8 @@ from typing import Any
 
 import numpy as np
 
+from aarohan.cognitive_memory import CognitiveMemoryEngine, MemoryStatus, MemoryType
+
 VALID_MEMORY_TYPES = frozenset({"working", "episodic", "semantic", "procedural", "learning"})
 VALID_PRIVACY_CLASSES = frozenset({"non_sensitive", "personal", "sensitive"})
 VALID_VERIFICATION_STATUSES = frozenset({"unverified", "verified", "superseded"})
@@ -80,6 +82,7 @@ class MemoryStore:
         self.database_path = Path(database_path)
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
         self._fts_available = True
+        self.cognitive = CognitiveMemoryEngine(self.database_path)
         self._init_database()
 
     def _connect(self) -> sqlite3.Connection:
