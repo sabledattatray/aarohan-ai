@@ -138,9 +138,9 @@ class OutputVerificationGate:
             eval_d = self.learning_engine.evaluate_rule_query("What is the contact deadline for LEVEL-D?", user_scope=user_scope)
             if eval_d and eval_d.get("status") == "UNKNOWN_RULE":
                 guarded = (
-                    f"### ❓ Unknown Business Rule — `LEVEL-D`\n\n"
-                    f"Rule for `LEVEL-D` is not defined in active storage. I do not have verified information stored "
-                    f"for this tier and will not infer or guess an answer."
+                    "### ❓ Unknown Business Rule — `LEVEL-D`\n\n"
+                    "Rule for `LEVEL-D` is not defined in active storage. I do not have verified information stored "
+                    "for this tier and will not infer or guess an answer."
                 )
                 corrections.append("Intercepted fabricated deadline for undefined tier LEVEL-D")
 

@@ -1,8 +1,8 @@
 """Tests for the unified provider-independent inference interface."""
 
 from pathlib import Path
+
 import pytest
-import torch
 
 from aarohan.inference import (
     BaseInferenceEngine,
@@ -27,7 +27,7 @@ def test_base_interface_cannot_be_instantiated():
 def test_foundation_engine_metadata_and_capabilities():
     engine = FoundationInferenceEngine(model_name_or_path="Qwen/Qwen2.5-0.5B-Instruct")
     assert isinstance(engine, BaseInferenceEngine)
-    
+
     info = engine.get_model_info()
     assert isinstance(info, ModelInfo)
     assert info.model_id == "Qwen/Qwen2.5-0.5B-Instruct"
@@ -35,7 +35,7 @@ def test_foundation_engine_metadata_and_capabilities():
     assert ModelCapability.TEXT_GENERATION in engine.available_capabilities()
     assert ModelCapability.STREAMING in engine.available_capabilities()
     assert ModelCapability.CHAT_TEMPLATE in engine.available_capabilities()
-    
+
     health = engine.health_check()
     assert "status" in health
     assert health["model_id"] == "Qwen/Qwen2.5-0.5B-Instruct"
@@ -58,7 +58,7 @@ def test_custom_transformer_engine_metadata():
     assert "aarohan_custom" in info.model_id
     assert ModelCapability.TEXT_GENERATION in engine.available_capabilities()
     assert ModelCapability.STREAMING in engine.available_capabilities()
-    
+
     health = engine.health_check()
     assert health["checkpoint_exists"] is True
     assert health["tokenizer_exists"] is True
@@ -69,7 +69,7 @@ def test_inference_manager_lifecycle():
         custom_checkpoint_path=DEFAULT_CKPT if DEFAULT_CKPT.is_file() else None,
         custom_tokenizer_path=DEFAULT_TOK if DEFAULT_TOK.is_file() else None,
     )
-    
+
     foundation_eng = mgr.get_engine("foundation")
     assert isinstance(foundation_eng, FoundationInferenceEngine)
 
@@ -108,7 +108,7 @@ def test_custom_transformer_generate_and_stream_cpu():
     # Test stream()
     stream_chunks = list(engine.stream("Hello", max_new_tokens=4, temperature=0.7))
     assert len(stream_chunks) > 0
-    
+
     # Test unload()
     assert engine.unload() is True
     assert engine.is_loaded() is False

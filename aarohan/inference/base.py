@@ -6,7 +6,6 @@ independently trained custom Causal Transformer) must implement.
 
 from __future__ import annotations
 
-import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum

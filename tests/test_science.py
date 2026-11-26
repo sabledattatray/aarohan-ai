@@ -4,9 +4,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from aarohan.api import create_app
-from aarohan.nlp.normalizer import TextNormalizer
 from aarohan.nlp.intent import Intent, IntentClassifier
-from aarohan.nlp.science import resolve_scientific_law, SCIENTIFIC_LAWS
+from aarohan.nlp.normalizer import TextNormalizer
+from aarohan.nlp.science import resolve_scientific_law
 
 
 @pytest.fixture

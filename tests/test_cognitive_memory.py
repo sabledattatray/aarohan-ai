@@ -22,11 +22,10 @@ from __future__ import annotations
 
 import gc
 import sqlite3
-from pathlib import Path
+
 import pytest
 
-from aarohan.cognitive_memory import CognitiveMemoryEngine, MemoryType, MemoryStatus
-
+from aarohan.cognitive_memory import CognitiveMemoryEngine
 
 NEXDIAL_INSTRUCTION = """Please remember the following NexDial business rules in persistent memory:
 1. Priority P1 accounts must be contacted within 2 hours.

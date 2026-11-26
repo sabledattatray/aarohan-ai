@@ -24,7 +24,7 @@ from aarohan.inference.base import (
     ModelInfo,
     ModelType,
 )
-from aarohan.model import AAROHANConfig, AAROHANLM
+from aarohan.model import AAROHANLM, AAROHANConfig
 from aarohan.tokenizer import load_tokenizer, sha256_file
 
 logger = logging.getLogger(__name__)

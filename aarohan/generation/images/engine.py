@@ -10,9 +10,11 @@ import base64
 import io
 import math
 import random
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+
+from PIL import Image, ImageDraw, ImageFilter
 
 IMAGES_DIR = Path("artifacts/images")
 IMAGES_DIR.mkdir(parents=True, exist_ok=True)
@@ -119,7 +121,7 @@ class ImageStudioEngine:
         )
 
         final_img = img.convert("RGB")
-        timestamp = int(pd.Timestamp.now().timestamp()) if "pd" in globals() else random.randint(100000, 999999)
+        timestamp = int(time.time())
         filename = f"gen_{timestamp}_{aspect_ratio.replace(':', 'x')}.png"
         out_path = IMAGES_DIR / filename
         final_img.save(out_path, format="PNG", quality=95)

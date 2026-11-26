@@ -9,10 +9,10 @@ Validates the frontend contracts and backend integration for Aarohan AI 2.0 Stud
 """
 
 import json
-from pathlib import Path
+
 from fastapi.testclient import TestClient
+
 from aarohan.api import create_app
-from aarohan.memory import MemoryStore
 
 
 def test_studio_html_serves_root_and_workspaces(tmp_path):

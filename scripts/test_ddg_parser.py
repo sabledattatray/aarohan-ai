@@ -1,6 +1,7 @@
-import urllib.request
 import urllib.parse
+import urllib.request
 from html.parser import HTMLParser
+
 
 class DDGLiteParser(HTMLParser):
     def __init__(self):
@@ -50,7 +51,7 @@ class DDGLiteParser(HTMLParser):
 
 def search_ddg_lite(query: str, max_results: int = 5):
     encoded_q = urllib.parse.urlencode({"q": query})
-    url = f"https://lite.duckduckgo.com/lite/"
+    url = "https://lite.duckduckgo.com/lite/"
     data = encoded_q.encode("utf-8")
     req = urllib.request.Request(
         url,

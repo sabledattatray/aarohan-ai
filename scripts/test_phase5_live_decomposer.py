@@ -6,8 +6,8 @@
 - Scenario handling without false status hijacking
 """
 
-import urllib.request
 import json
+import urllib.request
 
 BASE_URL = "http://127.0.0.1:8000/api/chat"
 
@@ -73,11 +73,11 @@ for tc in test_cases:
     resp_text = res.get("response", "")
     resp_src = res.get("response_source", "")
     invoked = res.get("model_invoked")
-    
+
     sub_ok = tc["expected_sub"].lower() in resp_text.lower()
     src_ok = resp_src == tc["expected_src"]
     inv_ok = invoked == tc["expected_invoked"]
-    
+
     status = "PASS" if (sub_ok and src_ok and inv_ok) else "FAIL"
     if status == "PASS":
         passed += 1

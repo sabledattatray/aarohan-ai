@@ -10,13 +10,14 @@ Validates:
 7. Knowledge improvement evaluation (verifying newly acquired facts resolve queries).
 """
 
+
 import pytest
-from pathlib import Path
+
 from aarohan.memory import MemoryStore
 from aarohan.research import (
-    LearningQueue,
     BoundedResearchEngine,
     KnowledgeGapDetector,
+    LearningQueue,
     validate_source,
 )
 
@@ -114,7 +115,6 @@ def test_source_validation_and_provenance(temp_environment):
 def test_prompt_injection_neutralization(temp_environment):
     queue = temp_environment["queue"]
     engine = temp_environment["engine"]
-    store = temp_environment["store"]
     tmp_path = temp_environment["tmp_path"]
 
     task = queue.create_task(

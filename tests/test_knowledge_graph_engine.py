@@ -10,7 +10,8 @@ Validates:
 """
 
 import pytest
-from aarohan.memory import MemoryStore, VALID_RELATION_TYPES, VALID_RELATION_CLASSES
+
+from aarohan.memory import VALID_RELATION_CLASSES, VALID_RELATION_TYPES, MemoryStore
 
 
 @pytest.fixture

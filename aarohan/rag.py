@@ -15,7 +15,6 @@ Provides:
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 import re
 from pathlib import Path

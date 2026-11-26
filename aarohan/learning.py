@@ -16,10 +16,10 @@ import json
 import re
 import sqlite3
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 
 @dataclass
@@ -652,7 +652,7 @@ class LearningEngine:
         # Complex reasoning scenarios or multi-part prompts with context/rules should NOT be hijacked as single-rule lookups
         levels_found = set(re.findall(r"\blevel[-_\s]*([a-z0-9]+)\b", q, re.IGNORECASE))
         if len(levels_found) > 1 or any(phrase in q_lower for phrase in [
-            "solve the following", "consider these cases", "answer all of the following", 
+            "solve the following", "consider these cases", "answer all of the following",
             "stored rules:", "collection team has these", "calculate the contact deadline"
         ]):
             return None
@@ -717,7 +717,7 @@ class LearningEngine:
         # 5. Retrieve active rules for namespace ordered by precedence DESC
         with self._connect() as conn:
             rules_rows = conn.execute("""
-                SELECT * FROM learned_rules 
+                SELECT * FROM learned_rules
                 WHERE namespace = ? AND status = 'ACTIVE'
                 ORDER BY precedence DESC, created_at ASC
             """, (ns_target,)).fetchall()
@@ -956,8 +956,8 @@ class LearningEngine:
                         new_rule_text = f"{subject_val} {rule_row['predicate'] or 'rule'} is {new_val}."
 
                     conn.execute("""
-                        UPDATE learned_rules 
-                        SET value = ?, rule_text = ?, version = ?, updated_at = ? 
+                        UPDATE learned_rules
+                        SET value = ?, rule_text = ?, version = ?, updated_at = ?
                         WHERE id = ?
                     """, (new_val, new_rule_text, new_ver, now, rule_id))
 

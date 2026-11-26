@@ -1175,6 +1175,7 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
     let currentLastQuery = '';
     let currentLastResponse = '';
     let activeConversationTurns = [];
+    let currentConversationId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
     let currentActiveWorkspace = 'chat';
 
     // Markdown setup with syntax highlighting
@@ -1290,6 +1291,7 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
 
     function startNewChat() {
       switchWorkspace('chat');
+      currentConversationId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
       const chatBox = document.getElementById('chat-messages');
       chatBox.innerHTML = `
         <div id="welcome-hero" class="text-center pt-24 pb-12 space-y-6">
@@ -1319,6 +1321,7 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
         input.style.height = 'auto';
         input.focus();
       }
+      renderHistoryList(rawConversationItems);
     }
 
     // Workspace Switching Engine
@@ -1562,7 +1565,14 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
         const resp = await fetch('/api/chat/stream', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({query: text, messages: activeConversationTurns.slice(-8), retrieval_mode: retrievalMode, engine: engine, max_new_tokens: 1024})
+          body: JSON.stringify({
+            query: text,
+            session_id: currentConversationId,
+            messages: activeConversationTurns.slice(-8),
+            retrieval_mode: retrievalMode,
+            engine: engine,
+            max_new_tokens: 1024
+          })
         });
 
         if (!resp.ok) {
@@ -1641,6 +1651,9 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
                   currentLastResponse = rawAccumulatedText;
                   activeConversationTurns.push({role: 'user', content: text});
                   activeConversationTurns.push({role: 'assistant', content: rawAccumulatedText});
+                  if (ev.session_id) {
+                    currentConversationId = ev.session_id;
+                  }
                   renderMarkdownWithMath(outputEl, rawAccumulatedText);
                   loadRecentHistory();
                 } else if (ev.type === 'error') {
@@ -2513,20 +2526,90 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
         return;
       }
       list.innerHTML = items.map(c => {
-        const raw = c.content.replace(/^User:\s*/, '');
-        const queryPart = raw.split(' | AAROHAN:')[0] || raw;
-        const cleanTitle = queryPart.slice(0, 28);
+        const sid = c.session_id || c.id;
+        const isActive = (sid === currentConversationId);
+        const rawTitle = c.title || (c.content ? c.content.replace(/^User:\s*/, '').split(' | AAROHAN:')[0] : 'Conversation');
+        const cleanTitle = rawTitle.slice(0, 26);
+        const countBadge = (c.turns_count && c.turns_count > 1)
+          ? `<span class="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#303030] text-[10px] text-[#a0a0a0] font-mono shrink-0">${c.turns_count}</span>`
+          : '';
         return `
-          <div class="group flex items-center justify-between px-2 py-1.5 rounded-lg text-slate-300 hover:bg-[#212121] transition text-xs">
-            <button onclick="usePrompt('${escapeJsString(queryPart)}')" class="truncate text-left flex-1">
-              ${escapeHtml(cleanTitle)}
+          <div class="group flex items-center justify-between px-2 py-1.5 rounded-lg transition text-xs ${isActive ? 'bg-[#2a2a2a] text-white font-medium shadow-sm' : 'text-slate-300 hover:bg-[#212121]'}">
+            <button onclick="loadConversationSession('${escapeJsString(sid)}')" class="truncate text-left flex-1 flex items-center pr-1" title="${escapeHtml(rawTitle)}">
+              <span class="truncate">${escapeHtml(cleanTitle)}</span>
+              ${countBadge}
             </button>
-            <button onclick="deleteConversationRecord('${c.id}', event)" class="opacity-0 group-hover:opacity-100 text-[#8e8e8e] hover:text-rose-400 p-1" title="Delete">
+            <button onclick="deleteConversationRecord('${escapeJsString(sid)}', event)" class="opacity-0 group-hover:opacity-100 text-[#8e8e8e] hover:text-rose-400 p-1 transition" title="Delete conversation">
               &times;
             </button>
           </div>
         `;
       }).join('');
+    }
+
+    async function loadConversationSession(sessionId) {
+      try {
+        const res = await fetch(`/api/conversations/${encodeURIComponent(sessionId)}`);
+        if (!res.ok) {
+          console.warn('Could not load session:', sessionId);
+          return;
+        }
+        const session = await res.json();
+        switchWorkspace('chat');
+        currentConversationId = sessionId;
+
+        const chatBox = document.getElementById('chat-messages');
+        chatBox.innerHTML = '';
+        activeConversationTurns = [];
+
+        const turns = session.turns || [];
+        for (const turn of turns) {
+          // Render User Message
+          chatBox.innerHTML += `
+            <div class="flex justify-end">
+              <div class="bg-[#2f2f2f] text-white rounded-3xl px-5 py-2.5 text-[15px] leading-relaxed max-w-[75%] whitespace-pre-wrap break-words shadow-sm">${escapeHtml(turn.user)}</div>
+            </div>
+          `;
+
+          // Render Assistant Message
+          const astId = 'msg-' + Math.random().toString(36).substring(2, 9);
+          const isCustom = turn.engine === 'scratch';
+          chatBox.innerHTML += `
+            <div class="flex justify-start space-x-4 max-w-full">
+              <div class="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5 shadow">
+                ▲
+              </div>
+              <div class="flex-1 space-y-2 min-w-0">
+                <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-medium ${isCustom ? 'bg-amber-950/80 text-amber-300 border border-amber-800/60' : 'bg-indigo-950/80 text-indigo-300 border border-indigo-800/60'} flex items-center space-x-1">
+                    <span>${isCustom ? '🔬 Aarohan Checkpoint' : '🤖 Aarohan Foundation'}</span>
+                  </span>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] bg-[#212121] text-slate-300 border border-[#303030]">Saved Turn</span>
+                </div>
+                <div id="${astId}" class="markdown-body text-[15px] text-[#ececec] leading-relaxed font-normal select-text"></div>
+                <div class="flex items-center space-x-2 text-xs text-[#8e8e8e] pt-1">
+                  <button type="button" onclick="copyMessageText(this, decodeURIComponent('${encodeURIComponent(turn.assistant)}'))" class="p-1.5 rounded-md hover:bg-[#212121] hover:text-white transition" title="Copy response">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          const out = document.getElementById(astId);
+          if (out) renderMarkdownWithMath(out, turn.assistant);
+
+          activeConversationTurns.push({role: 'user', content: turn.user});
+          activeConversationTurns.push({role: 'assistant', content: turn.assistant});
+          currentLastQuery = turn.user;
+          currentLastResponse = turn.assistant;
+        }
+
+        renderHistoryList(rawConversationItems);
+        const scrollContainer = document.getElementById('chat-messages-container');
+        if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      } catch (err) {
+        console.error('Error restoring conversation:', err);
+      }
     }
 
     function filterConversations(val) {
@@ -2535,7 +2618,7 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
         renderHistoryList(rawConversationItems);
         return;
       }
-      const filtered = rawConversationItems.filter(c => c.content.toLowerCase().includes(term));
+      const filtered = rawConversationItems.filter(c => (c.title || c.content || '').toLowerCase().includes(term));
       renderHistoryList(filtered);
     }
 
@@ -2543,9 +2626,14 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
       if (e) e.stopPropagation();
       if (!confirm('Delete this conversation?')) return;
       try {
-        await fetch(`/api/conversations/${id}`, {method: 'DELETE'});
+        await fetch(`/api/conversations/${encodeURIComponent(id)}`, {method: 'DELETE'});
+        if (id === currentConversationId) {
+          startNewChat();
+        }
         loadRecentHistory();
-      } catch(e) {}
+      } catch(e) {
+        console.error('Delete error:', e);
+      }
     }
 
     function escapeHtml(str) {

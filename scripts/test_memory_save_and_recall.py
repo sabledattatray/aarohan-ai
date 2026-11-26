@@ -1,9 +1,9 @@
 """Live test for user memory save and recall."""
 
 import json
+import sys
 import time
 import urllib.request
-import sys
 
 API_BASE = "http://127.0.0.1:8000"
 TOKEN = "aarohan_researcher_token"

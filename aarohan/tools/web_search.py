@@ -169,7 +169,7 @@ class WebSearchEngine:
             )
 
         lines = [
-            f"### 🌐 Live Web Search Results\n\n",
+            "### 🌐 Live Web Search Results\n\n",
             f"> Retrieved **{len(results)} live web sources** for: `{search_terms}`\n\n",
         ]
 
@@ -179,6 +179,6 @@ class WebSearchEngine:
             lines.append(f"- **Snippet:** {r.snippet}\n\n")
 
         lines.append(
-            f"*(Sources verified via live DuckDuckGo retrieval | Zero-API, local-first search)*"
+            "*(Sources verified via live DuckDuckGo retrieval | Zero-API, local-first search)*"
         )
         return "".join(lines).strip()

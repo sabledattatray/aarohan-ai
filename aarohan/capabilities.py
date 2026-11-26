@@ -447,7 +447,6 @@ def resolve_capability_query(query: str) -> Optional[str]:
     ]
     for pat in image_patterns:
         if re.search(pat, q_clean):
-            cap = registry.get("image_generation")
             return (
                 "**Yes, AAROHAN can generate images.**\n\n"
                 "AAROHAN includes a fully implemented **Image Generation Engine 1.0** and **Image Studio** (`/app/images`).\n\n"

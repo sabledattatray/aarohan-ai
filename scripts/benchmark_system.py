@@ -19,6 +19,7 @@ import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import psutil
 import torch
@@ -125,7 +126,6 @@ def benchmark_inference(mgr: InferenceManager) -> dict[str, Any]:
     found_engine = mgr.get_engine("foundation")
     found_tps = 0.0
     found_ttft_ms = 0.0
-    found_loaded = found_engine.is_loaded
 
     try:
         t0 = time.perf_counter()

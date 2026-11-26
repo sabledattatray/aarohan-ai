@@ -6,14 +6,15 @@ for dataset generation, data analytics, research, document extraction, and code.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List
+
+from aarohan.documents.generator import PDFGenerator
 from aarohan.generation.datasets.generator import DatasetGenerator
 from aarohan.tools.analytics import AnalyticsEngine
+from aarohan.tools.math_verifier import MathVerifier
 from aarohan.tools.sandbox import CodeSandbox
-from aarohan.documents.generator import PDFGenerator
 from aarohan.tools.sql_executor import SQLExecutor
 from aarohan.tools.sql_validator import SQLValidator
-from aarohan.tools.math_verifier import MathVerifier
 
 
 class ToolRegistry:

@@ -23,7 +23,7 @@ from typing import Any
 
 import numpy as np
 
-from aarohan.cognitive_memory import CognitiveMemoryEngine, MemoryStatus, MemoryType
+from aarohan.cognitive_memory import CognitiveMemoryEngine
 
 logger = logging.getLogger("aarohan.memory")
 

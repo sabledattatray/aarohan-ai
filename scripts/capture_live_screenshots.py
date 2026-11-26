@@ -2,10 +2,11 @@
 
 import time
 from pathlib import Path
+
+from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.edge.options import Options
-from PIL import Image
 
 DOCS_DIR = Path(r"D:\Datta Sable\AAROHAN\docs\assets\screenshots")
 ROOT_DIR = Path(r"D:\Datta Sable\AAROHAN\assets\screenshots")
@@ -50,7 +51,7 @@ def main():
         chat_input.send_keys("What is the contact deadline for LEVEL-A accounts?")
         send_btn = driver.find_element(By.ID, "chat-send-btn")
         send_btn.click()
-        
+
         # Wait for SSE stream to complete
         time.sleep(6)
         temp2 = DOCS_DIR / "temp2.png"

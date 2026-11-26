@@ -130,7 +130,7 @@ def main() -> None:
                 f"got {model_inv}",
             )
             _assert(
-                f"response contains expected terms",
+                "response contains expected terms",
                 content_ok,
                 f"missing from: {response_text[:200]}",
             )

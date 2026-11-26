@@ -7,11 +7,6 @@ Provides:
   - Contextual follow-up and entity resolution
 """
 
-from aarohan.nlp.context import ContextResolver
-from aarohan.nlp.identity import resolve_identity_query
-from aarohan.nlp.intent import Intent, IntentClassifier, IntentResult
-from aarohan.nlp.normalizer import NormalizedQuery, TextNormalizer
-from aarohan.nlp.science import ScientificLaw, resolve_scientific_law
 from aarohan.capabilities import (
     Capability,
     CapabilityRegistry,
@@ -19,6 +14,11 @@ from aarohan.capabilities import (
     get_capability_registry,
     resolve_capability_query,
 )
+from aarohan.nlp.context import ContextResolver
+from aarohan.nlp.identity import resolve_identity_query
+from aarohan.nlp.intent import Intent, IntentClassifier, IntentResult
+from aarohan.nlp.normalizer import NormalizedQuery, TextNormalizer
+from aarohan.nlp.science import ScientificLaw, resolve_scientific_law
 
 __all__ = [
     "TextNormalizer",

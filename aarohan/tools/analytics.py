@@ -9,7 +9,8 @@ from __future__ import annotations
 import base64
 import io
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
+
 import duckdb
 import matplotlib
 import matplotlib.pyplot as plt

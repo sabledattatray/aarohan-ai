@@ -1,7 +1,7 @@
 """Phase 6 Live Server Acceptance Test for Output Verification Gate."""
 
-import urllib.request
 import json
+import urllib.request
 
 URL = "http://127.0.0.1:8000/api/chat"
 
@@ -43,16 +43,16 @@ for tc in test_cases:
     req = urllib.request.Request(URL, data=data, headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req) as resp:
         res = json.loads(resp.read().decode("utf-8"))
-        
+
     v = res.get("verification", {})
     status_ok = v.get("status") == tc["expected_status"]
     truth_ok = v.get("is_truthful") == tc["expected_truthful"]
     sub_ok = tc["expected_sub"].lower() in res.get("response", "").lower()
-    
+
     ok = status_ok and truth_ok and sub_ok
     if ok:
         passed += 1
-    
+
     badge = "PASS" if ok else "FAIL"
     print(f"[{badge}] {tc['name']}")
     print(f"       Verification Status: {v.get('status')} (Expected: {tc['expected_status']})")

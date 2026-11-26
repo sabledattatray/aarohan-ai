@@ -16,7 +16,6 @@ Implements:
 from __future__ import annotations
 
 import enum
-import hashlib
 import json
 import logging
 import re
@@ -25,7 +24,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("aarohan.cognitive_memory")
 
@@ -1052,8 +1051,6 @@ class CognitiveMemoryEngine:
         Returns FOUND with records, NOT_FOUND, or None if nothing relevant.
         """
         q = query.strip()
-        q_upper = q.upper()
-        q_lower = q.lower()
 
         with self._connect() as conn:
             matched_records: List[Dict[str, Any]] = []
@@ -1221,12 +1218,10 @@ class CognitiveMemoryEngine:
             key = rec["memory_key"]
             curr_val = rec["current_value"]
             subj = rec.get("subject", key)
-            pred = rec.get("predicate", "means")
             cond = rec.get("conditions", "")
             versions = rec.get("versions", [])
             rec_id = rec["id"]
             created = rec.get("created_at", "")
-            updated = rec.get("updated_at", "")
             has_correction = len(versions) > 1
 
             lines.append(f"#### `{key}`")
@@ -1234,7 +1229,7 @@ class CognitiveMemoryEngine:
                 lines.append(f"- **Condition:** {cond}")
             lines.append(f"- **Subject:** {subj}")
             lines.append(f"- **Rule:** {curr_val}")
-            lines.append(f"- **Source:** Persistent Cognitive Memory")
+            lines.append("- **Source:** Persistent Cognitive Memory")
             lines.append(f"- **Record ID:** `{rec_id}`")
             lines.append(f"- **Created:** {created[:19] if created else 'unknown'}")
             if has_correction and wants_history:

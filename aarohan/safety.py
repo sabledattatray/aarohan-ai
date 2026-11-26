@@ -102,8 +102,7 @@ class SafetyFilter:
 
         return {
             "flagged": is_suspicious,
-            "threat_type": "prompt_injection" if is_suspicious else None,
-            "threat_subtype": threat_categories[0] if threat_categories else None,
+            "threat_type": threat_categories[0] if threat_categories else None,
             "threat_categories": list(set(threat_categories)),
             "matched_patterns": matched_patterns,
             "risk_score": round(risk_score, 2),

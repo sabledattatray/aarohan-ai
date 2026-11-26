@@ -18,42 +18,48 @@ from __future__ import annotations
 import json
 import logging
 import secrets
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
+from aarohan.capabilities import get_capability_registry, resolve_capability_query
 from aarohan.continual import RollbackManager
+from aarohan.documents.extractor import DocumentExtractor
+from aarohan.documents.generator import PDFGenerator
 from aarohan.evaluator import MultiAreaEvaluator
 from aarohan.foundation_engine import FoundationEngine
 from aarohan.generation.datasets import DatasetGenerator
-from aarohan.generation.images import ImageStudioManager, PromptEnhancer, ImageEditor
-from aarohan.documents.extractor import DocumentExtractor
-from aarohan.documents.generator import PDFGenerator
+from aarohan.generation.images import ImageStudioManager
+from aarohan.inference import InferenceManager
+from aarohan.learning import LearningEngine
+from aarohan.memory import MemoryStore
+from aarohan.nlp import (
+    ContextResolver,
+    Intent,
+    IntentClassifier,
+    TextNormalizer,
+    resolve_identity_query,
+    resolve_scientific_law,
+)
+from aarohan.nlp.decomposer import MultiTaskDecomposer
+from aarohan.nlp.task_router import TaskRouter
+from aarohan.rag import RAGPipeline
+from aarohan.research import BoundedResearchEngine, KnowledgeGapDetector, LearningQueue
+from aarohan.safety import AuditLogger, RateLimiter, SafetyFilter
+from aarohan.scheduler import LearningScheduler
 from aarohan.tools.analytics import AnalyticsEngine
+from aarohan.tools.math_verifier import MathVerifier
+from aarohan.tools.registry import ToolRegistry
 from aarohan.tools.sandbox import CodeSandbox
 from aarohan.tools.sql_executor import SQLExecutor
 from aarohan.tools.sql_validator import SQLValidator
-from aarohan.tools.math_verifier import MathVerifier
-from aarohan.tools.verification import ExecutionResult, ExecutionStatus
-from aarohan.tools.registry import ToolRegistry
-from aarohan.memory import MemoryStore
-from aarohan.learning import LearningEngine
-from aarohan.nlp.decomposer import MultiTaskDecomposer
-from aarohan.verification_gate import OutputVerificationGate
 from aarohan.tools.web_search import WebSearchEngine
-from aarohan.capabilities import get_capability_registry, resolve_capability_query
-from aarohan.nlp.task_router import TaskRouter, TaskType
-from aarohan.nlp import ContextResolver, Intent, IntentClassifier, TextNormalizer, resolve_identity_query, resolve_scientific_law
-from aarohan.research import BoundedResearchEngine, KnowledgeGapDetector, LearningQueue
-from aarohan.safety import AuditLogger, SafetyFilter, RateLimiter, validate_file_path
-from aarohan.scheduler import LearningScheduler
-from aarohan.inference import InferenceManager
-from aarohan.rag import RAGPipeline
-from scripts.chat_sft import generate_chat_response, stream_chat_response
+from aarohan.verification_gate import OutputVerificationGate
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +102,7 @@ class ChatRequest(BaseModel):
     max_new_tokens: int = Field(1024, ge=1, le=2048)
     temperature: float = Field(0.7, ge=0.01, le=2.0)
     messages: list[dict[str, str]] = Field(default_factory=list, description="Recent conversation turns")
+    session_id: Optional[str] = Field(None, description="Conversation session ID for grouping turns")
 
 
 class MemoryAddRequest(BaseModel):
@@ -333,14 +340,13 @@ def create_app(
     analytics_engine = AnalyticsEngine()
     code_sandbox = CodeSandbox()
     image_manager = ImageStudioManager(db_path=database_path)
-    image_engine = image_manager
     document_extractor = DocumentExtractor()
     pdf_generator = PDFGenerator()
     sql_executor = SQLExecutor(default_db=database_path)
     sql_validator = SQLValidator()
     math_verifier = MathVerifier()
-    task_router = TaskRouter()
-    capability_registry = get_capability_registry()
+    _ = TaskRouter()
+    _ = get_capability_registry()
     tool_registry = ToolRegistry()
     learning_engine = LearningEngine(database_path)
     multi_task_decomposer = MultiTaskDecomposer(
@@ -716,9 +722,9 @@ def create_app(
         context_res = context_resolver.resolve(processed_query, history=req.messages if req.messages else None)
         resolved_query = context_res.resolved_query
 
+        session_id = req.session_id or f"session_{int(time.time() * 1000)}"
+
         auto_dataset_link = _handle_auto_dataset(processed_query, resolved_query, intent_res)
-        auto_image_block = _handle_auto_image(processed_query, resolved_query, intent_res, req.messages)
-        auto_media_prefix = auto_dataset_link + auto_image_block
         auto_image_block = _handle_auto_image(processed_query, resolved_query, intent_res, req.messages)
         auto_media_prefix = auto_dataset_link + auto_image_block
 
@@ -960,7 +966,14 @@ def create_app(
             confidence=0.5,
             verification_status="unverified",
             user_scope=user_scope,
-            metadata={"pii_detected": pii_detected, "user": user_scope, "engine": req.engine},
+            metadata={
+                "pii_detected": pii_detected,
+                "user": user_scope,
+                "engine": req.engine,
+                "session_id": session_id,
+                "user_query": sanitized_query,
+                "assistant_response": response_text,
+            },
         )
         # Extract user preferences and procedural instructions
         store.extract_and_remember(sanitized_query, user_scope=user_scope)
@@ -1003,6 +1016,7 @@ def create_app(
         )
 
         return {
+            "session_id": session_id,
             "query": sanitized_query,
             "normalized_query": processed_query,
             "intent": primary_intent.value,
@@ -1120,10 +1134,29 @@ def create_app(
         if fact_snippets:
             system_content += "\n[Verified Reference Context]: " + " ".join(fact_snippets)
 
-        messages = [
-            {"role": "system", "content": system_content},
-            {"role": "user", "content": processed_query},
-        ]
+        session_id = req.session_id or f"session_{int(time.time() * 1000)}"
+
+        def _persist_turn(u_query: str, a_resp: str, eng: str):
+            try:
+                turn_record = f"User: {u_query} | AAROHAN: {a_resp}"
+                store.add(
+                    turn_record,
+                    source="user_conversation",
+                    memory_type="episodic",
+                    confidence=0.5,
+                    verification_status="unverified",
+                    metadata={
+                        "pii_detected": pii_detected,
+                        "user": user["username"],
+                        "engine": eng,
+                        "session_id": session_id,
+                        "user_query": u_query,
+                        "assistant_response": a_resp,
+                    },
+                    user_scope=user_scope,
+                )
+            except Exception as ex_t:
+                logger.debug("Failed saving episodic turn: %s", ex_t)
 
         def _stream_static_response(text: str, source_label: str, ckpt: str, intent_label: str):
             verdict = verification_gate.guard_response(
@@ -1138,6 +1171,7 @@ def create_app(
             init_event = {
                 "type": "context",
                 "engine": req.engine,
+                "session_id": session_id,
                 "intent": intent_label,
                 "normalized_query": processed_query,
                 "retrieved_memory": [],
@@ -1151,6 +1185,7 @@ def create_app(
             for i, w in enumerate(words):
                 token = w + (" " if i < len(words) - 1 else "")
                 yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
+            _persist_turn(sanitized_query, guarded_text, req.engine)
             done_event = {
                 "type": "done",
                 "generated_tokens": 0,
@@ -1158,6 +1193,7 @@ def create_app(
                 "response_source": source_label,
                 "model_invoked": False,
                 "verification": verdict.to_dict(),
+                "session_id": session_id,
             }
             yield f"data: {json.dumps(done_event)}\n\n"
 
@@ -1262,6 +1298,7 @@ def create_app(
                 init_event = {
                     "type": "context",
                     "engine": req.engine,
+                    "session_id": session_id,
                     "intent": primary_intent.value,
                     "normalized_query": processed_query,
                     "retrieved_memory": [],
@@ -1272,10 +1309,12 @@ def create_app(
                 for i, w in enumerate(words):
                     token = w + (" " if i < len(words) - 1 else "")
                     yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
+                _persist_turn(sanitized_query, identity_reply, req.engine)
                 done_event = {
                     "type": "done",
                     "generated_tokens": len(words),
                     "checkpoint": f"aarohan_{req.engine}",
+                    "session_id": session_id,
                 }
                 yield f"data: {json.dumps(done_event)}\n\n"
 
@@ -1286,6 +1325,7 @@ def create_app(
                 init_event = {
                     "type": "context",
                     "engine": req.engine,
+                    "session_id": session_id,
                     "intent": "CAPABILITY_INQUIRY",
                     "normalized_query": processed_query,
                     "retrieved_memory": [],
@@ -1296,10 +1336,12 @@ def create_app(
                 for i, w in enumerate(words):
                     token = w + (" " if i < len(words) - 1 else "")
                     yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
+                _persist_turn(sanitized_query, capability_reply, req.engine)
                 done_event = {
                     "type": "done",
                     "generated_tokens": len(words),
                     "checkpoint": "aarohan_capabilities_engine",
+                    "session_id": session_id,
                 }
                 yield f"data: {json.dumps(done_event)}\n\n"
 
@@ -1310,6 +1352,7 @@ def create_app(
                 init_event = {
                     "type": "context",
                     "engine": req.engine,
+                    "session_id": session_id,
                     "intent": "SCIENTIFIC_LAW",
                     "normalized_query": processed_query,
                     "retrieved_memory": [
@@ -1334,11 +1377,14 @@ def create_app(
                         token = w + (" " if i < len(words) - 1 else "")
                         yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
                     if p_idx < len(paragraphs) - 1:
-                        yield f"data: {json.dumps({'type': 'token', 'token': '\n\n'})}\n\n"
+                        newline_chunk = json.dumps({"type": "token", "token": "\n\n"})
+                        yield f"data: {newline_chunk}\n\n"
+                _persist_turn(sanitized_query, science_law.detailed_markdown, req.engine)
                 done_event = {
                     "type": "done",
                     "generated_tokens": words_total,
                     "checkpoint": "aarohan_scientific_grounding",
+                    "session_id": session_id,
                 }
                 yield f"data: {json.dumps(done_event)}\n\n"
 
@@ -1357,10 +1403,10 @@ def create_app(
             init_event = {
                 "type": "context",
                 "engine": req.engine,
+                "session_id": session_id,
                 "intent": primary_intent.value,
                 "query_type": query_type,
                 "knowledge_source": "model_weights",
-                "response_source": "foundation_model" if req.engine == "foundation" else "custom_neural_model",
                 "citations": [],
                 "confidence_assessment": "high",
                 "normalized_query": processed_query,
@@ -1400,16 +1446,7 @@ def create_app(
                     token_count += 1
                     yield f"data: {json.dumps({'type': 'token', 'token': chunk})}\n\n"
 
-                turn_record = f"User: {sanitized_query} | AAROHAN: {full_text}"
-                store.add(
-                    turn_record,
-                    source="user_conversation",
-                    memory_type="episodic",
-                    confidence=0.5,
-                    verification_status="unverified",
-                    metadata={"pii_detected": pii_detected, "user": user["username"], "engine": req.engine},
-                    user_scope=user_scope,
-                )
+                _persist_turn(sanitized_query, full_text, req.engine)
                 try:
                     store.extract_and_remember(sanitized_query, user_scope=user_scope, source="user_conversation")
                 except Exception as ex_ext:
@@ -1418,9 +1455,9 @@ def create_app(
                     "chat_stream_turn",
                     actor=user["username"],
                     target=f"aarohan_{req.engine}",
-                    details={"tokens": token_count},
+                    details={"tokens": token_count, "session_id": session_id},
                 )
-                yield f"data: {json.dumps({'type': 'done', 'generated_tokens': token_count, 'model_name': req.engine})}\n\n"
+                yield f"data: {json.dumps({'type': 'done', 'generated_tokens': token_count, 'model_name': req.engine, 'session_id': session_id})}\n\n"
                 return
             except Exception as e:
                 logger.error("Streaming error with inference manager: %s", e)
@@ -1433,7 +1470,7 @@ def create_app(
     # Conversation History
     # -------------------------------------------------------------------------
     @app.get("/api/conversations")
-    def get_conversations(limit: int = 20, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+    def get_conversations(limit: int = 30, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
         user_scope = user.get("username", "default_user")
         with store._connect() as conn:
             cursor = conn.cursor()
@@ -1442,24 +1479,134 @@ def create_app(
                 SELECT id, content, created_at, metadata_json, user_scope
                 FROM memories
                 WHERE memory_type = 'episodic' AND source = 'user_conversation' AND (user_scope = ? OR user_scope = 'default_user' OR user_scope IS NULL)
-                ORDER BY created_at DESC
-                LIMIT ?
+                ORDER BY created_at ASC
                 """,
-                (user_scope, limit),
+                (user_scope,),
             )
             rows = cursor.fetchall()
 
-        conversations = []
+        sessions_map: dict[str, dict[str, Any]] = {}
         for r in rows:
             meta = json.loads(r["metadata_json"]) if r["metadata_json"] else {}
-            conversations.append({
+            sid = meta.get("session_id") or f"session_{r['id']}"
+
+            user_query = meta.get("user_query")
+            assistant_response = meta.get("assistant_response")
+            content = r["content"] or ""
+            if not user_query:
+                if " | AAROHAN: " in content:
+                    parts = content.split(" | AAROHAN: ", 1)
+                    user_query = parts[0].replace("User: ", "").strip()
+                    assistant_response = parts[1].strip() if not assistant_response else assistant_response
+                else:
+                    user_query = content.replace("User: ", "").strip()
+
+            turn_obj = {
                 "id": r["id"],
-                "content": r["content"],
+                "user": user_query or "Query",
+                "assistant": assistant_response or "",
                 "created_at": r["created_at"],
-                "metadata": meta,
-                "user_scope": r["user_scope"] if "user_scope" in r.keys() else "default_user",
-            })
-        return {"conversations": conversations}
+                "content": content,
+                "engine": meta.get("engine", "foundation"),
+            }
+
+            if sid not in sessions_map:
+                sessions_map[sid] = {
+                    "id": sid,
+                    "session_id": sid,
+                    "title": (user_query or "Conversation")[:60],
+                    "content": f"User: {user_query or 'Conversation'}",
+                    "created_at": r["created_at"],
+                    "updated_at": r["created_at"],
+                    "turns_count": 0,
+                    "turns": [],
+                    "user_scope": r["user_scope"] if "user_scope" in r.keys() else "default_user",
+                }
+
+            sessions_map[sid]["turns"].append(turn_obj)
+            sessions_map[sid]["turns_count"] += 1
+            sessions_map[sid]["updated_at"] = r["created_at"]
+
+        # Sort grouped sessions by updated_at descending
+        sorted_sessions = sorted(
+            sessions_map.values(),
+            key=lambda s: s.get("updated_at") or "",
+            reverse=True,
+        )[:limit]
+        return {"conversations": sorted_sessions}
+
+    @app.get("/api/conversations/{session_id}")
+    def get_conversation_session(session_id: str, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        user_scope = user.get("username", "default_user")
+        with store._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, content, created_at, metadata_json, user_scope
+                FROM memories
+                WHERE memory_type = 'episodic' AND source = 'user_conversation' AND (user_scope = ? OR user_scope = 'default_user' OR user_scope IS NULL)
+                ORDER BY created_at ASC
+                """,
+                (user_scope,),
+            )
+            rows = cursor.fetchall()
+
+        matched_turns = []
+        for r in rows:
+            meta = json.loads(r["metadata_json"]) if r["metadata_json"] else {}
+            sid = meta.get("session_id") or f"session_{r['id']}"
+            if sid == session_id or str(r["id"]) == session_id:
+                content = r["content"] or ""
+                user_query = meta.get("user_query")
+                assistant_response = meta.get("assistant_response")
+                if not user_query:
+                    if " | AAROHAN: " in content:
+                        parts = content.split(" | AAROHAN: ", 1)
+                        user_query = parts[0].replace("User: ", "").strip()
+                        assistant_response = parts[1].strip() if not assistant_response else assistant_response
+                    else:
+                        user_query = content.replace("User: ", "").strip()
+                matched_turns.append({
+                    "id": r["id"],
+                    "user": user_query or "Query",
+                    "assistant": assistant_response or "",
+                    "created_at": r["created_at"],
+                    "content": content,
+                    "engine": meta.get("engine", "foundation"),
+                })
+
+        if not matched_turns:
+            raise HTTPException(status_code=404, detail=f"Conversation session '{session_id}' not found")
+
+        title = matched_turns[0]["user"][:60]
+        return {
+            "id": session_id,
+            "session_id": session_id,
+            "title": title,
+            "turns_count": len(matched_turns),
+            "created_at": matched_turns[0]["created_at"],
+            "updated_at": matched_turns[-1]["created_at"],
+            "turns": matched_turns,
+        }
+
+    @app.delete("/api/conversations/{session_id}")
+    def delete_conversation_session(session_id: str, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        user_scope = user.get("username", "default_user")
+        with store._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                DELETE FROM memories
+                WHERE memory_type = 'episodic' AND source = 'user_conversation'
+                  AND (user_scope = ? OR user_scope = 'default_user' OR user_scope IS NULL)
+                  AND (id = ? OR metadata_json LIKE ? OR metadata_json LIKE ?)
+                """,
+                (user_scope, session_id, f'%"session_id": "{session_id}"%', f'%"session_id":"{session_id}"%'),
+            )
+            deleted = cursor.rowcount
+            conn.commit()
+        audit.log("conversation_session_deleted", actor=user["username"], target="memories", details={"session_id": session_id, "count": deleted})
+        return {"session_id": session_id, "deleted_count": deleted}
 
     @app.delete("/api/conversations")
     def clear_conversations(user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
@@ -1525,16 +1672,8 @@ def create_app(
             cursor = conn.cursor()
             for layer_name in layers:
                 if layer_name == "knowledge_graph":
-                    cnt = 0
-                    try:
-                        cursor.execute("SELECT COUNT(*) AS count FROM knowledge_entities")
-                        cnt = cursor.fetchone()["count"]
-                    except sqlite3.OperationalError:
-                        try:
-                            cursor.execute("SELECT COUNT(*) AS count FROM graph_entities")
-                            cnt = cursor.fetchone()["count"]
-                        except sqlite3.OperationalError:
-                            cnt = 0
+                    cursor.execute("SELECT COUNT(*) AS count FROM graph_entities")
+                    cnt = cursor.fetchone()["count"]
                     breakdown[layer_name] = {"count": cnt, "samples": []}
                     continue
                 cursor.execute(
@@ -1723,26 +1862,10 @@ def create_app(
     def list_models() -> dict[str, Any]:
         state = rollback_mgr._load_state()
         active = rollback_mgr.get_active()
-        engines = inference_manager.list_models()
-        models = [
-            {
-                "name": eng.get("model_id", eng.get("alias")),
-                "model_type": "Foundation Model" if eng.get("alias") == "foundation" else "Custom Neural Transformer",
-                "alias": eng.get("alias"),
-                "device": eng.get("device"),
-                "total_parameters": eng.get("parameters"),
-                "loaded": eng.get("is_loaded", False),
-                "capabilities": eng.get("capabilities", []),
-                "health": "healthy",
-            }
-            for eng in engines
-        ]
         return {
             "active_checkpoint": active,
-            "active_engine": getattr(inference_manager, "active_engine", "foundation"),
             "deployments": state.get("history", []),
-            "inference_engines": engines,
-            "models": models,
+            "inference_engines": inference_manager.list_models(),
             "health": inference_manager.health_check_all(),
         }
 

@@ -17,6 +17,7 @@ Verifies:
 from __future__ import annotations
 
 from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -26,8 +27,8 @@ from aarohan.capabilities import (
     get_capability_registry,
     resolve_capability_query,
 )
-from aarohan.nlp.identity import resolve_identity_query
 from aarohan.documents.generator import PDFGenerator
+from aarohan.nlp.identity import resolve_identity_query
 from aarohan.tools.sql_executor import SQLExecutor
 
 

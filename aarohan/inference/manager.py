@@ -9,7 +9,6 @@ from typing import Any, Dict, Iterator, List, Optional
 from aarohan.inference.base import (
     BaseInferenceEngine,
     GenerationResult,
-    ModelInfo,
 )
 from aarohan.inference.custom import CustomTransformerInferenceEngine
 from aarohan.inference.foundation import FoundationInferenceEngine

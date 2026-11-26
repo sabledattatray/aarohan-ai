@@ -32,10 +32,10 @@ for q, expected_source, expected_invoked in test_cases:
         tokens = mr.get("generated_tokens")
         ckpt = mr.get("checkpoint")
         text = res.get("response", "")
-        
+
         src_ok = (source == expected_source)
         inv_ok = (invoked == expected_invoked)
-        
+
         print(f"QUERY: {q}")
         print(f"  SOURCE: {source} (Expected: {expected_source}) -> {'PASS' if src_ok else 'FAIL'}")
         print(f"  INVOKED: {invoked} (Expected: {expected_invoked}) -> {'PASS' if inv_ok else 'FAIL'}")
@@ -72,16 +72,16 @@ for q, expected_source, expected_invoked in stream_cases:
                     tokens.append(event.get("token", ""))
                 elif event.get("type") == "done":
                     done_event = event
-        
+
         full_text = "".join(tokens)
         source = done_event.get("response_source") if done_event else None
         invoked = done_event.get("model_invoked") if done_event else None
         tokens_count = done_event.get("generated_tokens") if done_event else None
         ckpt = done_event.get("checkpoint") if done_event else None
-        
+
         src_ok = (source == expected_source)
         inv_ok = (invoked == expected_invoked)
-        
+
         print(f"STREAM QUERY: {q}")
         print(f"  SOURCE: {source} (Expected: {expected_source}) -> {'PASS' if src_ok else 'FAIL'}")
         print(f"  INVOKED: {invoked} (Expected: {expected_invoked}) -> {'PASS' if inv_ok else 'FAIL'}")

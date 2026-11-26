@@ -10,7 +10,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from fastapi.testclient import TestClient
+
 from aarohan.api import create_app
+
 
 def main():
     app = create_app()
@@ -28,7 +30,7 @@ def main():
     ]
 
     for q in questions:
-        print(f"\n==========================================")
+        print("\n==========================================")
         print(f"QUERY: {q}")
         res = client.post("/api/chat", json={"query": q, "engine": "foundation", "max_new_tokens": 200})
         if res.status_code != 200:

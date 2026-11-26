@@ -46,7 +46,7 @@ class FoundationInferenceEngine(BaseInferenceEngine):
         with self._load_lock:
             if self.is_loaded():
                 return
-            
+
             # Check if existing singleton in FoundationEngine already holds the model
             try:
                 from aarohan.foundation_engine import FoundationEngine
@@ -66,7 +66,7 @@ class FoundationInferenceEngine(BaseInferenceEngine):
             logger.info("Loading foundation model %s on %s...", self.model_name_or_path, self.device)
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path)
             dtype = torch.float16 if self.device == "cuda" else torch.float32
-            
+
             try:
                 self.model = AutoModelForCausalLM.from_pretrained(
                     self.model_name_or_path,

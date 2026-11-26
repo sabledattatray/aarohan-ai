@@ -11,10 +11,10 @@ Validates:
 """
 
 import time
+
 import pytest
-from pathlib import Path
-import tempfile
-from aarohan.memory import MemoryStore, VALID_MEMORY_TYPES
+
+from aarohan.memory import VALID_MEMORY_TYPES, MemoryStore
 
 
 @pytest.fixture

@@ -21,15 +21,13 @@
 from __future__ import annotations
 
 import gc
-import json
 import sqlite3
-from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
-from aarohan.learning import LearningEngine, ExtractedRule
 from aarohan.api import create_app
-
+from aarohan.learning import ExtractedRule, LearningEngine
 
 LEARNING_PROMPT = """I am teaching you 5 new business rules for handling accounts.
 Please learn and store these rules under namespace LEARNING_TEST_2026_01:

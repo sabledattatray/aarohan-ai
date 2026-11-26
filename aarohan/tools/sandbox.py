@@ -10,7 +10,6 @@ import subprocess
 import sys
 import tempfile
 import time
-from pathlib import Path
 from typing import Any, Dict, Optional
 
 from aarohan.tools.verification import ExecutionResult, ExecutionStatus
