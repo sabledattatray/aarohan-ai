@@ -259,6 +259,13 @@ def create_app(
                 "commercial_api_fallback_permitted": False,
                 "unverified_memory_default": True,
             },
+            "nlp_engine": {
+                "p0_status": "operational",
+                "normalizer": True,
+                "intent_classifier": True,
+                "context_resolver": True,
+                "supported_intents_count": len(Intent),
+            },
         }
 
     def _handle_auto_dataset(
@@ -1992,6 +1999,8 @@ def get_dashboard_html() -> str:
               <li>Local Offline Model: <span class="text-emerald-400">Enforced (Zero Commercial API)</span></li>
               <li>Prompt Injection Defense: <span class="text-emerald-400">Active</span></li>
               <li>PII Redaction: <span class="text-emerald-400">Active</span></li>
+              <li>P0 Intelligence Engine: <span class="text-emerald-400">Active (Typo Normalizer, 21-Intent Classifier, Context Resolver)</span></li>
+              <li>KaTeX Math Rendering: <span class="text-emerald-400">Active</span></li>
             </ul>
           </div>
         `;
