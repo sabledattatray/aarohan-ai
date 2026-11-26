@@ -27,6 +27,7 @@ from pydantic import BaseModel, Field
 
 from aarohan.continual import RollbackManager
 from aarohan.evaluator import MultiAreaEvaluator
+from aarohan.foundation_engine import FoundationEngine
 from aarohan.memory import MemoryStore
 from aarohan.research import BoundedResearchEngine, KnowledgeGapDetector, LearningQueue
 from aarohan.safety import AuditLogger, SafetyFilter
@@ -53,10 +54,14 @@ class LoginRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, description="User input prompt")
-    system_prompt: str = Field("You are AAROHAN, an independent AI assistant.", description="System instruction")
+    system_prompt: str = Field(
+        "You are AAROHAN, an intelligent, sovereign AI cognitive assistant created to provide accurate, helpful, and insightful reasoning. Answer clearly, accurately, and politely.",
+        description="System instruction",
+    )
     memory_limit: int = Field(3, ge=1, le=10)
     retrieval_mode: str = Field("hybrid", pattern="^(keyword|vector|hybrid)$")
-    max_new_tokens: int = Field(48, ge=1, le=128)
+    engine: str = Field("foundation", pattern="^(foundation|scratch)$")
+    max_new_tokens: int = Field(256, ge=1, le=1024)
     temperature: float = Field(0.7, ge=0.01, le=2.0)
 
 
@@ -153,6 +158,7 @@ def create_app(
     queue = LearningQueue(store)
     audit = AuditLogger(database_path)
     rollback_mgr = RollbackManager(registry_path)
+    foundation_engine = FoundationEngine.get_instance()
 
     # Initialize active deployment pointer if none set
     if not rollback_mgr.get_active() and checkpoint_path.is_file():
@@ -199,9 +205,14 @@ def create_app(
             "status": "healthy",
             "model_loaded": checkpoint_path.is_file(),
             "active_checkpoint": active_ckpt,
+            "foundation_engine": {
+                "model": foundation_engine.model_name_or_path,
+                "loaded": foundation_engine.is_loaded(),
+                "device": foundation_engine.device,
+            },
             "system_resources": res_info,
             "memory_items": total_items,
-            "architecture": "Causal Transformer (RoPE, SwiGLU, RMSNorm)",
+            "architecture": "Causal Transformer (RoPE, SwiGLU, RMSNorm) & Open-Weights Foundation LM",
         }
 
     @app.get("/api/settings")
@@ -238,13 +249,18 @@ def create_app(
 
         sanitized_query, pii_detected = SafetyFilter.redact_pii(req.query)
 
-        # Retrieve relevant memory evidence
+        # Retrieve relevant memory evidence (prioritize factual semantic/verified knowledge over past dialogue)
         if req.retrieval_mode == "vector":
-            retrieved = store.vector_search(sanitized_query, limit=req.memory_limit)
+            retrieved = store.vector_search(sanitized_query, limit=req.memory_limit * 2)
         elif req.retrieval_mode == "hybrid":
-            retrieved = store.hybrid_search(sanitized_query, limit=req.memory_limit)
+            retrieved = store.hybrid_search(sanitized_query, limit=req.memory_limit * 2)
         else:
-            retrieved = store.search(sanitized_query, limit=req.memory_limit)
+            retrieved = store.search(sanitized_query, limit=req.memory_limit * 2)
+
+        # Exclude raw user chat logs from factual evidence
+        factual_retrieved = [m for m in retrieved if m.get("source") != "user_conversation"][:req.memory_limit]
+        if not factual_retrieved:
+            factual_retrieved = retrieved[:req.memory_limit]
 
         # Retrieve relevant Knowledge Graph entities
         entities = store.list_entities()
@@ -252,15 +268,11 @@ def create_app(
             e for e in entities if e["name"].lower() in sanitized_query.lower()
         ][:3]
 
-        active_ckpt_path = Path(rollback_mgr.get_active() or checkpoint_path)
-        if not active_ckpt_path.is_file():
-            raise HTTPException(status_code=503, detail="Active model checkpoint not found on disk")
-
         # Augment system prompt with concise retrieved knowledge if available
         system_content = req.system_prompt
         fact_snippets = [
             m["content"].strip()
-            for m in retrieved
+            for m in factual_retrieved
             if m.get("source") != "user_conversation" and len(m["content"].strip()) < 120
         ][:2]
         if fact_snippets:
@@ -271,33 +283,72 @@ def create_app(
             {"role": "user", "content": sanitized_query},
         ]
 
-        model_res = generate_chat_response(
-            checkpoint_path=active_ckpt_path,
-            tokenizer_path=tokenizer_path,
-            messages=messages,
-            max_new_tokens=req.max_new_tokens,
-            temperature=req.temperature,
-        )
+        # Generate model response using selected engine (foundation open-weights or custom scratch)
+        if req.engine == "foundation":
+            try:
+                foundation_res = foundation_engine.generate(
+                    prompt=sanitized_query,
+                    system_prompt=system_content,
+                    max_new_tokens=req.max_new_tokens,
+                    temperature=req.temperature,
+                )
+                response_text = foundation_res["response"]
+                generated_tokens = foundation_res["generated_tokens"]
+                checkpoint_name = foundation_res["model_name"]
+                warning_msg = None
+            except Exception as e:
+                # Fallback to scratch model if foundation model load has an issue
+                active_ckpt_path = Path(rollback_mgr.get_active() or checkpoint_path)
+                if not active_ckpt_path.is_file():
+                    raise HTTPException(status_code=500, detail=f"Foundation engine error: {e}")
+                scratch_res = generate_chat_response(
+                    checkpoint_path=active_ckpt_path,
+                    tokenizer_path=tokenizer_path,
+                    messages=messages,
+                    max_new_tokens=req.max_new_tokens,
+                    temperature=req.temperature,
+                )
+                response_text = scratch_res["response"]
+                generated_tokens = scratch_res["generated_tokens"]
+                checkpoint_name = scratch_res["checkpoint"]
+                warning_msg = f"Foundation fallback triggered: {e}"
+        else:
+            active_ckpt_path = Path(rollback_mgr.get_active() or checkpoint_path)
+            if not active_ckpt_path.is_file():
+                raise HTTPException(status_code=503, detail="Active model checkpoint not found on disk")
 
-        turn_record = f"User: {sanitized_query} | AAROHAN: {model_res['response']}"
+            scratch_res = generate_chat_response(
+                checkpoint_path=active_ckpt_path,
+                tokenizer_path=tokenizer_path,
+                messages=messages,
+                max_new_tokens=req.max_new_tokens,
+                temperature=req.temperature,
+            )
+            response_text = scratch_res["response"]
+            generated_tokens = scratch_res["generated_tokens"]
+            checkpoint_name = scratch_res["checkpoint"]
+            warning_msg = scratch_res["warning"]
+
+        turn_record = f"User: {sanitized_query} | AAROHAN: {response_text}"
         store.add(
             turn_record,
             source="user_conversation",
             memory_type="episodic",
             confidence=0.5,
             verification_status="unverified",
-            metadata={"pii_detected": pii_detected, "user": user["username"]},
+            metadata={"pii_detected": pii_detected, "user": user["username"], "engine": req.engine},
         )
 
-        audit.log("chat_turn", actor=user["username"], target="aarohan_model", details={"tokens": model_res["generated_tokens"]})
+        audit.log("chat_turn", actor=user["username"], target=f"aarohan_{req.engine}", details={"tokens": generated_tokens})
 
         return {
             "query": sanitized_query,
+            "engine": req.engine,
             "model_response": {
-                "text": model_res["response"],
-                "generated_tokens": model_res["generated_tokens"],
-                "checkpoint": model_res["checkpoint"],
-                "warning": model_res["warning"],
+                "text": response_text,
+                "generated_tokens": generated_tokens,
+                "checkpoint": checkpoint_name,
+                "warning": warning_msg,
             },
             "retrieved_memory": [
                 {
@@ -308,7 +359,7 @@ def create_app(
                     "confidence": m.get("confidence"),
                     "memory_type": m.get("memory_type"),
                 }
-                for m in retrieved
+                for m in factual_retrieved
             ],
             "retrieved_entities": matched_entities,
             "safety": {
@@ -338,13 +389,17 @@ def create_app(
 
         sanitized_query, pii_detected = SafetyFilter.redact_pii(req.query)
 
-        # Retrieve relevant memory evidence
+        # Retrieve relevant memory evidence (prioritize factual semantic/verified knowledge)
         if req.retrieval_mode == "vector":
-            retrieved = store.vector_search(sanitized_query, limit=req.memory_limit)
+            retrieved = store.vector_search(sanitized_query, limit=req.memory_limit * 2)
         elif req.retrieval_mode == "hybrid":
-            retrieved = store.hybrid_search(sanitized_query, limit=req.memory_limit)
+            retrieved = store.hybrid_search(sanitized_query, limit=req.memory_limit * 2)
         else:
-            retrieved = store.search(sanitized_query, limit=req.memory_limit)
+            retrieved = store.search(sanitized_query, limit=req.memory_limit * 2)
+
+        factual_retrieved = [m for m in retrieved if m.get("source") != "user_conversation"][:req.memory_limit]
+        if not factual_retrieved:
+            factual_retrieved = retrieved[:req.memory_limit]
 
         active_ckpt_path = Path(rollback_mgr.get_active() or checkpoint_path)
         if not active_ckpt_path.is_file():
@@ -354,7 +409,7 @@ def create_app(
         system_content = req.system_prompt
         fact_snippets = [
             m["content"].strip()
-            for m in retrieved
+            for m in factual_retrieved
             if m.get("source") != "user_conversation" and len(m["content"].strip()) < 120
         ][:2]
         if fact_snippets:
@@ -369,6 +424,7 @@ def create_app(
             # Send initial context event with retrieved memories
             init_event = {
                 "type": "context",
+                "engine": req.engine,
                 "retrieved_memory": [
                     {
                         "id": m["id"],
@@ -378,27 +434,27 @@ def create_app(
                         "confidence": m.get("confidence"),
                         "memory_type": m.get("memory_type"),
                     }
-                    for m in retrieved
+                    for m in factual_retrieved
                 ],
                 "safety": {"pii_redacted": pii_detected, "injection_scan": "passed"},
             }
             yield f"data: {json.dumps(init_event)}\n\n"
 
-            # Stream tokens
-            token_gen = stream_chat_response(
-                checkpoint_path=active_ckpt_path,
-                tokenizer_path=tokenizer_path,
-                messages=messages,
-                max_new_tokens=req.max_new_tokens,
-                temperature=req.temperature,
-            )
             full_text = ""
-            for item in token_gen:
-                if item["type"] == "token":
-                    full_text += item["token"]
-                    yield f"data: {json.dumps(item)}\n\n"
-                elif item["type"] == "done":
-                    # Record turn in episodic memory
+            token_count = 0
+
+            if req.engine == "foundation":
+                try:
+                    for chunk in foundation_engine.generate_stream(
+                        prompt=sanitized_query,
+                        system_prompt=system_content,
+                        max_new_tokens=req.max_new_tokens,
+                        temperature=req.temperature,
+                    ):
+                        full_text += chunk
+                        token_count += 1
+                        yield f"data: {json.dumps({'type': 'token', 'token': chunk})}\n\n"
+
                     turn_record = f"User: {sanitized_query} | AAROHAN: {full_text}"
                     store.add(
                         turn_record,
@@ -406,12 +462,51 @@ def create_app(
                         memory_type="episodic",
                         confidence=0.5,
                         verification_status="unverified",
-                        metadata={"pii_detected": pii_detected, "user": user["username"]},
+                        metadata={"pii_detected": pii_detected, "user": user["username"], "engine": "foundation"},
                     )
                     audit.log(
                         "chat_stream_turn",
                         actor=user["username"],
-                        target="aarohan_model",
+                        target="foundation_model",
+                        details={"tokens": token_count},
+                    )
+                    yield f"data: {json.dumps({'type': 'done', 'generated_tokens': token_count, 'model_name': foundation_engine.model_name_or_path})}\n\n"
+                    return
+                except Exception as e:
+                    fallback_notice = f"\n[Foundation engine notice: {e}. Falling back to checkpoint]\n"
+                    yield f"data: {json.dumps({'type': 'token', 'token': fallback_notice})}\n\n"
+
+            # Fallback or explicit scratch checkpoint inference
+            active_ckpt_path = Path(rollback_mgr.get_active() or checkpoint_path)
+            if not active_ckpt_path.is_file():
+                yield f"data: {json.dumps({'type': 'error', 'reason': 'Model checkpoint not found'})}\n\n"
+                return
+
+            token_gen = stream_chat_response(
+                checkpoint_path=active_ckpt_path,
+                tokenizer_path=tokenizer_path,
+                messages=messages,
+                max_new_tokens=req.max_new_tokens,
+                temperature=req.temperature,
+            )
+            for item in token_gen:
+                if item["type"] == "token":
+                    full_text += item["token"]
+                    yield f"data: {json.dumps(item)}\n\n"
+                elif item["type"] == "done":
+                    turn_record = f"User: {sanitized_query} | AAROHAN: {full_text}"
+                    store.add(
+                        turn_record,
+                        source="user_conversation",
+                        memory_type="episodic",
+                        confidence=0.5,
+                        verification_status="unverified",
+                        metadata={"pii_detected": pii_detected, "user": user["username"], "engine": "scratch"},
+                    )
+                    audit.log(
+                        "chat_stream_turn",
+                        actor=user["username"],
+                        target="scratch_model",
                         details={"tokens": item["generated_tokens"]},
                     )
                     yield f"data: {json.dumps(item)}\n\n"
@@ -892,13 +987,18 @@ def get_dashboard_html() -> str:
             <p class="text-xs text-slate-400">Strictly powered by AAROHAN's original Transformer checkpoints. Evidence and neural output are decoupled.</p>
           </div>
           <div class="flex items-center space-x-2">
-            <label class="text-xs text-slate-400">Retrieval Mode:</label>
-            <select id="chat-mode" class="bg-slate-800 border border-slate-700 text-xs text-slate-200 rounded px-2 py-1">
-              <option value="hybrid" selected>Hybrid (Dense Vector + FTS BM25)</option>
-              <option value="vector">Vector Only (Cosine Similarity)</option>
-              <option value="keyword">Keyword (FTS5 BM25)</option>
+            <label class="text-xs text-slate-400">Engine:</label>
+            <select id="chat-engine" class="bg-slate-800 border border-blue-500/50 text-xs text-blue-300 font-medium rounded px-2 py-1">
+              <option value="foundation" selected>AAROHAN Foundation (Qwen2.5 - Fluent)</option>
+              <option value="scratch">AAROHAN Checkpoint (1.57M Scratch LM)</option>
             </select>
-            <label class="text-xs text-slate-400 ml-2">Stream:</label>
+            <label class="text-xs text-slate-400 ml-1">Retrieval:</label>
+            <select id="chat-mode" class="bg-slate-800 border border-slate-700 text-xs text-slate-200 rounded px-2 py-1">
+              <option value="hybrid" selected>Hybrid (Vector + BM25)</option>
+              <option value="vector">Vector Only</option>
+              <option value="keyword">Keyword (FTS5)</option>
+            </select>
+            <label class="text-xs text-slate-400 ml-1">Stream:</label>
             <input type="checkbox" id="chat-stream-toggle" checked class="rounded bg-slate-800 border-slate-700 text-blue-600">
           </div>
         </div>
@@ -922,7 +1022,7 @@ def get_dashboard_html() -> str:
             </button>
           </div>
           <div class="flex items-center justify-between text-[11px] text-slate-400 px-1">
-            <span>Tokens: max 48 &bull; Temp: 0.7 &bull; Safety injection screening enabled</span>
+            <span>Tokens: max 256 &bull; Temp: 0.7 &bull; Safety injection screening &bull; 100% Free Local</span>
             <span class="text-amber-400/80">&#9888; Neural completions are experimental and marked unverified by default</span>
           </div>
         </form>
@@ -1227,6 +1327,9 @@ def get_dashboard_html() -> str:
       currentLastQuery = text;
       const streamEnabled = document.getElementById('chat-stream-toggle').checked;
       const retrievalMode = document.getElementById('chat-mode').value;
+      const engine = document.getElementById('chat-engine') ? document.getElementById('chat-engine').value : 'foundation';
+      const isFoundation = engine === 'foundation';
+      const engineBadge = isFoundation ? 'Qwen2.5 Foundation · Fluent' : 'Custom Checkpoint';
       const chatBox = document.getElementById('chat-messages');
 
       // User Message bubble
@@ -1246,9 +1349,9 @@ def get_dashboard_html() -> str:
           <div class="max-w-2xl bg-slate-800 border border-slate-700 text-xs px-4 py-3 rounded-2xl rounded-tl-none space-y-2 shadow-md">
             <div class="flex items-center space-x-2 pb-1 border-b border-slate-700/60">
               <span class="font-bold text-blue-400">AAROHAN LM</span>
-              <span class="badge bg-slate-700 text-slate-300 text-[10px]">Neural Output</span>
+              <span class="badge ${isFoundation ? 'bg-blue-900/60 text-blue-300 border border-blue-600/40' : 'bg-slate-700 text-slate-300'} text-[10px]">${engineBadge}</span>
             </div>
-            <div id="${assistantId}" class="text-slate-200 leading-relaxed font-mono">Thinking...</div>
+            <div id="${assistantId}" class="text-slate-200 leading-relaxed font-sans text-xs whitespace-pre-wrap">Thinking...</div>
           </div>
         </div>
       `;
@@ -1261,7 +1364,7 @@ def get_dashboard_html() -> str:
           const resp = await fetch('/api/chat/stream', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({query: text, retrieval_mode: retrievalMode, max_new_tokens: 48})
+            body: JSON.stringify({query: text, retrieval_mode: retrievalMode, engine: engine, max_new_tokens: 256})
           });
           const reader = resp.body.getReader();
           const decoder = new TextDecoder();
@@ -1298,7 +1401,7 @@ def get_dashboard_html() -> str:
           const resp = await fetch('/api/chat', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({query: text, retrieval_mode: retrievalMode, max_new_tokens: 48})
+            body: JSON.stringify({query: text, retrieval_mode: retrievalMode, engine: engine, max_new_tokens: 256})
           });
           const data = await resp.json();
           if (data.blocked) {
