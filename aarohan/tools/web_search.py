@@ -175,7 +175,7 @@ class WebSearchEngine:
 
         for i, r in enumerate(results, 1):
             lines.append(f"#### {i}. [{r.title}]({r.url})\n")
-            lines.append(f"- **URL:** `{r.url}`\n")
+            lines.append(f"- **Direct Link:** [🔗 {r.url}]({r.url})\n")
             lines.append(f"- **Snippet:** {r.snippet}\n\n")
 
         lines.append(

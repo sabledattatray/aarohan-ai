@@ -818,6 +818,34 @@
     .katex .mop {
       color: #ffffff !important;
     }
+
+    /* Explicit Interactive Hyperlinks in Chat */
+    #chat-messages a,
+    .chat-message a,
+    .prose a {
+      color: #60A5FA !important;
+      text-decoration: underline !important;
+      text-underline-offset: 3px !important;
+      cursor: pointer !important;
+      font-weight: 500 !important;
+      transition: color 0.15s ease-in-out !important;
+    }
+    #chat-messages a:hover,
+    .chat-message a:hover,
+    .prose a:hover {
+      color: #93C5FD !important;
+      text-decoration-color: #93C5FD !important;
+    }
+    html.light #chat-messages a,
+    html.light .chat-message a,
+    html.light .prose a {
+      color: #2563EB !important;
+    }
+    html.light #chat-messages a:hover,
+    html.light .chat-message a:hover,
+    html.light .prose a:hover {
+      color: #1D4ED8 !important;
+    }
   </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -2811,6 +2839,15 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
         } else {
           return `<code class="bg-[#1e1e1e] text-emerald-400 px-1 py-0.5 rounded text-xs font-mono">${safeContent}</code>`;
         }
+      });
+
+      // Ensure all anchor links have target="_blank", rel="noopener noreferrer", and blue clickable styling
+      parsedHtml = parsedHtml.replace(/<a\s+(?:[^>]*?\s+)?href="([^"]*)"([^>]*)>/gi, function (match, href, rest) {
+        const hasTarget = /target=/i.test(rest);
+        const hasRel = /rel=/i.test(rest);
+        const targetAttr = hasTarget ? '' : ' target="_blank"';
+        const relAttr = hasRel ? '' : ' rel="noopener noreferrer"';
+        return `<a href="${href}"${targetAttr}${relAttr} class="text-blue-400 hover:text-blue-300 underline underline-offset-2 cursor-pointer font-medium transition inline-flex items-center gap-1"${rest}>`;
       });
 
       el.innerHTML = parsedHtml;
