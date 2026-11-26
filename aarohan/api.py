@@ -30,7 +30,7 @@ from aarohan.continual import RollbackManager
 from aarohan.evaluator import MultiAreaEvaluator
 from aarohan.foundation_engine import FoundationEngine
 from aarohan.generation.datasets import DatasetGenerator
-from aarohan.generation.images.engine import ImageStudioEngine
+from aarohan.generation.images import ImageStudioManager, PromptEnhancer, ImageEditor
 from aarohan.documents.extractor import DocumentExtractor
 from aarohan.tools.analytics import AnalyticsEngine
 from aarohan.tools.sandbox import CodeSandbox
@@ -180,8 +180,26 @@ class CodeExecuteRequest(BaseModel):
 
 class ImageGenRequest(BaseModel):
     prompt: str = Field(..., min_length=1)
-    aspect_ratio: str = Field("1:1", pattern="^(1:1|16:9|9:16|4:3)$")
+    enhanced_prompt: str | None = None
+    aspect_ratio: str = Field("1:1", pattern="^(1:1|16:9|9:16|4:3|3:4|3:2|2:3|21:9)$")
+    style: str = Field("cinematic")
     seed: int | None = None
+    provider_id: str | None = None
+    model_name: str = Field("standard")
+
+
+class ImageEditRequest(BaseModel):
+    source_image: str = Field(..., min_length=1)
+    operation: str = Field("variation", pattern="^(variation|brightness|contrast|palette|background|crop)$")
+    prompt: str | None = None
+    aspect_ratio: str | None = None
+    parameters: dict[str, Any] = Field(default_factory=dict)
+
+
+class ImageEnhanceRequest(BaseModel):
+    prompt: str = Field(..., min_length=1)
+    style: str | None = None
+    aspect_ratio: str | None = None
 
 
 class DocumentExtractRequest(BaseModel):
@@ -230,7 +248,8 @@ def create_app(
     dataset_generator = DatasetGenerator()
     analytics_engine = AnalyticsEngine()
     code_sandbox = CodeSandbox()
-    image_engine = ImageStudioEngine()
+    image_manager = ImageStudioManager(db_path=database_path)
+    image_engine = image_manager
     document_extractor = DocumentExtractor()
     tool_registry = ToolRegistry()
 
@@ -364,6 +383,117 @@ def create_app(
             logger.warning("Auto dataset generation error: %s", e)
             return ""
 
+    def _handle_auto_image(
+        processed_query: str,
+        resolved_query: str,
+        intent_res: Any,
+        messages_history: list[dict[str, str]] | None = None,
+    ) -> str:
+        primary_intent = intent_res.primary_intent
+        combined_q = f"{processed_query} {resolved_query}".lower()
+        is_image_req = (
+            primary_intent in (Intent.IMAGE_GENERATION, Intent.IMAGE_UNDERSTANDING)
+            or any(m.intent in (Intent.IMAGE_GENERATION, Intent.IMAGE_UNDERSTANDING) for m in intent_res.intents)
+        )
+        if not is_image_req:
+            has_image_context = bool(
+                messages_history and any("image" in m.get("content", "").lower() or "/api/images/" in m.get("content", "") for m in messages_history)
+            )
+            has_edit_keywords = any(k in combined_q for k in ["brighter", "darker", "background", "variation", "palette", "contrast", "crop"])
+            if has_image_context and has_edit_keywords:
+                is_image_req = True
+            else:
+                return ""
+
+        try:
+            combined_q = f"{processed_query} {resolved_query}".lower()
+
+            # Check if this is a conversational edit of a previously generated image
+            edit_ops = [
+                ("brighter", "brightness", {"brightness": 1.4}),
+                ("darker", "brightness", {"brightness": 0.6}),
+                ("contrast", "contrast", {"contrast": 1.4}),
+                ("background", "background", {"action": "blur"}),
+                ("blue background", "background", {"action": "tint"}),
+                ("variation", "variation", {}),
+                ("color palette", "palette", {"palette": "cyberpunk"}),
+                ("warm", "palette", {"palette": "warm"}),
+                ("sunset", "palette", {"palette": "sunset"}),
+            ]
+
+            recent_images = image_manager.library_db.list_images(limit=1)
+            is_edit = False
+            last_image = recent_images[0] if recent_images else None
+
+            matched_op = None
+            matched_params = {}
+            for keyword, op, params in edit_ops:
+                if keyword in combined_q:
+                    matched_op = op
+                    matched_params = params
+                    is_edit = True
+                    break
+
+            if is_edit and last_image:
+                edit_res = image_manager.edit(
+                    source_image=last_image["filename"],
+                    operation=matched_op or "variation",
+                    prompt=processed_query,
+                    parameters=matched_params,
+                )
+                if edit_res.get("status") == "completed":
+                    fn = edit_res["filename"]
+                    return (
+                        f"\n\n---\n### 🎨 Aarohan Image Edited ({edit_res.get('operation', 'edit').title()})\n"
+                        f"![{processed_query}](/api/images/view/{fn})\n\n"
+                        f"- **Operation:** {edit_res.get('operation', 'edit').title()}\n"
+                        f"- **Transformed From:** `{last_image['filename']}`\n"
+                        f"- **New File:** `{fn}`\n"
+                        f"- **Download:** [📥 Click here to download {fn}](/api/images/download/{fn})\n\n"
+                    )
+
+            # Otherwise, fresh text-to-image generation
+            aspect_ratio = "1:1"
+            if "landscape" in combined_q or "banner" in combined_q or "wide" in combined_q or "linkedin" in combined_q or "wallpaper" in combined_q:
+                aspect_ratio = "16:9"
+            elif "portrait" in combined_q or "story" in combined_q or "vertical" in combined_q:
+                aspect_ratio = "9:16"
+            elif "wide cinematic" in combined_q or "21:9" in combined_q:
+                aspect_ratio = "21:9"
+
+            style = "cinematic"
+            if "photo" in combined_q or "photorealistic" in combined_q:
+                style = "photorealistic"
+            elif "3d" in combined_q or "render" in combined_q or "octane" in combined_q:
+                style = "3d_render"
+            elif "anime" in combined_q or "cartoon" in combined_q or "illustration" in combined_q:
+                style = "digital_art"
+            elif "logo" in combined_q or "minimalist" in combined_q or "vector" in combined_q:
+                style = "vector_minimal"
+
+            gen_res = image_manager.generate(
+                prompt=processed_query,
+                aspect_ratio=aspect_ratio,
+                style=style,
+            )
+            if gen_res.get("status") == "completed":
+                fn = gen_res["filename"]
+                dims = gen_res.get("dimensions", "768x768")
+                enhanced = gen_res.get("enhanced_prompt", processed_query)
+                return (
+                    f"\n\n---\n### 🎨 Aarohan AI Image Studio Generated\n"
+                    f"![{processed_query}](/api/images/view/{fn})\n\n"
+                    f"- **Original Prompt:** *{processed_query}*\n"
+                    f"- **Enhanced Prompt:** *{enhanced}*\n"
+                    f"- **Dimensions:** `{dims}` ({aspect_ratio}) | **Style:** {style.title()}\n"
+                    f"- **Saved to Library:** `{fn}`\n"
+                    f"- **Download:** [📥 Click here to download {fn}](/api/images/download/{fn})\n\n"
+                )
+            return ""
+        except Exception as e:
+            logger.warning("Auto image generation error: %s", e)
+            return ""
+
     # -------------------------------------------------------------------------
     # AI Chat (Turn-Based & Streaming SSE)
     # -------------------------------------------------------------------------
@@ -389,6 +519,10 @@ def create_app(
         resolved_query = context_res.resolved_query
 
         auto_dataset_link = _handle_auto_dataset(processed_query, resolved_query, intent_res)
+        auto_image_block = _handle_auto_image(processed_query, resolved_query, intent_res, req.messages)
+        auto_media_prefix = auto_dataset_link + auto_image_block
+        auto_image_block = _handle_auto_image(processed_query, resolved_query, intent_res, req.messages)
+        auto_media_prefix = auto_dataset_link + auto_image_block
 
         # Retrieve relevant memory evidence (prioritize factual semantic/verified knowledge over past dialogue)
         if req.retrieval_mode == "vector":
@@ -471,7 +605,7 @@ def create_app(
                     max_new_tokens=req.max_new_tokens,
                     temperature=req.temperature,
                 )
-                response_text = auto_dataset_link + foundation_res["response"]
+                response_text = auto_media_prefix + foundation_res["response"]
                 generated_tokens = foundation_res["generated_tokens"]
                 checkpoint_name = foundation_res["model_name"]
                 warning_msg = None
@@ -487,7 +621,7 @@ def create_app(
                     max_new_tokens=req.max_new_tokens,
                     temperature=req.temperature,
                 )
-                response_text = auto_dataset_link + scratch_res["response"]
+                response_text = auto_media_prefix + scratch_res["response"]
                 generated_tokens = scratch_res["generated_tokens"]
                 checkpoint_name = scratch_res["checkpoint"]
                 warning_msg = f"Foundation fallback triggered: {e}"
@@ -503,7 +637,7 @@ def create_app(
                 max_new_tokens=req.max_new_tokens,
                 temperature=req.temperature,
             )
-            response_text = auto_dataset_link + scratch_res["response"]
+            response_text = auto_media_prefix + scratch_res["response"]
             generated_tokens = scratch_res["generated_tokens"]
             checkpoint_name = scratch_res["checkpoint"]
             warning_msg = scratch_res["warning"]
@@ -579,6 +713,8 @@ def create_app(
         resolved_query = context_res.resolved_query
 
         auto_dataset_link = _handle_auto_dataset(processed_query, resolved_query, intent_res)
+        auto_image_block = _handle_auto_image(processed_query, resolved_query, intent_res, req.messages)
+        auto_media_prefix = auto_dataset_link + auto_image_block
 
         # Retrieve relevant memory evidence (prioritize factual semantic/verified knowledge)
         if req.retrieval_mode == "vector":
@@ -724,10 +860,10 @@ def create_app(
             full_text = ""
             token_count = 0
 
-            # If an automated dataset was synthesized, yield it directly
-            if auto_dataset_link:
-                full_text += auto_dataset_link
-                yield f"data: {json.dumps({'type': 'token', 'token': auto_dataset_link})}\n\n"
+            # If automated media (dataset or image) was synthesized, yield it directly
+            if auto_media_prefix:
+                full_text += auto_media_prefix
+                yield f"data: {json.dumps({'type': 'token', 'token': auto_media_prefix})}\n\n"
 
             if req.engine == "foundation":
                 try:
@@ -1242,17 +1378,119 @@ def create_app(
         req: ImageGenRequest,
         user: dict[str, Any] = Depends(get_current_user),
     ) -> dict[str, Any]:
-        res = image_engine.generate_image(
+        res = image_manager.generate(
+            prompt=req.prompt,
+            enhanced_prompt=req.enhanced_prompt,
+            aspect_ratio=req.aspect_ratio,
+            style=req.style,
+            seed=req.seed,
+            provider_id=req.provider_id,
+            model_name=req.model_name,
+        )
+        audit.log(
+            "image_generated",
+            actor=user["username"],
+            target="image_studio",
+            details={"prompt": req.prompt, "filename": res.get("filename")},
+        )
+        return res
+
+    @app.post("/api/images/edit")
+    def image_edit_endpoint(
+        req: ImageEditRequest,
+        user: dict[str, Any] = Depends(get_current_user),
+    ) -> dict[str, Any]:
+        res = image_manager.edit(
+            source_image=req.source_image,
+            operation=req.operation,
             prompt=req.prompt,
             aspect_ratio=req.aspect_ratio,
-            seed=req.seed,
+            parameters=req.parameters,
         )
-        audit.log("image_generated", actor=user["username"], target="image_studio", details={"prompt": req.prompt, "filename": res["filename"]})
+        audit.log(
+            "image_edited",
+            actor=user["username"],
+            target="image_studio",
+            details={"operation": req.operation, "source": req.source_image},
+        )
         return res
+
+    @app.post("/api/images/enhance-prompt")
+    def image_enhance_prompt_endpoint(req: ImageEnhanceRequest) -> dict[str, Any]:
+        return image_manager.enhance_prompt(
+            prompt=req.prompt,
+            style=req.style,
+            aspect_ratio=req.aspect_ratio,
+        )
+
+    @app.get("/api/images/jobs")
+    def image_jobs_endpoint(limit: int = 25) -> dict[str, Any]:
+        return {"jobs": image_manager.library_db.list_jobs(limit=limit)}
+
+    @app.get("/api/images/jobs/{job_id}")
+    def image_job_detail_endpoint(job_id: str) -> dict[str, Any]:
+        job = image_manager.library_db.get_job(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+        return job
+
+    @app.post("/api/images/jobs/{job_id}/cancel")
+    def image_job_cancel_endpoint(job_id: str) -> dict[str, Any]:
+        cancelled = image_manager.active_provider.cancel_job(job_id)
+        return {"job_id": job_id, "cancelled": cancelled}
+
+    @app.get("/api/images/library")
+    def image_library_endpoint(
+        search: Optional[str] = None,
+        category: Optional[str] = None,
+        favorite_only: bool = False,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        images = image_manager.library_db.list_images(
+            search=search,
+            category=category,
+            favorite_only=favorite_only,
+            limit=limit,
+            offset=offset,
+        )
+        return {"images": images, "count": len(images)}
+
+    @app.get("/api/images/library/{image_id}")
+    def image_library_detail_endpoint(image_id: str) -> dict[str, Any]:
+        img = image_manager.library_db.get_image(image_id)
+        if not img:
+            raise HTTPException(status_code=404, detail="Image not found in library")
+        return img
+
+    @app.delete("/api/images/library/{image_id}")
+    def image_library_delete_endpoint(image_id: str) -> dict[str, Any]:
+        success = image_manager.library_db.delete_image(image_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Image not found or could not be deleted")
+        return {"deleted": True, "image_id": image_id}
+
+    @app.post("/api/images/library/{image_id}/favorite")
+    def image_library_favorite_endpoint(image_id: str) -> dict[str, Any]:
+        fav = image_manager.library_db.toggle_favorite(image_id)
+        return {"image_id": image_id, "is_favorite": fav}
+
+    @app.get("/api/images/providers")
+    def image_providers_endpoint() -> dict[str, Any]:
+        return image_manager.get_health()
+
+    @app.get("/api/images/models")
+    def image_models_endpoint() -> dict[str, Any]:
+        return {"models": image_manager.list_models()}
+
+    @app.get("/api/images/health")
+    def image_health_endpoint() -> dict[str, Any]:
+        return image_manager.get_health()
 
     @app.get("/api/images/history")
     def image_history_endpoint() -> dict[str, Any]:
-        return {"images": image_engine.list_history()}
+        images = image_manager.library_db.list_images(limit=30)
+        return {"images": images}
 
     @app.get("/api/images/view/{filename}")
     def image_view_endpoint(filename: str) -> FileResponse:
@@ -1261,6 +1499,19 @@ def create_app(
         if not img_path.is_file():
             raise HTTPException(status_code=404, detail="Image not found")
         return FileResponse(path=str(img_path), filename=safe_name, media_type="image/png")
+
+    @app.get("/api/images/download/{filename}")
+    def image_download_endpoint(filename: str) -> FileResponse:
+        safe_name = Path(filename).name
+        img_path = PROJECT_ROOT / "artifacts" / "images" / safe_name
+        if not img_path.is_file():
+            raise HTTPException(status_code=404, detail="Image file not found")
+        return FileResponse(
+            path=str(img_path),
+            filename=safe_name,
+            media_type="image/png",
+            headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
+        )
 
     # -------------------------------------------------------------------------
     # Data Analytics (DuckDB & Matplotlib)

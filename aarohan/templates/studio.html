@@ -531,52 +531,218 @@
     </div>
 
     <!-- ========================================================================= -->
-    <!-- WORKSPACE 4: IMAGE STUDIO                                                 -->
+    <!-- WORKSPACE 4: IMAGE STUDIO 1.0                                             -->
     <!-- ========================================================================= -->
-    <div id="workspace-images" class="workspace-pane hidden flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
-      <div class="space-y-1">
-        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
-          <span>🎨</span> <span>Neural Image Studio</span>
-        </h2>
-        <p class="text-xs text-[#8e8e8e]">Memory-aware local image generation optimized for 6GB VRAM hardware.</p>
+    <div id="workspace-images" class="workspace-pane hidden flex-1 overflow-y-auto p-6 max-w-6xl mx-auto w-full space-y-6">
+      <!-- Header with Provider & VRAM Telemetry -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#262626] pb-4">
+        <div class="space-y-1">
+          <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+            <span>🎨</span> <span>Image Studio 1.0</span>
+          </h2>
+          <p class="text-xs text-[#8e8e8e]">Local-first neural generation & editing. Optimized for 6GB VRAM (RTX 2060). ComfyUI & Local Neural pipelines.</p>
+        </div>
+        <div class="flex items-center space-x-2 text-xs">
+          <span id="image-provider-badge" class="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[11px] flex items-center space-x-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="image-provider-name">Local Neural Engine (Active)</span>
+          </span>
+          <span id="image-vram-badge" class="px-2.5 py-1 rounded-full bg-[#1e1e1e] border border-[#303030] text-[#8e8e8e] font-mono text-[11px]">
+            VRAM: 6GB Safe
+          </span>
+        </div>
       </div>
 
-      <div class="p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-4">
-        <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1">Visual Prompt</label>
-          <input type="text" id="image-prompt-input" placeholder="Create a futuristic neural network architecture visualization with volumetric glow"
-                 class="w-full bg-[#212121] border border-[#303030] rounded-xl px-4 py-2.5 text-sm text-white focus:border-purple-500 outline-none">
+      <!-- Quick Creative Presets -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+        <button type="button" onclick="setImagePreset('photorealistic mountain landscape at sunset with golden hour illumination', '16:9', 'photorealistic')" class="p-2.5 rounded-xl bg-[#171717] hover:bg-[#212121] border border-[#262626] text-left transition group">
+          <div class="text-base mb-1">🏔️</div>
+          <div class="text-xs font-medium text-white group-hover:text-purple-400 transition">Landscape</div>
+          <div class="text-[10px] text-[#8e8e8e]">Sunset 16:9</div>
+        </button>
+        <button type="button" onclick="setImagePreset('3D isometric illustration of a neural network with radiant cyan filaments', '1:1', '3d_render')" class="p-2.5 rounded-xl bg-[#171717] hover:bg-[#212121] border border-[#262626] text-left transition group">
+          <div class="text-base mb-1">🧠</div>
+          <div class="text-xs font-medium text-white group-hover:text-purple-400 transition">3D Tech</div>
+          <div class="text-[10px] text-[#8e8e8e]">Neural 1:1</div>
+        </button>
+        <button type="button" onclick="setImagePreset('Professional LinkedIn banner for a Business Intelligence and Data Architecture expert', '16:9', 'business_branding')" class="p-2.5 rounded-xl bg-[#171717] hover:bg-[#212121] border border-[#262626] text-left transition group">
+          <div class="text-base mb-1">💼</div>
+          <div class="text-xs font-medium text-white group-hover:text-purple-400 transition">LinkedIn Banner</div>
+          <div class="text-[10px] text-[#8e8e8e]">Corporate 16:9</div>
+        </button>
+        <button type="button" onclick="setImagePreset('futuristic cyberpunk city with neon holograms and flying vehicles in rain', '21:9', 'cinematic')" class="p-2.5 rounded-xl bg-[#171717] hover:bg-[#212121] border border-[#262626] text-left transition group">
+          <div class="text-base mb-1">🌆</div>
+          <div class="text-xs font-medium text-white group-hover:text-purple-400 transition">Cyberpunk</div>
+          <div class="text-[10px] text-[#8e8e8e]">Cinematic 21:9</div>
+        </button>
+        <button type="button" onclick="setImagePreset('minimalist elegant tech company logo vector icon on dark matte background', '1:1', 'vector_minimal')" class="p-2.5 rounded-xl bg-[#171717] hover:bg-[#212121] border border-[#262626] text-left transition group">
+          <div class="text-base mb-1">✨</div>
+          <div class="text-xs font-medium text-white group-hover:text-purple-400 transition">Brand Logo</div>
+          <div class="text-[10px] text-[#8e8e8e]">Minimalist 1:1</div>
+        </button>
+        <button type="button" onclick="setImagePreset('educational diagram of human digestive system with accurate anatomical cross-section', '16:9', 'educational')" class="p-2.5 rounded-xl bg-[#171717] hover:bg-[#212121] border border-[#262626] text-left transition group">
+          <div class="text-base mb-1">🔬</div>
+          <div class="text-xs font-medium text-white group-hover:text-purple-400 transition">Scientific</div>
+          <div class="text-[10px] text-[#8e8e8e]">Anatomy 16:9</div>
+        </button>
+      </div>
+
+      <!-- Prompt Composer & Controls Card -->
+      <div class="p-5 rounded-2xl bg-[#171717] border border-[#262626] space-y-4 shadow-xl">
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-medium text-slate-300">Prompt Composer</label>
+            <span class="text-[11px] text-[#8e8e8e]">Natural English, Informal & Hinglish supported</span>
+          </div>
+          <textarea id="image-prompt-input" rows="3"
+                    placeholder="Describe your vision in plain words... (e.g., 'Create a realistic futuristic city at sunset' or 'Design a professional LinkedIn banner for BI expert')"
+                    class="w-full bg-[#212121] border border-[#303030] rounded-xl px-4 py-3 text-sm text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none leading-relaxed transition resize-none"></textarea>
         </div>
 
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="flex items-center space-x-2 text-xs">
-            <span class="text-[#8e8e8e]">Aspect Ratio:</span>
-            <button type="button" onclick="setImageAspect('1:1', this)" class="img-aspect-btn px-3 py-1.5 rounded-lg bg-purple-600 text-white font-medium border border-purple-500">1:1 Square</button>
-            <button type="button" onclick="setImageAspect('16:9', this)" class="img-aspect-btn px-3 py-1.5 rounded-lg bg-[#212121] text-slate-300 hover:text-white border border-[#303030]">16:9 Landscape</button>
-            <button type="button" onclick="setImageAspect('9:16', this)" class="img-aspect-btn px-3 py-1.5 rounded-lg bg-[#212121] text-slate-300 hover:text-white border border-[#303030]">9:16 Portrait</button>
-            <input type="hidden" id="image-aspect-val" value="1:1">
+        <!-- Aspect Ratio & Generation Settings Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+          <!-- Aspect Ratio Presets -->
+          <div>
+            <label class="block text-[11px] text-[#8e8e8e] mb-1.5">Aspect Ratio</label>
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" onclick="setImageAspect('1:1', this)" class="img-aspect-btn px-2.5 py-1 rounded-lg bg-purple-600 text-white font-medium text-xs border border-purple-500">1:1 Square</button>
+              <button type="button" onclick="setImageAspect('16:9', this)" class="img-aspect-btn px-2.5 py-1 rounded-lg bg-[#212121] text-slate-300 hover:text-white text-xs border border-[#303030]">16:9 Wide</button>
+              <button type="button" onclick="setImageAspect('9:16', this)" class="img-aspect-btn px-2.5 py-1 rounded-lg bg-[#212121] text-slate-300 hover:text-white text-xs border border-[#303030]">9:16 Story</button>
+              <button type="button" onclick="setImageAspect('4:3', this)" class="img-aspect-btn px-2.5 py-1 rounded-lg bg-[#212121] text-slate-300 hover:text-white text-xs border border-[#303030]">4:3</button>
+              <button type="button" onclick="setImageAspect('3:2', this)" class="img-aspect-btn px-2.5 py-1 rounded-lg bg-[#212121] text-slate-300 hover:text-white text-xs border border-[#303030]">3:2</button>
+              <button type="button" onclick="setImageAspect('21:9', this)" class="img-aspect-btn px-2.5 py-1 rounded-lg bg-[#212121] text-slate-300 hover:text-white text-xs border border-[#303030]">21:9 Cinema</button>
+              <input type="hidden" id="image-aspect-val" value="1:1">
+            </div>
           </div>
 
-          <button onclick="triggerImageGeneration()" id="image-generate-btn" class="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs shadow-lg shadow-purple-600/30 transition">
-            Generate Image
-          </button>
+          <!-- Style Selector -->
+          <div>
+            <label class="block text-[11px] text-[#8e8e8e] mb-1.5">Visual Style</label>
+            <select id="image-style-select" class="w-full bg-[#212121] border border-[#303030] rounded-lg px-3 py-1.5 text-xs text-white focus:border-purple-500 outline-none">
+              <option value="photorealistic" selected>Photorealistic & Cinematic</option>
+              <option value="3d_render">3D Octane / Isometric</option>
+              <option value="digital_art">Digital Painting & Fantasy</option>
+              <option value="anime">Anime & Concept Art</option>
+              <option value="business_branding">Corporate & Vector Brand</option>
+              <option value="educational">Scientific & Diagrammatic</option>
+            </select>
+          </div>
+
+          <!-- Model & Provider Selector -->
+          <div>
+            <label class="block text-[11px] text-[#8e8e8e] mb-1.5">Generation Engine</label>
+            <select id="image-model-select" class="w-full bg-[#212121] border border-[#303030] rounded-lg px-3 py-1.5 text-xs text-white focus:border-purple-500 outline-none">
+              <option value="aarohan-neural-v1" selected>Aarohan Neural Engine (RTX 2060 Low-VRAM)</option>
+              <option value="stable-diffusion-v1-5">Stable Diffusion 1.5 (Local Diffusers)</option>
+              <option value="comfyui_default">ComfyUI Local Bridge (:8188)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#262626]">
+          <div class="flex items-center space-x-2">
+            <button type="button" onclick="enhancePromptAction()" id="image-enhance-btn" class="px-3 py-1.5 rounded-lg bg-[#242424] hover:bg-[#2c2c2c] text-purple-300 border border-purple-500/30 text-xs font-medium flex items-center space-x-1.5 transition">
+              <span>✨</span> <span>Enhance Prompt</span>
+            </button>
+            <button type="button" onclick="clearImagePrompt()" class="px-3 py-1.5 rounded-lg bg-[#212121] hover:bg-[#2a2a2a] text-[#8e8e8e] hover:text-white text-xs border border-[#303030] transition">
+              Clear
+            </button>
+            <button type="button" onclick="regenerateLastImage()" id="image-regen-btn" class="px-3 py-1.5 rounded-lg bg-[#212121] hover:bg-[#2a2a2a] text-[#8e8e8e] hover:text-white text-xs border border-[#303030] transition">
+              🔄 Regenerate
+            </button>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button type="button" onclick="stopImageGeneration()" id="image-stop-btn" class="hidden px-4 py-2 rounded-xl bg-red-900/40 text-red-300 hover:bg-red-800/60 border border-red-700/50 text-xs font-semibold transition">
+              ⏹️ Stop
+            </button>
+            <button type="button" onclick="triggerImageGeneration()" id="image-generate-btn" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-lg shadow-purple-600/30 flex items-center space-x-2 transition">
+              <span>🎨</span> <span>Generate Image</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Generated Image Display -->
-      <div id="image-result-pane" class="hidden p-4 rounded-2xl bg-[#171717] border border-[#262626] space-y-4">
-        <div class="flex items-center justify-between">
-          <span id="image-result-caption" class="text-xs text-slate-300 font-medium truncate max-w-md"></span>
-          <a id="image-download-btn" href="#" download class="px-3 py-1.5 rounded-lg bg-white text-black text-xs font-semibold hover:bg-slate-200 transition">Download PNG</a>
+      <!-- Active Image Preview & Editing Studio Canvas -->
+      <div id="image-result-pane" class="hidden p-5 rounded-2xl bg-[#171717] border border-[#262626] space-y-4 shadow-xl">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[#262626] pb-3">
+          <div>
+            <span id="image-result-caption" class="text-xs text-white font-medium block truncate max-w-lg"></span>
+            <span id="image-result-meta" class="text-[11px] text-[#8e8e8e]"></span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button type="button" onclick="favoriteActiveImage()" id="image-fav-btn" class="px-3 py-1.5 rounded-lg bg-[#212121] hover:bg-[#2a2a2a] text-[#e0e0e0] text-xs border border-[#303030] transition flex items-center space-x-1">
+              <span>⭐</span> <span id="image-fav-label">Favorite</span>
+            </button>
+            <a id="image-download-btn" href="#" download class="px-3.5 py-1.5 rounded-lg bg-white text-black text-xs font-semibold hover:bg-slate-200 transition flex items-center space-x-1">
+              <span>📥</span> <span>Download PNG</span>
+            </a>
+          </div>
         </div>
-        <div class="flex justify-center bg-black/60 rounded-xl p-2 border border-[#262626]">
-          <img id="image-result-preview" src="" alt="Generated artwork" class="max-h-[500px] rounded-lg object-contain shadow-2xl">
+
+        <!-- Preview Display (Supports Side-by-Side when Edited) -->
+        <div id="image-preview-stage" class="flex flex-col md:flex-row items-center justify-center gap-4 bg-black/70 rounded-xl p-4 border border-[#262626]">
+          <div class="flex flex-col items-center">
+            <img id="image-result-preview" src="" alt="Active Artwork" class="max-h-[460px] rounded-lg object-contain shadow-2xl border border-[#333333]">
+          </div>
+          <div id="image-original-compare-col" class="hidden flex-col items-center border-l border-[#2e2e2e] pl-4">
+            <span class="text-[10px] text-[#8e8e8e] mb-1 uppercase font-semibold">Original Reference</span>
+            <img id="image-original-compare-preview" src="" alt="Original" class="max-h-[360px] rounded-lg object-contain opacity-80 border border-[#333333]">
+          </div>
+        </div>
+
+        <!-- One-Click Quick Editing Tools -->
+        <div class="p-3 bg-[#1e1e1e] rounded-xl border border-[#2e2e2e] space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-purple-400">✨ Conversational Image Editing Tools</span>
+            <span class="text-[10px] text-[#8e8e8e]">Modifies active artwork while preserving original asset</span>
+          </div>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button type="button" onclick="executeImageEdit('brightness', {brightness: 1.35})" class="px-2.5 py-1 rounded-lg bg-[#262626] hover:bg-[#323232] text-slate-200 border border-[#383838] transition">
+              ☀️ Make Brighter
+            </button>
+            <button type="button" onclick="executeImageEdit('brightness', {brightness: 0.7})" class="px-2.5 py-1 rounded-lg bg-[#262626] hover:bg-[#323232] text-slate-200 border border-[#383838] transition">
+              🌙 Make Darker
+            </button>
+            <button type="button" onclick="executeImageEdit('contrast', {contrast: 1.4})" class="px-2.5 py-1 rounded-lg bg-[#262626] hover:bg-[#323232] text-slate-200 border border-[#383838] transition">
+              ⚡ High Contrast
+            </button>
+            <button type="button" onclick="executeImageEdit('palette', {palette: 'warm'})" class="px-2.5 py-1 rounded-lg bg-[#262626] hover:bg-[#323232] text-slate-200 border border-[#383838] transition">
+              🌅 Warm Sunset Tones
+            </button>
+            <button type="button" onclick="executeImageEdit('palette', {palette: 'cyberpunk'})" class="px-2.5 py-1 rounded-lg bg-[#262626] hover:bg-[#323232] text-slate-200 border border-[#383838] transition">
+              🌐 Cyberpunk Cyan
+            </button>
+            <button type="button" onclick="executeImageEdit('palette', {palette: 'vintage'})" class="px-2.5 py-1 rounded-lg bg-[#262626] hover:bg-[#323232] text-slate-200 border border-[#383838] transition">
+              🎞️ Vintage Sepia
+            </button>
+            <button type="button" onclick="executeImageEdit('background', {action: 'blur'})" class="px-2.5 py-1 rounded-lg bg-[#262626] hover:bg-[#323232] text-slate-200 border border-[#383838] transition">
+              🌫️ Blur Background
+            </button>
+            <button type="button" onclick="executeImageEdit('crop', {aspect_ratio: '16:9'})" class="px-2.5 py-1 rounded-lg bg-[#262626] hover:bg-[#323232] text-slate-200 border border-[#383838] transition">
+              📐 Crop 16:9
+            </button>
+            <button type="button" onclick="executeImageEdit('variation', {})" class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-purple-900/60 to-indigo-900/60 hover:from-purple-800/80 hover:to-indigo-800/80 text-purple-200 border border-purple-500/40 transition">
+              🎲 Generate Variation
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Gallery History -->
-      <div class="space-y-3">
-        <h3 class="text-xs font-semibold uppercase tracking-wider text-[#8e8e8e]">Previously Generated Gallery</h3>
+      <!-- Persistent Library & Historical Gallery -->
+      <div class="space-y-3 pt-2">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#262626] pb-2">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-[#8e8e8e] flex items-center space-x-1.5">
+            <span>📚</span> <span>Persistent Image Library</span>
+          </h3>
+          <div class="flex items-center space-x-2">
+            <input type="text" id="image-search-input" oninput="debounceImageSearch()" placeholder="Search prompts..."
+                   class="bg-[#212121] border border-[#303030] rounded-lg px-2.5 py-1 text-xs text-white placeholder-[#707070] outline-none w-36 sm:w-48">
+            <button type="button" onclick="filterImageGallery('all', this)" class="img-filter-pill px-2.5 py-1 rounded-lg bg-purple-600 text-white font-medium text-xs">All</button>
+            <button type="button" onclick="filterImageGallery('favorites', this)" class="img-filter-pill px-2.5 py-1 rounded-lg bg-[#212121] text-[#8e8e8e] hover:text-white text-xs">⭐ Favorites</button>
+          </div>
+        </div>
         <div id="image-gallery-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
       </div>
     </div>
@@ -1116,7 +1282,7 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
       if (id === 'knowledge-graph') loadGraph();
       if (id === 'learning') loadLearningTasks();
       if (id === 'system') loadSystemTelemetry();
-      if (id === 'images') loadImageGallery();
+      if (id === 'images') { loadImageGallery(); loadProviderTelemetry(); }
     }
 
     // Mathematical formula renderer with KaTeX protection
@@ -1412,54 +1578,273 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
       }
     }
 
+    // =========================================================================
+    // IMAGE STUDIO 1.0 INTEGRATION
+    // =========================================================================
+    let currentActiveImage = null;
+    let currentImageGalleryFilter = 'all';
+    let imageSearchDebounceTimer = null;
+
+    function setImagePreset(prompt, ratio, style) {
+      document.getElementById('image-prompt-input').value = prompt;
+      if (style) document.getElementById('image-style-select').value = style;
+      if (ratio) {
+        document.querySelectorAll('.img-aspect-btn').forEach(b => {
+          if (b.innerText.includes(ratio)) setImageAspect(ratio, b);
+        });
+      }
+    }
+
+    function setImageAspect(ratio, btn) {
+      document.getElementById('image-aspect-val').value = ratio;
+      document.querySelectorAll('.img-aspect-btn').forEach(b => {
+        b.className = 'img-aspect-btn px-2.5 py-1 rounded-lg bg-[#212121] text-slate-300 hover:text-white text-xs border border-[#303030] transition';
+      });
+      if (btn) {
+        btn.className = 'img-aspect-btn px-2.5 py-1 rounded-lg bg-purple-600 text-white font-medium text-xs border border-purple-500 transition';
+      }
+    }
+
+    function clearImagePrompt() {
+      document.getElementById('image-prompt-input').value = '';
+    }
+
+    async function enhancePromptAction() {
+      const promptInput = document.getElementById('image-prompt-input');
+      const text = promptInput.value.trim();
+      if (!text) return;
+      const btn = document.getElementById('image-enhance-btn');
+      const origText = btn.innerHTML;
+      btn.innerHTML = '<span>⏳</span> <span>Enhancing...</span>';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/images/enhance-prompt', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            prompt: text,
+            style: document.getElementById('image-style-select').value,
+            aspect_ratio: document.getElementById('image-aspect-val').value
+          })
+        });
+        const data = await res.json();
+        if (data.enhanced_prompt) {
+          promptInput.value = data.enhanced_prompt;
+        }
+      } catch(e) {
+        console.warn('Prompt enhance failed:', e);
+      } finally {
+        btn.innerHTML = origText;
+        btn.disabled = false;
+      }
+    }
+
     async function triggerImageGeneration() {
       const prompt = document.getElementById('image-prompt-input').value.trim();
       if (!prompt) return;
       const ratio = document.getElementById('image-aspect-val').value;
+      const style = document.getElementById('image-style-select').value;
+      const model = document.getElementById('image-model-select').value;
       const btn = document.getElementById('image-generate-btn');
+      const stopBtn = document.getElementById('image-stop-btn');
 
       btn.disabled = true;
-      btn.innerText = 'Rendering...';
+      btn.innerHTML = '<span>⚙️</span> <span>Generating...</span>';
+      stopBtn.classList.remove('hidden');
 
       try {
         const res = await fetch('/api/images/generate', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({prompt: prompt, aspect_ratio: ratio})
+          body: JSON.stringify({
+            prompt: prompt,
+            aspect_ratio: ratio,
+            style: style,
+            model_name: model
+          })
         });
         const data = await res.json();
 
-        const pane = document.getElementById('image-result-pane');
-        pane.classList.remove('hidden');
-        document.getElementById('image-result-caption').innerText = `${data.prompt} (${data.dimensions})`;
-        const imgEl = document.getElementById('image-result-preview');
-        imgEl.src = data.image_base64;
-        const dlBtn = document.getElementById('image-download-btn');
-        dlBtn.href = `/api/images/view/${data.filename}`;
-
+        currentActiveImage = data;
+        displayActiveImage(data, false);
         loadImageGallery();
       } catch(e) {
         alert('Image generation error: ' + e.message);
       } finally {
         btn.disabled = false;
-        btn.innerText = 'Generate Image';
+        btn.innerHTML = '<span>🎨</span> <span>Generate Image</span>';
+        stopBtn.classList.add('hidden');
       }
     }
 
-    async function loadImageGallery() {
+    async function regenerateLastImage() {
+      if (!currentActiveImage) return triggerImageGeneration();
+      document.getElementById('image-prompt-input').value = currentActiveImage.prompt || '';
+      triggerImageGeneration();
+    }
+
+    function stopImageGeneration() {
+      const stopBtn = document.getElementById('image-stop-btn');
+      stopBtn.classList.add('hidden');
+      const genBtn = document.getElementById('image-generate-btn');
+      genBtn.disabled = false;
+      genBtn.innerHTML = '<span>🎨</span> <span>Generate Image</span>';
+    }
+
+    function displayActiveImage(data, isEdit) {
+      const pane = document.getElementById('image-result-pane');
+      pane.classList.remove('hidden');
+      document.getElementById('image-result-caption').innerText = data.prompt || data.filename;
+      document.getElementById('image-result-meta').innerText = `${data.dimensions || ''} | ${data.aspect_ratio || '1:1'} | ${data.filename}`;
+
+      const imgEl = document.getElementById('image-result-preview');
+      imgEl.src = data.url || (data.filename ? `/api/images/view/${data.filename}` : data.image_base64);
+
+      const dlBtn = document.getElementById('image-download-btn');
+      dlBtn.href = data.filename ? `/api/images/download/${data.filename}` : '#';
+
+      const origCol = document.getElementById('image-original-compare-col');
+      if (isEdit && data.original_filename) {
+        origCol.classList.remove('hidden');
+        origCol.classList.add('flex');
+        document.getElementById('image-original-compare-preview').src = `/api/images/view/${data.original_filename}`;
+      } else {
+        origCol.classList.add('hidden');
+        origCol.classList.remove('flex');
+      }
+
+      pane.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function executeImageEdit(operation, params) {
+      if (!currentActiveImage || !currentActiveImage.filename) {
+        alert('Please generate or select an image from the library first to edit.');
+        return;
+      }
       try {
-        const res = await fetch('/api/images/history');
+        const res = await fetch('/api/images/edit', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            source_image: currentActiveImage.filename,
+            operation: operation,
+            parameters: params || {},
+            aspect_ratio: params && params.aspect_ratio ? params.aspect_ratio : undefined
+          })
+        });
         const data = await res.json();
+        if (data.filename) {
+          data.prompt = `Edited (${operation}) - ${currentActiveImage.prompt || ''}`;
+          currentActiveImage = data;
+          displayActiveImage(data, true);
+          loadImageGallery();
+        } else {
+          alert('Edit failed: ' + (data.error || 'Unknown error'));
+        }
+      } catch(e) {
+        alert('Edit error: ' + e.message);
+      }
+    }
+
+    async function favoriteActiveImage() {
+      if (!currentActiveImage || !currentActiveImage.filename) return;
+      try {
+        const res = await fetch(`/api/images/library/${currentActiveImage.filename}/favorite`, { method: 'POST' });
+        const data = await res.json();
+        const lbl = document.getElementById('image-fav-label');
+        lbl.innerText = data.is_favorite ? 'Favorited' : 'Favorite';
+        loadImageGallery();
+      } catch(e) {}
+    }
+
+    function debounceImageSearch() {
+      clearTimeout(imageSearchDebounceTimer);
+      imageSearchDebounceTimer = setTimeout(() => {
+        const q = document.getElementById('image-search-input').value.trim();
+        loadImageGallery(currentImageGalleryFilter, q);
+      }, 300);
+    }
+
+    function filterImageGallery(cat, btn) {
+      currentImageGalleryFilter = cat;
+      document.querySelectorAll('.img-filter-pill').forEach(b => {
+        b.className = 'img-filter-pill px-2.5 py-1 rounded-lg bg-[#212121] text-[#8e8e8e] hover:text-white text-xs transition';
+      });
+      if (btn) btn.className = 'img-filter-pill px-2.5 py-1 rounded-lg bg-purple-600 text-white font-medium text-xs transition';
+      const q = document.getElementById('image-search-input').value.trim();
+      loadImageGallery(cat, q);
+    }
+
+    async function loadImageGallery(cat = 'all', search = '') {
+      try {
+        let url = '/api/images/library?limit=40';
+        if (cat === 'favorites') url += '&favorite_only=true';
+        else if (cat && cat !== 'all') url += `&category=${encodeURIComponent(cat)}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+        const items = data.images || [];
+
         const grid = document.getElementById('image-gallery-grid');
-        grid.innerHTML = (data.images || []).map(img => `
-          <div class="rounded-xl overflow-hidden border border-[#262626] bg-[#171717] group">
-            <img src="${img.url}" alt="Artwork" class="w-full h-32 object-cover group-hover:scale-105 transition duration-200">
-            <div class="p-2 flex justify-between items-center text-[10px]">
-              <span class="text-[#8e8e8e] truncate">${img.filename}</span>
-              <a href="${img.url}" download class="text-purple-400 hover:underline">Save</a>
+        if (!items.length) {
+          grid.innerHTML = '<div class="col-span-full py-8 text-center text-xs text-[#8e8e8e]">No gallery images matching criteria. Create your first artwork above!</div>';
+          return;
+        }
+
+        grid.innerHTML = items.map(img => `
+          <div class="rounded-xl overflow-hidden border border-[#262626] bg-[#171717] hover:border-purple-500/50 group transition duration-200 flex flex-col justify-between">
+            <div class="relative cursor-pointer overflow-hidden bg-black/40" onclick='loadExistingImageToStudio(${JSON.stringify(img)})'>
+              <img src="${img.url}" alt="${escapeHtml(img.prompt)}" class="w-full h-36 object-cover group-hover:scale-105 transition duration-300">
+              <span class="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-mono bg-black/80 text-white border border-[#333333]">${img.aspect_ratio || '1:1'}</span>
+              ${img.is_favorite ? '<span class="absolute top-2 left-2 text-yellow-400 text-xs drop-shadow">⭐</span>' : ''}
+            </div>
+            <div class="p-2.5 space-y-1.5">
+              <p class="text-xs text-white font-medium truncate" title="${escapeHtml(img.prompt)}">${escapeHtml(img.prompt)}</p>
+              <div class="flex items-center justify-between text-[10px] text-[#8e8e8e] pt-1 border-t border-[#232323]">
+                <button type="button" onclick='loadExistingImageToStudio(${JSON.stringify(img)})' class="text-purple-400 hover:text-purple-300 font-medium">Open in Editor</button>
+                <div class="flex items-center space-x-2">
+                  <a href="${img.download_url}" download class="hover:text-white" title="Download PNG">📥</a>
+                  <button type="button" onclick="deleteGalleryItem('${img.id}', event)" class="hover:text-red-400" title="Delete">🗑️</button>
+                </div>
+              </div>
             </div>
           </div>
-        `).join('') || '<div class="text-xs text-[#8e8e8e]">No gallery images yet.</div>';
+        `).join('');
+      } catch(e) {
+        console.warn('Gallery load error:', e);
+      }
+    }
+
+    function loadExistingImageToStudio(img) {
+      currentActiveImage = img;
+      displayActiveImage(img, false);
+      document.getElementById('image-prompt-input').value = img.prompt || '';
+    }
+
+    async function deleteGalleryItem(id, e) {
+      if (e) e.stopPropagation();
+      if (!confirm('Delete this image from library?')) return;
+      try {
+        await fetch(`/api/images/library/${id}`, { method: 'DELETE' });
+        loadImageGallery(currentImageGalleryFilter);
+      } catch(err) {}
+    }
+
+    async function loadProviderTelemetry() {
+      try {
+        const res = await fetch('/api/images/health');
+        const data = await res.json();
+        const pBadge = document.getElementById('image-provider-name');
+        const vBadge = document.getElementById('image-vram-badge');
+        if (data.providers && data.providers.length) {
+          const activeP = data.providers.find(p => p.id === data.active_provider) || data.providers[0];
+          pBadge.innerText = `${activeP.name} (${activeP.device})`;
+          if (activeP.vram_total_mb > 0) {
+            vBadge.innerText = `VRAM: ${(activeP.vram_used_mb / 1024).toFixed(1)}GB / ${(activeP.vram_total_mb / 1024).toFixed(1)}GB`;
+          }
+        }
       } catch(e) {}
     }
 

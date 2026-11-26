@@ -72,6 +72,9 @@ class IntentClassifier:
         Intent.IMAGE_GENERATION: [
             r"\b(create|generate|make|draw|render|produce)\b.*\b(image|picture|photo|illustration|drawing|visual|wallpaper|portrait|artwork)\b",
             r"\bimage of\b",
+            r"\b(make\s+(it|this)\s+(brighter|darker|more realistic|pop))\b",
+            r"\b(change\s+(the\s+)?background|different\s+background)\b",
+            r"\b(another\s+variation|generate\s+variation|different\s+color\s+palette|landscape\s+version|portrait\s+version)\b",
         ],
         Intent.CHART_GENERATION: [
             r"\b(chart|graph|plot|visualize|visualization|histogram|scatterplot|bar chart|line graph)\b",
