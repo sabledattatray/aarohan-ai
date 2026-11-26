@@ -215,5 +215,5 @@ def test_web_ui_dashboard(test_env):
     client = test_env["client"]
     res = client.get("/app")
     assert res.status_code == 200
-    assert "AAROHAN AI" in res.text
+    assert "Aarohan" in res.text
     assert "AI Inference & Chat" in res.text

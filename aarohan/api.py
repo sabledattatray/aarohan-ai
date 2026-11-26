@@ -1,7 +1,7 @@
-"""FastAPI backend service and interactive web application for AAROHAN AI.
+"""FastAPI backend service and interactive web application for Aarohan.
 
 In accordance with PRD Prompt 15:
-  - Serves native inference from AAROHAN's original checkpoints (no external commercial LLM fallback).
+  - Serves native inference from Aarohan's original checkpoints (no external commercial LLM fallback).
   - Explicitly separates:
       1. Neural model generated continuation.
       2. Retrieved persistent memory evidence.
@@ -42,7 +42,7 @@ DEFAULT_REG = PROJECT_ROOT / "checkpoints" / "deployment_registry.json"
 
 # In-memory authentication tokens (token -> user info)
 ACTIVE_TOKENS: dict[str, dict[str, Any]] = {
-    "aarohan_admin_token": {"username": "admin", "role": "admin", "name": "AAROHAN Administrator"},
+    "aarohan_admin_token": {"username": "admin", "role": "admin", "name": "Aarohan Administrator"},
     "aarohan_researcher_token": {"username": "researcher", "role": "researcher", "name": "AI Researcher"},
 }
 
@@ -55,7 +55,7 @@ class LoginRequest(BaseModel):
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, description="User input prompt")
     system_prompt: str = Field(
-        "You are AAROHAN, an intelligent, sovereign AI cognitive assistant created to provide accurate, helpful, and insightful reasoning. Answer clearly, accurately, and politely.",
+        "You are Aarohan, an intelligent, sovereign AI cognitive assistant created to provide accurate, helpful, and insightful reasoning. Answer clearly, accurately, and politely.",
         description="System instruction",
     )
     memory_limit: int = Field(3, ge=1, le=10)
@@ -141,7 +141,7 @@ def create_app(
     registry_path: Path = DEFAULT_REG,
 ) -> FastAPI:
     app = FastAPI(
-        title="AAROHAN AI Platform",
+        title="Aarohan Platform",
         version="1.0.0",
         description="Independent Foundation Language Model & Cognitive Memory Service",
     )
@@ -171,7 +171,7 @@ def create_app(
     def login(req: LoginRequest) -> dict[str, Any]:
         # Valid user credentials for local environment
         valid_users = {
-            "admin": ("aarohan_secret_2026", "admin", "AAROHAN Administrator"),
+            "admin": ("aarohan_secret_2026", "admin", "Aarohan Administrator"),
             "researcher": ("aarohan_research", "researcher", "AI Researcher"),
             "user": ("aarohan_user", "user", "Standard User"),
         }
@@ -860,13 +860,13 @@ def create_app(
 
 
 def get_dashboard_html() -> str:
-    """Return complete ChatGPT-identical studio single-page application for AAROHAN AI."""
+    """Return complete ChatGPT-identical studio single-page application for Aarohan."""
     return """<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AAROHAN AI</title>
+  <title>Aarohan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -1013,7 +1013,7 @@ def get_dashboard_html() -> str:
         <!-- ChatGPT Model Selector Pill -->
         <div class="relative inline-block text-left">
           <button type="button" onclick="toggleModelDropdown()" class="flex items-center space-x-1.5 py-1.5 px-3 rounded-xl hover:bg-[#212121] transition text-base font-semibold text-white">
-            <span id="active-model-display">AAROHAN AI</span>
+            <span id="active-model-display">Aarohan</span>
             <svg class="w-4 h-4 text-[#8e8e8e]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
           </button>
 
@@ -1022,7 +1022,7 @@ def get_dashboard_html() -> str:
             <button onclick="selectEngine('foundation')" class="w-full text-left p-2.5 rounded-xl hover:bg-[#2a2a2a] transition flex items-center justify-between">
               <div>
                 <div class="text-sm font-semibold text-white flex items-center space-x-1.5">
-                  <span>AAROHAN Foundation</span>
+                  <span>Aarohan Foundation</span>
                   <span class="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30">Fluent</span>
                 </div>
                 <div class="text-xs text-[#8e8e8e] mt-0.5">High intelligence, code synthesis, reasoning (Qwen2.5)</div>
@@ -1096,7 +1096,7 @@ def get_dashboard_html() -> str:
           </button>
 
           <!-- Textarea (Auto Resizing) -->
-          <textarea id="chat-input" rows="1" placeholder="Message AAROHAN..."
+          <textarea id="chat-input" rows="1" placeholder="Message Aarohan..."
                     class="w-full bg-transparent text-[15px] text-[#ececec] placeholder-[#8e8e8e] outline-none focus:outline-none resize-none max-h-48 leading-relaxed font-sans py-1"></textarea>
 
           <!-- Send Button (ChatGPT iconic upward circle) -->
@@ -1107,7 +1107,7 @@ def get_dashboard_html() -> str:
         </div>
 
         <div class="text-center pt-2 text-[11px] text-[#8e8e8e]">
-          AAROHAN can make mistakes. Local neural inferences run strictly on your hardware.
+          Aarohan can make mistakes. Local neural inferences run strictly on your hardware.
         </div>
       </form>
     </div>
@@ -1276,7 +1276,7 @@ def get_dashboard_html() -> str:
       const checkS = document.getElementById('check-scratch');
 
       if (eng === 'foundation') {
-        display.innerText = 'AAROHAN Foundation';
+        display.innerText = 'Aarohan';
         checkF.classList.remove('hidden');
         checkS.classList.add('hidden');
       } else {

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "aarohan"
 version = "0.1.0"
-description = "AAROHAN AI - Independent Foundation Language Model"
+description = "Aarohan - Independent Foundation Language Model"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

@@ -1,6 +1,6 @@
-# AAROHAN AI
+# Aarohan
 
-AAROHAN is a research project for an independently trained, decoder-only language model and the systems around it. Its source of requirements is [AAROHAN_Master_PRD.txt](AAROHAN_Master_PRD.txt).
+Aarohan is a research project for an independently trained, decoder-only language model and the systems around it. Its source of requirements is [AAROHAN_Master_PRD.txt](AAROHAN_Master_PRD.txt).
 
 ## Current status
 
