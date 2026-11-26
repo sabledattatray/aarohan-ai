@@ -49,6 +49,9 @@ class InferenceManager:
             self.register_engine("ollama", self._ollama_engine)
             self.register_engine("7b", self._ollama_engine)
             self.register_engine("chatgpt", self._ollama_engine)
+            # Make Ollama 7B the primary foundation and auto engine whenever active
+            self.register_engine("foundation", self._ollama_engine)
+            self.register_engine("auto", self._ollama_engine)
         except Exception as e:
             logger.info("Ollama engine setup deferred: %s", e)
             self._ollama_engine = None

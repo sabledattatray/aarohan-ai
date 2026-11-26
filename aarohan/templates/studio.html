@@ -1080,7 +1080,7 @@
           <div class="relative inline-block text-left" id="model-dropdown-container">
             <button type="button" id="model-dropdown-btn" onclick="toggleModelDropdown(event)"
               class="flex items-center space-x-1 py-1 px-2.5 rounded-lg hover:bg-[#2F2F2F] transition text-xs font-medium text-[#b4b4b4] hover:text-white">
-              <span id="active-model-display">Aarohan Foundation</span>
+              <span id="active-model-display">Aarohan Pro (Ollama)</span>
               <svg class="w-3.5 h-3.5 text-[#71717A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
@@ -1097,7 +1097,7 @@
                   </div>
                   <div class="text-[11px] text-[#A1A1AA] mt-0.5">True ChatGPT-grade reasoning, science, websites & codes</div>
                 </div>
-                <span id="check-ollama" class="text-[#10A37F] font-bold ml-2 hidden">✓</span>
+                <span id="check-ollama" class="text-[#10A37F] font-bold ml-2">✓</span>
               </button>
               <button onclick="selectEngine('auto')"
                 class="w-full text-left p-2.5 rounded-xl hover:bg-[#303030] transition flex items-center justify-between mt-1">
@@ -1109,7 +1109,7 @@
                   </div>
                   <div class="text-[11px] text-[#A1A1AA] mt-0.5">Auto-routes to Coder or Chat engine</div>
                 </div>
-                <span id="check-auto" class="text-[#10A37F] font-bold ml-2">✓</span>
+                <span id="check-auto" class="text-[#10A37F] font-bold ml-2 hidden">✓</span>
               </button>
               <button onclick="selectEngine('coder')"
                 class="w-full text-left p-2.5 rounded-xl hover:bg-[#303030] transition flex items-center justify-between mt-1">
@@ -1168,7 +1168,7 @@
     </header>
 
     <!-- Hidden state inputs -->
-    <input type="hidden" id="chat-engine" value="foundation">
+    <input type="hidden" id="chat-engine" value="ollama">
     <input type="hidden" id="chat-mode" value="hybrid">
 
     <!-- ========================================================================= -->
