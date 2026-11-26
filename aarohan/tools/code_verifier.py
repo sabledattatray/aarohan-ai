@@ -15,13 +15,9 @@ import json
 import logging
 import re
 import sqlite3
-import subprocess
-import sys
-from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from aarohan.tools.sql_validator import SQLValidator
-from aarohan.tools.verification import ExecutionResult, ExecutionStatus
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +85,7 @@ class CodeVerifier:
         try:
             tree = ast.parse(clean)
             compile(clean, "<string>", "exec")
-            
+
             # Count imports, functions, classes
             funcs = sum(isinstance(node, ast.FunctionDef) for node in ast.walk(tree))
             classes = sum(isinstance(node, ast.ClassDef) for node in ast.walk(tree))

@@ -14,8 +14,6 @@ from __future__ import annotations
 import logging
 import random
 import time
-import urllib.parse
-import urllib.request
 from pathlib import Path
 from typing import Any, Optional, Tuple
 

@@ -1,5 +1,6 @@
 import sqlite3
 from pathlib import Path
+
 from aarohan.generation.images.local_pipeline import LocalNeuralProvider
 
 conn = sqlite3.connect('data/memory/aarohan.sqlite')

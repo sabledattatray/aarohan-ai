@@ -328,7 +328,7 @@ SCIENTIFIC_LAWS: dict[str, ScientificLaw] = {
             "### 2. Stage 1: Light-Dependent Reactions (Thylakoid Membrane)\n\n"
             "Occurs across the **thylakoid membranes** of chloroplasts. Absorbed photons drive the non-cyclic photophosphorylation (Z-Scheme) and the photolysis of water.\n\n"
             "#### A. Photolysis of Water (Oxygen-Evolving Complex at PS II / P680):\n"
-            "Photosystem II absorbs light at $\\lambda = 680\\text{ nm}$, exciting electrons that leave the reaction center. The manganese-calcium catalytic cluster ($\ ext{Mn}_4\\text{CaO}_5$) replaces these electrons by splitting water:\n"
+            "Photosystem II absorbs light at $\\lambda = 680\\text{ nm}$, exciting electrons that leave the reaction center. The manganese-calcium catalytic cluster ($\\ ext{Mn}_4\\text{CaO}_5$) replaces these electrons by splitting water:\n"
             "$$2\\text{H}_2\\text{O} \\xrightarrow{h\\nu} \\text{O}_2 + 4\\text{H}^+_{\\text{lumen}} + 4e^-$$\n\n"
             "#### B. Electron Transport Chain & Proton Pumping:\n"
             "Electrons flow sequentially: $\\text{P680} \\to \\text{Pheophytin} \\to \\text{Plastoquinone (PQ)} \\to \\text{Cytochrome } b_6f \\text{ complex} \\to \\text{Plastocyanin (PC)} \\to \\text{Photosystem I (P700)}$.\n"

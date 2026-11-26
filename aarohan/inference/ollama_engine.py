@@ -210,20 +210,15 @@ class OllamaInferenceEngine(BaseInferenceEngine):
 
     def get_model_info(self) -> ModelInfo:
         return ModelInfo(
-            model_id=f"ollama/{self.model_name}",
-            model_type=ModelType.FOUNDATION,
-            parameters=7_000_000_000,
-            quantization="Q4_K_M (4-bit)",
-            context_window=32768,
+            model_id=f"ollama/{self._resolve_model()}",
+            model_type=ModelType.FOUNDATION_PRETRAINED,
+            parameter_count=3_100_000_000,
+            context_length=32768,
             device="cuda",
-            capabilities=[
-                ModelCapability.CHAT,
-                ModelCapability.CODE,
-                ModelCapability.REASONING,
-                ModelCapability.STREAMING,
-                ModelCapability.TOOL_CALLING,
-            ],
+            dtype="q4_k_m",
             is_loaded=self.is_loaded(),
+            capabilities=self.available_capabilities(),
+            metadata={"quantization": "Q4_K_M (4-bit)", "backend": "ollama_gpu"},
         )
 
     def health_check(self) -> Dict[str, Any]:
@@ -237,3 +232,26 @@ class OllamaInferenceEngine(BaseInferenceEngine):
             "installed_models": installed,
             "status": "healthy" if alive else "unreachable",
         }
+
+    def unload(self) -> bool:
+        """Tell Ollama to unload model from GPU VRAM."""
+        try:
+            req = urllib.request.Request(
+                f"{self.host}/api/generate",
+                data=json.dumps({"model": self._resolve_model(), "keep_alive": 0}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                return resp.status == 200
+        except Exception:
+            return False
+
+    def available_capabilities(self) -> List[ModelCapability]:
+        return [
+            ModelCapability.TEXT_GENERATION,
+            ModelCapability.STREAMING,
+            ModelCapability.CHAT_TEMPLATE,
+            ModelCapability.CODE_GENERATION,
+            ModelCapability.REASONING,
+            ModelCapability.INSTRUCTION_FOLLOWING,
+        ]

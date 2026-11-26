@@ -9,14 +9,13 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import torch
-from peft import LoraConfig, get_peft_model, TaskType, PeftModel
+from peft import LoraConfig, TaskType, get_peft_model
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
 

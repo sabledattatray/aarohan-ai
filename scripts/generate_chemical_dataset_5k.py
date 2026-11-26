@@ -9,7 +9,6 @@ Outputs:
 
 from __future__ import annotations
 
-import os
 import random
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -161,7 +160,7 @@ def generate_chemical_dataset(num_records: int = TOTAL_ROWS) -> pd.DataFrame:
 
         batch_volume_liters = round(random.uniform(2500.0, 24000.0), 1)
         expected_mass_kg = batch_volume_liters * compound["density"]
-        
+
         # Yield % based on temperature and pressure variance
         yield_efficiency = min(0.995, max(0.85, random.uniform(0.91, 0.98) - (0.01 if reaction_temp > max_temp else 0)))
         actual_yield_kg = round(expected_mass_kg * yield_efficiency, 2)
@@ -213,7 +212,7 @@ def generate_chemical_dataset(num_records: int = TOTAL_ROWS) -> pd.DataFrame:
 def save_dataset_files(df: pd.DataFrame, base_dir: Path) -> dict[str, str]:
     """Save dataset to CSV and styled multi-sheet Excel file."""
     base_dir.mkdir(parents=True, exist_ok=True)
-    
+
     csv_path = base_dir / "chemical_industry_5000.csv"
     xlsx_path = base_dir / "chemical_industry_5000.xlsx"
 
@@ -247,7 +246,7 @@ def save_dataset_files(df: pd.DataFrame, base_dir: Path) -> dict[str, str]:
         plant_df["Avg_Reaction_Temp_C"] = plant_df["Avg_Reaction_Temp_C"].round(2)
         plant_df.to_excel(writer, sheet_name="Plant_KPIs", index=False)
 
-    print(f"Successfully created:")
+    print("Successfully created:")
     print(f" - CSV:  {csv_path} ({csv_path.stat().st_size / (1024*1024):.2f} MB)")
     print(f" - XLSX: {xlsx_path} ({xlsx_path.stat().st_size / (1024*1024):.2f} MB)")
 
