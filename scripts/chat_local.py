@@ -27,18 +27,26 @@ def run_query(
     max_new_tokens: int = 40,
     evidence_only: bool = False,
     source_contains: str | None = None,
+    retrieval_mode: str = "keyword",
 ) -> dict[str, object]:
     if not query.strip():
         raise ValueError("Query cannot be empty")
-    memories = MemoryStore(memory_database).search(
-        query, limit=memory_limit, verified_only=verified_only, source_contains=source_contains
-    )
+    store = MemoryStore(memory_database)
+    if retrieval_mode == "vector":
+        memories = store.vector_search(query, limit=memory_limit, verified_only=verified_only)
+    elif retrieval_mode == "hybrid":
+        memories = store.hybrid_search(query, limit=memory_limit, verified_only=verified_only)
+    else:
+        memories = store.search(
+            query, limit=memory_limit, verified_only=verified_only, source_contains=source_contains
+        )
     model_result = None if evidence_only else generate(
         checkpoint, tokenizer, query, max_new_tokens=max_new_tokens, device_name=device
     )
     return {
         "query": query,
         "answer_mode": "retrieved_evidence_only" if evidence_only else "ungrounded_model_continuation",
+        "retrieval_mode": retrieval_mode,
         "source_filter": source_contains,
         "retrieved_memory": [
             {
@@ -76,12 +84,14 @@ def main() -> None:
     parser.add_argument("--evidence-only", action="store_true",
                         help="Show retrieved memory without generating a model continuation")
     parser.add_argument("--source-contains", help="Only retrieve memory whose source contains this text")
+    parser.add_argument("--retrieval-mode", choices=("keyword", "vector", "hybrid"), default="keyword")
     args = parser.parse_args()
     try:
         result = run_query(args.query, args.checkpoint, args.tokenizer, args.memory_database,
                            memory_limit=args.memory_limit, verified_only=args.verified_only,
-                          device=args.device, max_new_tokens=args.max_new_tokens,
-                          evidence_only=args.evidence_only, source_contains=args.source_contains)
+                           device=args.device, max_new_tokens=args.max_new_tokens,
+                           evidence_only=args.evidence_only, source_contains=args.source_contains,
+                           retrieval_mode=args.retrieval_mode)
     except (ValueError, OSError, KeyError, RuntimeError) as error:
         print(json.dumps({"ok": False, "error": str(error)}, indent=2))
         raise SystemExit(1) from error

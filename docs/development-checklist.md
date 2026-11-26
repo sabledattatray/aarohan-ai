@@ -62,12 +62,24 @@ Status follows the PRD. Check an item only after evidence exists in the reposito
 
 **Exit condition:** PASSED. Model responds to instructions using its own weights with assistant target masking and safety refusal behavior.
 
+## Phase 4 — Long-Term Memory
+
+- [x] Multi-layer memory architecture covering Working, Episodic, Semantic, Procedural, and Learning layers (`aarohan/memory.py`).
+- [x] Deterministic dense vector embeddings and cosine similarity search (`vector_search`).
+- [x] Hybrid search combining FTS5 BM25 keyword retrieval and dense vector embeddings (`hybrid_search`).
+- [x] Knowledge Graph (Layer 5) with entities (`knowledge_entities`), relations (`knowledge_relations`), graph query, and path finding.
+- [x] Memory links, duplicate detection, and contradiction detection (`detect_contradictions`).
+- [x] Memory consolidation engine reviewing episodic records and linking recurring concepts (`consolidate`).
+- [x] Expanded CLI with multi-modal search and graph exploration commands (`scripts/memory_cli.py`).
+- [x] Integrated hybrid retrieval in interactive model queries (`scripts/chat_local.py`).
+- [x] Automated unit and integration tests (8 memory tests, 4 CLI tests, 43 total suite tests passed).
+
+**Exit condition:** PASSED. Persistent 6-layer memory store survives session restarts, executes vector/keyword search, navigates the knowledge graph, and validates contradiction/consolidation logic.
+
 ## Later phases
 
-- [ ] Foundation data pipeline and pretraining
-- [ ] Instruction tuning
-- [ ] Persistent, source-aware memory and knowledge
-- [ ] Bounded research and learning-gap queue
-- [ ] Continual learning with replay, regression gates and rollback
-- [ ] API, web interface, audits and integrated release evaluation
+- [ ] Bounded research and learning-gap queue (Phase 5)
+- [ ] Continual learning with replay, regression gates and rollback (Phase 6)
+- [ ] Autonomous learning scheduler (Phase 7)
+- [ ] API, web interface, audits and integrated release evaluation (Phase 15/16)
 
