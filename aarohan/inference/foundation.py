@@ -126,6 +126,9 @@ class FoundationInferenceEngine(BaseInferenceEngine):
                 **inputs,
                 max_new_tokens=max_new_tokens,
                 temperature=max(temperature, 0.01),
+                top_p=0.9,
+                repetition_penalty=1.15,
+                no_repeat_ngram_size=4,
                 do_sample=temperature > 0.05,
                 pad_token_id=self.tokenizer.eos_token_id,
             )
@@ -173,6 +176,9 @@ class FoundationInferenceEngine(BaseInferenceEngine):
             streamer=streamer,
             max_new_tokens=max_new_tokens,
             temperature=max(temperature, 0.01),
+            top_p=0.9,
+            repetition_penalty=1.15,
+            no_repeat_ngram_size=4,
             do_sample=temperature > 0.05,
             pad_token_id=self.tokenizer.eos_token_id,
         )

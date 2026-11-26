@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import secrets
 import time
 from pathlib import Path
@@ -76,10 +77,29 @@ ACTIVE_TOKENS: dict[str, dict[str, Any]] = {
     "aarohan_researcher_token": {"username": "researcher", "role": "researcher", "name": "AI Researcher"},
 }
 
+# In-memory OTP storage for email-based login (email -> {otp, expires_at})
+OTP_STORE: dict[str, dict[str, Any]] = {}
+
 
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=1)
     password: str = Field(..., min_length=1)
+
+
+class SendOTPRequest(BaseModel):
+    email: str = Field(..., min_length=5, description="Email address to receive OTP")
+
+
+class VerifyOTPRequest(BaseModel):
+    email: str = Field(..., min_length=5, description="Email address")
+    otp: str = Field(..., min_length=6, max_length=6, description="6-digit verification code")
+
+
+class GoogleAuthRequest(BaseModel):
+    credential: Optional[str] = Field(None, description="Google ID Token / Credential")
+    email: Optional[str] = Field(None, description="Google verified email")
+    name: Optional[str] = Field(None, description="Google user full name")
+    picture: Optional[str] = Field(None, description="Google user profile picture")
 
 
 class ChatRequest(BaseModel):
@@ -403,6 +423,92 @@ def create_app(
 
         audit.log("auth_login_failure", actor=req.username, target="api", details={})
         raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    @app.post("/api/auth/send-otp")
+    def send_otp(req: SendOTPRequest) -> dict[str, Any]:
+        email = req.email.strip().lower()
+        if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
+            raise HTTPException(status_code=400, detail="Invalid email address format.")
+
+        otp = f"{secrets.randbelow(900000) + 100000}"
+        OTP_STORE[email] = {
+            "otp": otp,
+            "expires_at": time.time() + 600,
+        }
+        logger.info("Verification OTP generated for %s: %s (expires in 10 mins)", email, otp)
+        audit.log("auth_otp_sent", actor=email, target="api", details={"expires_in": 600})
+        return {
+            "success": True,
+            "message": f"Verification code sent to {email}",
+            "dev_otp": otp,
+            "expires_in_seconds": 600,
+        }
+
+    @app.post("/api/auth/verify-otp")
+    def verify_otp(req: VerifyOTPRequest) -> dict[str, Any]:
+        email = req.email.strip().lower()
+        record = OTP_STORE.get(email)
+        if not record:
+            raise HTTPException(status_code=400, detail="No verification code requested or session expired.")
+        if time.time() > record["expires_at"]:
+            OTP_STORE.pop(email, None)
+            raise HTTPException(status_code=400, detail="Verification code has expired. Please request a new code.")
+        if record["otp"] != req.otp.strip():
+            raise HTTPException(status_code=400, detail="Incorrect verification code. Please check and try again.")
+
+        OTP_STORE.pop(email, None)
+        username = email.split("@")[0]
+        display_name = username.replace(".", " ").replace("_", " ").title()
+        token = f"tok_{secrets.token_hex(16)}"
+        user_info = {
+            "username": username,
+            "email": email,
+            "name": display_name,
+            "role": "user",
+            "provider": "email_otp",
+        }
+        ACTIVE_TOKENS[token] = user_info
+        audit.log("auth_otp_success", actor=email, target="api", details={"username": username})
+        return {"token": token, "user": user_info}
+
+    @app.post("/api/auth/google")
+    def google_auth(req: GoogleAuthRequest) -> dict[str, Any]:
+        email = req.email.strip().lower() if req.email else "user@gmail.com"
+        name = req.name.strip() if req.name else "Google User"
+
+        if req.credential:
+            try:
+                parts = req.credential.split(".")
+                if len(parts) >= 2:
+                    import base64
+                    payload_b64 = parts[1]
+                    payload_b64 += "=" * ((4 - len(payload_b64) % 4) % 4)
+                    payload_json = json.loads(base64.urlsafe_b64decode(payload_b64.encode("utf-8")).decode("utf-8"))
+                    email = payload_json.get("email", email).lower()
+                    name = payload_json.get("name", name)
+            except Exception as e_jwt:
+                logger.debug("Failed parsing Google JWT: %s", e_jwt)
+
+        username = email.split("@")[0]
+        token = f"tok_{secrets.token_hex(16)}"
+        user_info = {
+            "username": username,
+            "email": email,
+            "name": name,
+            "role": "user",
+            "provider": "google",
+            "picture": req.picture,
+        }
+        ACTIVE_TOKENS[token] = user_info
+        audit.log("auth_google_success", actor=email, target="api", details={"name": name})
+        return {"token": token, "user": user_info}
+
+    @app.post("/api/auth/logout")
+    def logout(authorization: str | None = Header(None)) -> dict[str, Any]:
+        if authorization and authorization.startswith("Bearer "):
+            tok = authorization[7:].strip()
+            ACTIVE_TOKENS.pop(tok, None)
+        return {"success": True, "message": "Successfully logged out."}
 
     @app.get("/api/auth/me")
     def get_me(user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:

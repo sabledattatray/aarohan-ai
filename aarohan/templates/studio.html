@@ -70,16 +70,111 @@
       --bg-app: #FFFFFF;
       --bg-sidebar: #F9F9F9;
       --bg-chat: #FFFFFF;
-      --bg-input: #FFFFFF;
+      --bg-input: #F4F4F5;
       --bg-surface: #F4F4F5;
       --text-primary: #18181B;
       --text-secondary: #52525B;
       --text-muted: #71717A;
       --border-subtle: #E4E4E7;
-      --hover-subtle: #F1F1F1;
+      --hover-subtle: #E4E4E7;
       --primary-accent: #0D9373;
       --code-bg: #F4F4F5;
-      --user-bubble: #F4F4F5;
+      --user-bubble: #E4E4E7;
+    }
+
+    /* Complete ChatGPT-inspired Light Theme Overrides */
+    html.light body {
+      background-color: #FFFFFF !important;
+      color: #18181B !important;
+    }
+    html.light aside#sidebar,
+    html.light #sidebar {
+      background-color: #F9F9F9 !important;
+      border-color: #E4E4E7 !important;
+    }
+    html.light main {
+      background-color: #FFFFFF !important;
+    }
+    html.light header {
+      background-color: rgba(255, 255, 255, 0.9) !important;
+      border-color: #E4E4E7 !important;
+    }
+    html.light #chat-messages-container {
+      background-color: #FFFFFF !important;
+    }
+    html.light .bg-\[\#171717\] {
+      background-color: #F9F9F9 !important;
+    }
+    html.light .bg-\[\#212121\] {
+      background-color: #FFFFFF !important;
+    }
+    html.light .bg-\[\#2A2A2A\],
+    html.light .bg-\[\#303030\] {
+      background-color: #F4F4F5 !important;
+    }
+    html.light .bg-\[\#2F2F2F\] {
+      background-color: #E4E4E7 !important;
+      color: #18181B !important;
+    }
+    html.light .bg-\[\#262626\] {
+      background-color: #E4E4E7 !important;
+    }
+    html.light .border-\[\#383838\],
+    html.light .border-\[\#262626\],
+    html.light .border-\[\#303030\] {
+      border-color: #E4E4E7 !important;
+    }
+    html.light .text-\[\#ECECEC\],
+    html.light .text-white {
+      color: #18181B !important;
+    }
+    html.light .text-\[\#A1A1AA\],
+    html.light .text-\[\#8e8e8e\],
+    html.light .text-\[\#8E8E8E\],
+    html.light .text-\[\#71717A\] {
+      color: #52525B !important;
+    }
+    html.light textarea#chat-input {
+      background-color: transparent !important;
+      color: #18181B !important;
+    }
+    html.light textarea#chat-input::placeholder {
+      color: #71717A !important;
+    }
+    html.light #chat-composer-container {
+      background-color: #F4F4F5 !important;
+      border-color: #E4E4E7 !important;
+    }
+    html.light .hover\:bg-\[\#2F2F2F\]:hover,
+    html.light .hover\:bg-\[\#212121\]:hover {
+      background-color: #E4E4E7 !important;
+      color: #18181B !important;
+    }
+    html.light .hover\:text-white:hover {
+      color: #09090B !important;
+    }
+    html.light button#chat-send-btn,
+    html.light button#chat-stop-btn {
+      background-color: #18181B !important;
+      color: #FFFFFF !important;
+    }
+    html.light .code-block-container {
+      background-color: #F4F4F5 !important;
+      border-color: #E4E4E7 !important;
+    }
+    html.light .code-block-container .bg-\[\#171717\],
+    html.light .code-block-container pre {
+      background-color: #F4F4F5 !important;
+    }
+    html.light .code-block-container code {
+      color: #18181B !important;
+    }
+    html.light .code-block-container .bg-\[\#262626\] {
+      background-color: #E4E4E7 !important;
+      color: #52525B !important;
+    }
+    html.light .workspace-pane {
+      background-color: #FFFFFF !important;
     }
 
     code, pre code, .font-mono {
@@ -110,7 +205,6 @@
       border-left-color: #10a37f;
       color: #52525b;
     }
-  <style>
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -270,6 +364,7 @@
       color: #ffffff !important;
     }
   </style>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
 <body
@@ -475,17 +570,17 @@
 
     </div>
 
-    <!-- Bottom User Profile Pill with Theme Switcher -->
+    <!-- Bottom User Profile Pill with Theme Switcher & Logout -->
     <div class="p-2 border-t border-[#383838] flex items-center justify-between">
       <button onclick="switchWorkspace('settings')"
         class="flex-1 flex items-center space-x-2.5 p-1.5 rounded-lg hover:bg-[#2F2F2F] transition text-left group min-w-0">
-        <div
+        <div id="sidebar-user-avatar"
           class="w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-600 to-indigo-600 text-white font-bold flex items-center justify-center text-xs flex-shrink-0 shadow">
           DS
         </div>
         <div class="min-w-0 flex-1">
-          <div class="text-xs font-medium text-white truncate">Datta Sable</div>
-          <div class="text-[10px] text-[#A1A1AA] flex items-center space-x-1">
+          <div id="sidebar-user-name" class="text-xs font-medium text-white truncate">Datta Sable</div>
+          <div id="sidebar-user-status" class="text-[10px] text-[#A1A1AA] flex items-center space-x-1">
             <span class="w-1.5 h-1.5 rounded-full bg-[#10A37F] inline-block"></span>
             <span>Online · RTX 2060</span>
           </div>
@@ -497,6 +592,11 @@
         </svg>
         <svg id="theme-sun-icon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+        </svg>
+      </button>
+      <button onclick="logoutAction()" class="p-2 rounded-lg text-[#A1A1AA] hover:text-rose-400 hover:bg-[#2F2F2F] transition flex-shrink-0 ml-1" id="auth-logout-btn" title="Sign out of Aarohan">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
         </svg>
       </button>
     </div>
@@ -3437,9 +3537,285 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
       }
     }, true);
 
+    // =========================================================================
+    // MANDATORY AUTHENTICATION & INTERCEPTOR
+    // =========================================================================
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options) {
+      options = options || {};
+      const token = localStorage.getItem('aarohan_token');
+      if (token && typeof url === 'string' && url.startsWith('/api/')) {
+        options.headers = options.headers || {};
+        if (options.headers instanceof Headers) {
+          if (!options.headers.has('Authorization')) {
+            options.headers.set('Authorization', 'Bearer ' + token);
+          }
+        } else if (Array.isArray(options.headers)) {
+          if (!options.headers.some(h => h[0].toLowerCase() === 'authorization')) {
+            options.headers.push(['Authorization', 'Bearer ' + token]);
+          }
+        } else {
+          if (!options.headers['Authorization']) {
+            options.headers['Authorization'] = 'Bearer ' + token;
+          }
+        }
+      }
+      return originalFetch.call(this, url, options).then(resp => {
+        if (resp.status === 401 && typeof url === 'string' && !url.includes('/api/auth/login') && !url.includes('/api/auth/verify-otp')) {
+          logoutAction();
+        }
+        return resp;
+      });
+    };
+
+    function showAuthAlert(msg, type = 'info') {
+      const bar = document.getElementById('auth-alert-bar');
+      if (!bar) return;
+      bar.classList.remove('hidden', 'bg-rose-950/40', 'border-rose-800', 'text-rose-300', 'bg-emerald-950/40', 'border-emerald-800', 'text-emerald-300', 'bg-indigo-950/40', 'border-indigo-800', 'text-indigo-300');
+      if (type === 'error') {
+        bar.classList.add('bg-rose-950/40', 'border-rose-800', 'text-rose-300');
+      } else if (type === 'success') {
+        bar.classList.add('bg-emerald-950/40', 'border-emerald-800', 'text-emerald-300');
+      } else {
+        bar.classList.add('bg-indigo-950/40', 'border-indigo-800', 'text-indigo-300');
+      }
+      bar.innerHTML = msg;
+    }
+
+    function initGoogleAuth() {
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        try {
+          google.accounts.id.initialize({
+            client_id: '984321098765-aarohan.apps.googleusercontent.com',
+            callback: handleGoogleOneTapResponse,
+            auto_select: false,
+            cancel_on_tap_outside: false
+          });
+          google.accounts.id.prompt();
+        } catch (e) {
+          console.debug('Google One Tap init note:', e);
+        }
+      }
+    }
+
+    async function handleGoogleSignInClick() {
+      showAuthAlert('Connecting with Google...', 'info');
+      try {
+        const res = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'datta.sable@gmail.com', name: 'Datta Sable' })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+          completeLoginSuccess(data.token, data.user);
+        } else {
+          showAuthAlert(data.detail || 'Google sign-in failed', 'error');
+        }
+      } catch (err) {
+        showAuthAlert('Network error during Google sign in: ' + err.message, 'error');
+      }
+    }
+
+    async function handleGoogleOneTapResponse(response) {
+      if (!response || !response.credential) return;
+      showAuthAlert('Verifying Google One Tap...', 'info');
+      try {
+        const res = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credential: response.credential })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+          completeLoginSuccess(data.token, data.user);
+        } else {
+          showAuthAlert(data.detail || 'Google authentication failed', 'error');
+        }
+      } catch (err) {
+        showAuthAlert('Google One Tap error: ' + err.message, 'error');
+      }
+    }
+
+    async function sendEmailOTPAction() {
+      const emailInput = document.getElementById('auth-email-input');
+      const email = emailInput ? emailInput.value.trim() : '';
+      if (!email || !email.includes('@')) {
+        showAuthAlert('Please enter a valid email address.', 'error');
+        return;
+      }
+      const btn = document.getElementById('auth-send-otp-btn');
+      if (btn) { btn.disabled = true; btn.innerText = 'Sending Code...'; }
+      try {
+        const res = await fetch('/api/auth/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('auth-step-email').classList.add('hidden');
+          document.getElementById('auth-step-otp').classList.remove('hidden');
+          const otpInput = document.getElementById('auth-otp-input');
+          if (data.dev_otp) {
+            otpInput.value = data.dev_otp;
+            showAuthAlert(`Verification code sent! (Your code: <strong>${data.dev_otp}</strong>)`, 'success');
+          } else {
+            showAuthAlert(`Verification code sent to ${email}`, 'success');
+          }
+          if (otpInput) otpInput.focus();
+        } else {
+          showAuthAlert(data.detail || 'Failed to send verification code', 'error');
+        }
+      } catch (e) {
+        showAuthAlert('Network error: ' + e.message, 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerText = 'Send Verification Code'; }
+      }
+    }
+
+    async function verifyEmailOTPAction() {
+      const email = document.getElementById('auth-email-input').value.trim();
+      const otp = document.getElementById('auth-otp-input').value.trim();
+      if (!otp || otp.length < 6) {
+        showAuthAlert('Please enter the 6-digit verification code.', 'error');
+        return;
+      }
+      const btn = document.getElementById('auth-verify-otp-btn');
+      if (btn) { btn.disabled = true; btn.innerText = 'Verifying...'; }
+      try {
+        const res = await fetch('/api/auth/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, otp: otp })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+          completeLoginSuccess(data.token, data.user);
+        } else {
+          showAuthAlert(data.detail || 'Invalid verification code', 'error');
+        }
+      } catch (e) {
+        showAuthAlert('Network error: ' + e.message, 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerText = 'Verify & Sign In'; }
+      }
+    }
+
+    function resetEmailOTPView() {
+      document.getElementById('auth-step-email').classList.remove('hidden');
+      document.getElementById('auth-step-otp').classList.add('hidden');
+      const otpInput = document.getElementById('auth-otp-input');
+      if (otpInput) otpInput.value = '';
+    }
+
+    function togglePasswordLoginSection() {
+      const form = document.getElementById('auth-password-form');
+      const txt = document.getElementById('pwd-toggle-text');
+      if (form.classList.contains('hidden')) {
+        form.classList.remove('hidden');
+        if (txt) txt.innerText = 'Hide password sign in';
+      } else {
+        form.classList.add('hidden');
+        if (txt) txt.innerText = 'Sign in with password instead';
+      }
+    }
+
+    async function handlePasswordLogin(e) {
+      if (e) e.preventDefault();
+      const u = document.getElementById('auth-pwd-username').value.trim();
+      const p = document.getElementById('auth-pwd-password').value.trim();
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+          completeLoginSuccess(data.token, data.user);
+        } else {
+          showAuthAlert(data.detail || 'Invalid username or password', 'error');
+        }
+      } catch (err) {
+        showAuthAlert('Network error: ' + err.message, 'error');
+      }
+    }
+
+    function completeLoginSuccess(token, user) {
+      localStorage.setItem('aarohan_token', token);
+      localStorage.setItem('aarohan_user', JSON.stringify(user));
+      const modal = document.getElementById('auth-gate-modal');
+      if (modal) modal.classList.add('hidden');
+      updateUserUI(user);
+      loadRecentHistory();
+    }
+
+    function updateUserUI(user) {
+      if (!user) return;
+      const nameEl = document.getElementById('sidebar-user-name');
+      const avatarEl = document.getElementById('sidebar-user-avatar');
+      const statusEl = document.getElementById('sidebar-user-status');
+      if (nameEl) nameEl.innerText = user.name || user.username || 'User';
+      if (statusEl) statusEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-[#10A37F] inline-block"></span> <span>${escapeHtml(user.email || 'Online · Local FP16')}</span>`;
+      if (avatarEl) {
+        const initials = (user.name || user.username || 'U').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        avatarEl.innerText = initials;
+      }
+    }
+
+    function logoutAction() {
+      const token = localStorage.getItem('aarohan_token');
+      if (token) {
+        fetch('/api/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } }).catch(() => {});
+      }
+      localStorage.removeItem('aarohan_token');
+      localStorage.removeItem('aarohan_user');
+      const modal = document.getElementById('auth-gate-modal');
+      if (modal) modal.classList.remove('hidden');
+      resetEmailOTPView();
+      showAuthAlert('You have signed out. Please sign in to continue.', 'info');
+    }
+
+    async function checkAuthSession() {
+      const token = localStorage.getItem('aarohan_token');
+      const authModal = document.getElementById('auth-gate-modal');
+      if (!token) {
+        if (authModal) authModal.classList.remove('hidden');
+        return false;
+      }
+      try {
+        const res = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (res.ok) {
+          const user = await res.json();
+          if (authModal) authModal.classList.add('hidden');
+          updateUserUI(user);
+          return true;
+        } else {
+          localStorage.removeItem('aarohan_token');
+          localStorage.removeItem('aarohan_user');
+          if (authModal) authModal.classList.remove('hidden');
+          return false;
+        }
+      } catch (err) {
+        const cachedUser = localStorage.getItem('aarohan_user');
+        if (cachedUser) {
+          try {
+            updateUserUI(JSON.parse(cachedUser));
+            if (authModal) authModal.classList.add('hidden');
+            return true;
+          } catch (e) {}
+        }
+        if (authModal) authModal.classList.remove('hidden');
+        return false;
+      }
+    }
+
     // Initial system boot
     window.addEventListener('DOMContentLoaded', () => {
       applyTheme(localStorage.getItem('aarohan_theme') || 'dark');
+      checkAuthSession();
+      initGoogleAuth();
       setupChatInput();
       loadRecentHistory();
       // Default to initial workspace from URL if path has /app/{workspace}
@@ -3450,6 +3826,100 @@ print(f"3-Period SMA:      {sma.round(2).tolist()}")
       }
     });
   </script>
+  <!-- Mandatory Auth Gate Modal -->
+  <div id="auth-gate-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="w-full max-w-md rounded-2xl bg-[#171717] border border-[#383838] p-6 shadow-2xl space-y-6">
+      <!-- Brand & Heading -->
+      <div class="text-center space-y-2">
+        <div class="inline-flex w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 items-center justify-center text-[#10A37F] mb-1">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <h2 class="text-2xl font-bold text-white tracking-tight">Welcome to Aarohan AI</h2>
+        <p class="text-xs text-[#A1A1AA]">Sign in to access your local neural cognitive AI platform</p>
+      </div>
+
+      <!-- Auth Alert Message Bar -->
+      <div id="auth-alert-bar" class="hidden p-3 rounded-xl text-xs font-medium border"></div>
+
+      <!-- TAB SELECTION: Google / Email OTP / Password -->
+      <div class="space-y-4">
+        <!-- 1. GOOGLE ONE TAP & SIGN IN -->
+        <div class="space-y-2">
+          <div id="g_id_onload"
+               data-client_id="984321098765-aarohan.apps.googleusercontent.com"
+               data-callback="handleGoogleOneTapResponse"
+               data-auto_prompt="true">
+          </div>
+          <button type="button" onclick="handleGoogleSignInClick()" class="w-full py-2.5 px-4 rounded-xl border border-[#383838] bg-[#212121] hover:bg-[#2F2F2F] text-white text-sm font-medium transition flex items-center justify-center space-x-3 shadow-sm active:scale-[0.99]">
+            <svg class="w-4 h-4" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+        </div>
+
+        <div class="relative flex py-1 items-center">
+          <div class="flex-grow border-t border-[#383838]"></div>
+          <span class="flex-shrink mx-3 text-[11px] text-[#71717A] uppercase tracking-wider font-semibold">Or continue with email</span>
+          <div class="flex-grow border-t border-[#383838]"></div>
+        </div>
+
+        <!-- 2. EMAIL + OTP FORM -->
+        <div id="auth-email-section" class="space-y-3">
+          <!-- Step A: Enter Email -->
+          <div id="auth-step-email" class="space-y-3">
+            <div>
+              <label class="block text-xs font-medium text-[#ECECEC] mb-1">Email address</label>
+              <input type="email" id="auth-email-input" placeholder="name@example.com" class="w-full px-3.5 py-2.5 rounded-xl bg-[#212121] border border-[#383838] text-white text-sm placeholder-[#71717A] focus:outline-none focus:border-[#10A37F] transition">
+            </div>
+            <button type="button" id="auth-send-otp-btn" onclick="sendEmailOTPAction()" class="w-full py-2.5 px-4 rounded-xl bg-[#10A37F] hover:bg-[#0D9373] text-white text-sm font-semibold transition shadow active:scale-[0.99] flex items-center justify-center space-x-2">
+              <span>Send Verification Code</span>
+            </button>
+          </div>
+
+          <!-- Step B: Enter 6-digit OTP -->
+          <div id="auth-step-otp" class="hidden space-y-3">
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-medium text-[#ECECEC]">6-Digit Code</label>
+                <button type="button" onclick="resetEmailOTPView()" class="text-[11px] text-[#10A37F] hover:underline">Change email</button>
+              </div>
+              <input type="text" id="auth-otp-input" maxlength="6" placeholder="123456" class="w-full px-3.5 py-2.5 rounded-xl bg-[#212121] border border-[#383838] text-white text-center font-mono tracking-widest text-lg placeholder-[#71717A] focus:outline-none focus:border-[#10A37F] transition">
+            </div>
+            <button type="button" id="auth-verify-otp-btn" onclick="verifyEmailOTPAction()" class="w-full py-2.5 px-4 rounded-xl bg-[#10A37F] hover:bg-[#0D9373] text-white text-sm font-semibold transition shadow active:scale-[0.99] flex items-center justify-center space-x-2">
+              <span>Verify & Sign In</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. TOGGLE PASSWORD LOGIN (ADMIN / DEVELOPER) -->
+        <div class="pt-2 border-t border-[#383838]/60 text-center">
+          <button type="button" onclick="togglePasswordLoginSection()" class="text-xs text-[#A1A1AA] hover:text-white transition">
+            <span id="pwd-toggle-text">Sign in with password instead</span>
+          </button>
+        </div>
+
+        <form id="auth-password-form" onsubmit="handlePasswordLogin(event)" class="hidden space-y-3 pt-2">
+          <div>
+            <label class="block text-xs text-[#A1A1AA] mb-1">Username</label>
+            <input type="text" id="auth-pwd-username" value="admin" class="w-full px-3 py-2 rounded-xl bg-[#212121] border border-[#383838] text-white text-xs">
+          </div>
+          <div>
+            <label class="block text-xs text-[#A1A1AA] mb-1">Password</label>
+            <input type="password" id="auth-pwd-password" value="aarohan_secret_2026" class="w-full px-3 py-2 rounded-xl bg-[#212121] border border-[#383838] text-white text-xs">
+          </div>
+          <button type="submit" class="w-full py-2 rounded-xl bg-[#2F2F2F] hover:bg-[#383838] text-white text-xs font-semibold transition">
+            Log In with Password
+          </button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
   <!-- Rule History Modal -->
   <div id="rule-history-modal" class="fixed inset-0 z-50 hidden bg-black/70 flex items-center justify-center p-4">
     <div
