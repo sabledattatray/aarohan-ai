@@ -304,6 +304,69 @@ SCIENTIFIC_LAWS: dict[str, ScientificLaw] = {
             "- $r$: Distance between charge centers ($\\text{m}$)."
         ),
     ),
+    "photosynthesis": ScientificLaw(
+        law_id="photosynthesis",
+        canonical_title="Biochemical Mechanism of Photosynthesis",
+        category="Biochemistry / Bioenergetics",
+        summary="Photoautotrophic conversion of carbon dioxide and water into glucose and oxygen driven by solar photons, divided into thylakoid light-dependent reactions and stroma Calvin cycle carbon fixation.",
+        formula_latex=r"6\text{CO}_2 + 6\text{H}_2\text{O} + h\nu \xrightarrow{\text{chlorophyll}} \text{C}_6\text{H}_{12}\text{O}_6 + 6\text{O}_2 \quad (\Delta G^\circ = +2870\text{ kJ/mol})",
+        variables={
+            r"\text{CO}_2": "Carbon dioxide from atmospheric intake via stomata",
+            r"\text{H}_2\text{O}": "Water absorbed by roots and oxidized during photolysis",
+            r"h\nu": "Light energy / solar photon flux (wavelengths 400–700 nm)",
+            r"\text{C}_6\text{H}_{12}\text{O}_6": "D-Glucose synthesized as stored chemical energy",
+            r"\text{O}_2": "Molecular oxygen byproduct released into the atmosphere",
+        },
+        detailed_markdown=(
+            "### Photosynthesis: Complete Biochemical Mechanism & Chemical Reactions\n\n"
+            "**Photosynthesis** is the central anabolic process by which green plants, algae, and cyanobacteria convert light energy into high-energy chemical bonds stored in hexose sugars (glucose).\n\n"
+            "---\n\n"
+            "### 1. Overall Net Chemical Reaction\n\n"
+            "$$6\\text{CO}_2 + 6\\text{H}_2\\text{O} + \\text{photons} \\xrightarrow{\\text{chlorophyll}} \\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2$$\n\n"
+            "$$\\Delta G^\\circ = +2870\\text{ kJ/mol} \\quad (\\text{Endothermic / Endergonic})$$\n\n"
+            "---\n\n"
+            "### 2. Stage 1: Light-Dependent Reactions (Thylakoid Membrane)\n\n"
+            "Occurs across the **thylakoid membranes** of chloroplasts. Absorbed photons drive the non-cyclic photophosphorylation (Z-Scheme) and the photolysis of water.\n\n"
+            "#### A. Photolysis of Water (Oxygen-Evolving Complex at PS II / P680):\n"
+            "Photosystem II absorbs light at $\\lambda = 680\\text{ nm}$, exciting electrons that leave the reaction center. The manganese-calcium catalytic cluster ($\ ext{Mn}_4\\text{CaO}_5$) replaces these electrons by splitting water:\n"
+            "$$2\\text{H}_2\\text{O} \\xrightarrow{h\\nu} \\text{O}_2 + 4\\text{H}^+_{\\text{lumen}} + 4e^-$$\n\n"
+            "#### B. Electron Transport Chain & Proton Pumping:\n"
+            "Electrons flow sequentially: $\\text{P680} \\to \\text{Pheophytin} \\to \\text{Plastoquinone (PQ)} \\to \\text{Cytochrome } b_6f \\text{ complex} \\to \\text{Plastocyanin (PC)} \\to \\text{Photosystem I (P700)}$.\n"
+            "The Cytochrome $b_6f$ complex pumps protons from the stroma into the thylakoid lumen, generating a steep electrochemical proton gradient ($\\Delta\\text{pH}$).\n\n"
+            "#### C. NADPH Synthesis (PS I / Ferredoxin-NADP⁺ Reductase):\n"
+            "Excited electrons from P700 transfer via ferredoxin to **FNR**:\n"
+            "$$\\text{NADP}^+ + 2\\text{H}^+ + 2e^- \\xrightarrow{\\text{FNR}} \\text{NADPH} + \\text{H}^+$$\n\n"
+            "#### D. Photophosphorylation (Chemiosmosis via ATP Synthase):\n"
+            "Protons return down their concentration gradient into the stroma through $CF_0CF_1$ **ATP Synthase**:\n"
+            "$$\\text{ADP} + \\text{P}_i + \\text{H}^+_{\\text{lumen}} \\xrightarrow{\\text{ATP Synthase}} \\text{ATP} + \\text{H}_2\\text{O}$$\n\n"
+            "**Net Light-Dependent Reaction:**\n"
+            "$$2\\text{H}_2\\text{O} + 2\\text{NADP}^+ + 3\\text{ADP} + 3\\text{P}_i \\xrightarrow{h\\nu} \\text{O}_2 + 2\\text{NADPH} + 2\\text{H}^+ + 3\\text{ATP}$$\n\n"
+            "---\n\n"
+            "### 3. Stage 2: Light-Independent Reactions / Calvin-Benson Cycle (Stroma)\n\n"
+            "Occurs in the **chloroplast stroma**, utilizing the chemical energy ($\\text{ATP}$ and $\\text{NADPH}$) generated in the thylakoid to fix inorganic carbon.\n\n"
+            "#### Phase 1: Carbon Fixation (Catalyzed by RuBisCO)\n"
+            "Carbon dioxide reacts with the 5-carbon sugar Ribulose-1,5-bisphosphate (RuBP) via **RuBisCO** to produce an unstable 6-carbon intermediate that immediately cleaves into two molecules of 3-Phosphoglycerate (3-PGA):\n"
+            "$$3\\text{RuBP (5C)} + 3\\text{CO}_2 + 3\\text{H}_2\\text{O} \\xrightarrow{\\text{RuBisCO}} 6\\text{ [3-Phosphoglycerate (3C)]}$$\n\n"
+            "#### Phase 2: Reduction Phase\n"
+            "3-PGA is phosphorylated by ATP and reduced by NADPH to Glyceraldehyde 3-Phosphate (G3P):\n"
+            "$$6\\text{ (3-PGA)} + 6\\text{ATP} \\xrightarrow{\\text{Phosphoglycerate kinase}} 6\\text{ (1,3-Bisphosphoglycerate)} + 6\\text{ADP}$$\n"
+            "$$6\\text{ (1,3-BPG)} + 6\\text{NADPH} + 6\\text{H}^+ \\xrightarrow{\\text{G3P Dehydrogenase}} 6\\text{ (G3P)} + 6\\text{NADP}^+ + 6\\text{P}_i$$\n\n"
+            "**Sugar Yield:** For every 3 turns of the cycle (fixing $3\\text{CO}_2$), **1 net molecule of G3P** leaves the cycle to form glucose in the cytoplasm:\n"
+            "$$2\\text{ G3P (3C)} \\xrightarrow{\\text{Gluconeogenesis / Aldolase}} \\text{C}_6\\text{H}_{12}\\text{O}_6\\text{ (Glucose)}$$\n\n"
+            "#### Phase 3: Regeneration of RuBP\n"
+            "The remaining 5 G3P molecules undergo a series of transketolase/aldolase reactions to regenerate 3 molecules of RuBP, consuming 3 additional ATP:\n"
+            "$$5\\text{ G3P (3C)} + 3\\text{ATP} \\to 3\\text{ RuBP (5C)} + 3\\text{ADP} + 2\\text{P}_i$$\n\n"
+            "---\n\n"
+            "### 4. Summary Matrix of Stages\n\n"
+            "| Feature | Light-Dependent Reactions | Calvin Cycle (Light-Independent) |\n"
+            "| :--- | :--- | :--- |\n"
+            "| **Location** | Thylakoid Membrane & Lumen | Chloroplast Stroma |\n"
+            "| **Input Substrates** | $\\text{H}_2\\text{O}$, $\\text{NADP}^+$, $\\text{ADP}$, Photons | $\\text{CO}_2$, $\\text{ATP}$, $\\text{NADPH}$ |\n"
+            "| **Primary Enzymes** | PS II (P680), PS I (P700), Cytochrome $b_6f$, ATP Synthase | RuBisCO, Phosphoglycerate kinase, G3P Dehydrogenase |\n"
+            "| **Primary Products** | $\\text{O}_2$ (byproduct), $\\text{ATP}$, $\\text{NADPH}$ | $\\text{G3P} \\to \\text{Glucose} (\\text{C}_6\\text{H}_{12}\\text{O}_6)$, $\\text{ADP}$, $\\text{NADP}^+$ |\n"
+            "| **Energy Source** | Solar radiation ($400-700\\text{ nm}$) | Chemical energy from ATP and NADPH |"
+        ),
+    ),
 }
 
 # Regex mapping user query patterns to canonical scientific laws
@@ -377,6 +440,13 @@ LAW_PATTERNS: list[tuple[re.Pattern, str]] = [
             re.IGNORECASE,
         ),
         "coulombs_law",
+    ),
+    (
+        re.compile(
+            r"\bphotosynthesis\b|\bprocess\s+of\s+photosynthesis\b|\bphotosynthetic\s+reaction\b",
+            re.IGNORECASE,
+        ),
+        "photosynthesis",
     ),
 ]
 

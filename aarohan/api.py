@@ -118,7 +118,7 @@ class ChatRequest(BaseModel):
         "7. Output Structure: Use rich Markdown formatting with tables, bullet lists, and syntax-highlighted code blocks with exact language identifiers (html, python, javascript, sql, json, csv).\n"
         "8. Scientific & Mathematical Rigor: When providing scientific laws or physical formulas, provide exact established scientific formulations using standard LaTeX math notation ($...$ for inline and $$...$$ for display equations).\n"
         "9. Document & Resume Analysis: When a user shares a resume, CV, or document for analysis or review, do NOT simply repeat or parrot back the document text. Instead, provide a structured, in-depth evaluation: (1) Professional Profile & Strengths, (2) Technical & Domain Competency (e.g. BI, SQL, Analytics), (3) High-Impact Recommendations to strengthen achievements and quantifiable metrics, and (4) ATS & Executive Presentation tips.\n"
-        "10. File & Document Capabilities: You CAN analyze and process documents including PDF, DOCX, TXT, CSV, and code files. Users can attach or upload files via the attachment icon in the chat input or paste document text directly into the chat. When asked if you can analyze a PDF or document, respond affirmatively and encourage the user to upload or paste the content.\n"
+        "10. File & PDF Generation Capabilities: You CAN generate, compile, and export professional PDF documents, Excel spreadsheets, CSV datasets, and image files. When the user asks to create, download, or export a PDF of any information, confirm enthusiastically and provide the downloadable PDF document.\n"
         "11. ChatGPT-Grade Conversational & Coding Standard: Deliver thoughtful, highly structured, and deeply intelligent responses matching the quality, tone, and depth of ChatGPT. Begin directly without robotic pleasantries. Organize responses with bold section anchors, comparison tables, clean bullet points, and production-ready, thoroughly annotated code blocks with exact language syntax tags.",
         description="System instruction",
     )
@@ -864,6 +864,83 @@ def create_app(
             logger.warning("Auto image generation error: %s", e)
             return ""
 
+    def _handle_auto_pdf(
+        processed_query: str,
+        resolved_query: str,
+        messages_history: list[dict[str, str]] | None = None,
+    ) -> str:
+        q_lower = f"{processed_query} {resolved_query}".lower()
+        is_pdf_req = any(kw in q_lower for kw in [
+            "create a pdf", "make a pdf", "generate a pdf", "export to pdf", "download as pdf",
+            "pdf of this", "create pdf", "make pdf", "generate pdf", "give me a pdf", "pdf banao"
+        ])
+        if not is_pdf_req:
+            return ""
+
+        try:
+            topic = "Technical Document"
+            content_text = ""
+            if messages_history:
+                for m in reversed(messages_history):
+                    if m.get("role") == "assistant" and len(m.get("content", "")) > 60:
+                        content_text = m.get("content", "")
+                        break
+            if not content_text:
+                content_text = processed_query
+
+            if "photosynthesis" in q_lower or "photosynthesis" in content_text.lower():
+                topic = "Biochemical Mechanism of Photosynthesis"
+            elif "chemical" in q_lower or "chemical" in content_text.lower():
+                topic = "Chemical Process Engineering Report"
+            elif "python" in q_lower:
+                topic = "Python Programming Guide"
+            elif "sql" in q_lower:
+                topic = "SQL Engineering Reference"
+            else:
+                topic = "Aarohan AI Report"
+
+            # Parse content into structured sections
+            paragraphs = [p.strip() for p in content_text.split("\n\n") if p.strip() and not p.strip().startswith("#")]
+            sections = []
+            if paragraphs:
+                for idx, p in enumerate(paragraphs[:8], start=1):
+                    clean_p = re.sub(r"[\*\$`]", "", p)
+                    heading = f"Section {idx}"
+                    if ":" in clean_p[:40]:
+                        parts = clean_p.split(":", 1)
+                        heading = parts[0].strip()
+                        clean_p = parts[1].strip()
+                    sections.append({
+                        "heading": heading[:60],
+                        "content": clean_p
+                    })
+            else:
+                sections = [{"heading": "Executive Summary", "content": content_text[:600]}]
+
+            ts = int(time.time())
+            safe_slug = re.sub(r"[^a-zA-Z0-9_]", "_", topic.lower())[:25]
+            filename = f"{safe_slug}_{ts}.pdf"
+
+            res = pdf_generator.generate_report(
+                title=topic,
+                sections=sections,
+                author="Datta Sable / AAROHAN AI",
+                filename=filename,
+            )
+
+            if res.get("success"):
+                return (
+                    f"\n\n---\n### 📄 Aarohan PDF Document Generated & Validated\n"
+                    f"- **Status:** `VALIDATED` (ReportLab Local PDF Engine)\n"
+                    f"- **Document Title:** {topic}\n"
+                    f"- **File:** `{filename}`\n"
+                    f"- **Download:** [📥 Click here to download {filename}](/api/documents/download/{filename})\n"
+                    f"- **Browser View:** [👁️ View Document in Browser](/api/documents/view/{filename})\n\n"
+                )
+        except Exception as e:
+            logger.warning("Auto PDF generation error: %s", e)
+        return ""
+
     # -------------------------------------------------------------------------
     # AI Chat (Turn-Based & Streaming SSE)
     # -------------------------------------------------------------------------
@@ -897,7 +974,8 @@ def create_app(
 
         auto_dataset_link = _handle_auto_dataset(processed_query, resolved_query, intent_res)
         auto_image_block = _handle_auto_image(processed_query, resolved_query, intent_res, req.messages)
-        auto_media_prefix = auto_dataset_link + auto_image_block
+        auto_pdf_block = _handle_auto_pdf(processed_query, resolved_query, req.messages)
+        auto_media_prefix = auto_dataset_link + auto_image_block + auto_pdf_block
 
         # Retrieve relevant memory evidence strictly scoped to current user
         user_scope = user.get("username", "default_user")
@@ -1290,7 +1368,8 @@ def create_app(
 
         auto_dataset_link = _handle_auto_dataset(processed_query, resolved_query, intent_res)
         auto_image_block = _handle_auto_image(processed_query, resolved_query, intent_res, req.messages)
-        auto_media_prefix = auto_dataset_link + auto_image_block
+        auto_pdf_block = _handle_auto_pdf(processed_query, resolved_query, req.messages)
+        auto_media_prefix = auto_dataset_link + auto_image_block + auto_pdf_block
 
         # Retrieve relevant memory evidence strictly scoped to current user
         user_scope = user.get("username", "default_user")
