@@ -103,7 +103,7 @@ class OllamaInferenceEngine(BaseInferenceEngine):
         *,
         system_prompt: Optional[str] = None,
         history: Optional[List[Dict[str, str]]] = None,
-        max_new_tokens: int = 1024,
+        max_new_tokens: int = 4096,
         temperature: float = 0.7,
     ) -> GenerationResult:
         start_time = time.perf_counter()
@@ -162,7 +162,7 @@ class OllamaInferenceEngine(BaseInferenceEngine):
         *,
         system_prompt: Optional[str] = None,
         history: Optional[List[Dict[str, str]]] = None,
-        max_new_tokens: int = 2048,
+        max_new_tokens: int = 4096,
         temperature: float = 0.7,
     ) -> Iterator[str]:
         messages: List[Dict[str, str]] = []
