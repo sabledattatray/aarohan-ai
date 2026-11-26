@@ -26,7 +26,7 @@
 ---
 
 <p align="center">
-  <img src="docs/assets/screenshots/aarohan_chat_studio.png" alt="AAROHAN AI Ultra-Premium Chat Studio" width="900" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.8); border: 1px solid #333;" />
+  <img src="https://raw.githubusercontent.com/sabledattatray/aarohan-ai/master/docs/assets/screenshots/aarohan_chat_studio.png" alt="AAROHAN AI Ultra-Premium Chat Studio" width="100%" />
 </p>
 
 </div>
@@ -61,11 +61,11 @@ Conceived, designed, and developed by **[Datta Sable](https://dattasable.com/)**
 
 | Minimalist Chat Interface | Verified Rule Decisions & Grounding |
 | :---: | :---: |
-| <img src="docs/assets/screenshots/aarohan_dark_interface.png" width="440" alt="AAROHAN Dark UI" style="border-radius: 8px; border: 1px solid #222;" /> | <img src="docs/assets/screenshots/aarohan_reasoning_verification.jpg" width="440" alt="AAROHAN Reasoning" style="border-radius: 8px; border: 1px solid #222;" /> |
+| <img src="https://raw.githubusercontent.com/sabledattatray/aarohan-ai/master/docs/assets/screenshots/aarohan_dark_interface.png" width="450" alt="AAROHAN Dark UI" /> | <img src="https://raw.githubusercontent.com/sabledattatray/aarohan-ai/master/docs/assets/screenshots/aarohan_reasoning_verification.jpg" width="450" alt="AAROHAN Reasoning" /> |
 
 | Multi-Modal Tooling & Generation | Clean Typography & SSE Streaming |
 | :---: | :---: |
-| <img src="docs/assets/screenshots/aarohan_multimodal_studio.jpg" width="440" alt="AAROHAN Multimodal" style="border-radius: 8px; border: 1px solid #222;" /> | <img src="docs/assets/screenshots/aarohan_chat_studio.png" width="440" alt="AAROHAN Studio" style="border-radius: 8px; border: 1px solid #222;" /> |
+| <img src="https://raw.githubusercontent.com/sabledattatray/aarohan-ai/master/docs/assets/screenshots/aarohan_multimodal_studio.jpg" width="450" alt="AAROHAN Multimodal" /> | <img src="https://raw.githubusercontent.com/sabledattatray/aarohan-ai/master/docs/assets/screenshots/aarohan_chat_studio.png" width="450" alt="AAROHAN Studio" /> |
 
 </div>
 
