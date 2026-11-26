@@ -66,7 +66,7 @@ def test_studio_html_mandatory_auth_and_light_theme_conformance():
 
     # Mandatory Auth Gate Modal & Elements
     assert 'id="auth-gate-modal"' in html
-    assert "Continue with Google" in html
+    assert "Sign In" in html
     assert "707439992057-j87plivvk29u7nq35l1j7sqdraoqhv5u.apps.googleusercontent.com" in html
     assert 'id="auth-email-input"' in html
     assert 'id="auth-otp-input"' in html
