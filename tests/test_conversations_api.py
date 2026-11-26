@@ -76,6 +76,26 @@ def test_conversation_grouping_and_restoration():
     assert "Python" in detail["turns"][0]["user"]
     assert "list comprehensions" in detail["turns"][1]["user"]
 
+    # 2b. Test rename conversation session via PATCH /api/conversations/{session_id}
+    rename_resp = client.patch(
+        f"/api/conversations/{session_a}",
+        json={"title": "Custom Python Learning Session"},
+        headers=AUTH_HEADERS,
+    )
+    assert rename_resp.status_code == 200
+    assert rename_resp.json()["title"] == "Custom Python Learning Session"
+
+    # Verify renamed title reflects in GET /api/conversations/{session_id}
+    detail_after_rename = client.get(f"/api/conversations/{session_a}", headers=AUTH_HEADERS)
+    assert detail_after_rename.status_code == 200
+    assert detail_after_rename.json()["title"] == "Custom Python Learning Session"
+
+    # Verify renamed title reflects in list GET /api/conversations
+    convs_after_rename = client.get("/api/conversations?limit=30", headers=AUTH_HEADERS).json().get("conversations", [])
+    renamed_entry = next((c for c in convs_after_rename if c.get("session_id") == session_a), None)
+    assert renamed_entry is not None
+    assert renamed_entry["title"] == "Custom Python Learning Session"
+
     # 3. Delete session B via DELETE /api/conversations/{session_id}
     del_resp = client.delete(f"/api/conversations/{session_b}", headers=AUTH_HEADERS)
     assert del_resp.status_code == 200

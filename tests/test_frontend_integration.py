@@ -137,3 +137,42 @@ def test_conversation_session_persistence_contract(tmp_path):
     assert "loadConversationSession" in html
     assert "autoRestore" in html
     assert "recent-history-list" in html
+
+
+def test_master_ui_ux_prd_conformance(tmp_path):
+    db_path = tmp_path / "memory.sqlite"
+    app = create_app(database_path=db_path)
+    client = TestClient(app)
+
+    res = client.get("/")
+    assert res.status_code == 200
+    html = res.text
+
+    # 1. Typography & Themes
+    assert "JetBrains+Mono" in html
+    assert "theme-toggle-btn" in html
+    assert "applyTheme" in html
+    assert "aarohan_theme" in html
+
+    # 2. Welcome Screen & Prompt Suggestions
+    assert "How can I help you today?" in html
+    assert "Explain a complex topic" in html
+    assert "Write and debug code" in html
+    assert "Analyse a file" in html
+
+    # 3. Chat Composer & Controls
+    assert "chat-stop-btn" in html
+    assert "stopChatGeneration" in html
+    assert "chat-file-input" in html
+    assert "attachment-preview-bar" in html
+
+    # 4. History Grouping & Date Buckets
+    assert "categorizeConversationsByDate" in html
+    assert "renameConversation" in html
+    assert "deleteConversationRecord" in html
+
+    # 5. Assistant Actions (No Pills, Full Feedback Toolbar)
+    assert "sendFeedback" in html
+    assert "copyMessageText" in html
+    assert "retryLastChatQuery" in html
+    assert "Saved Turn" not in html

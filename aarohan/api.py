@@ -291,6 +291,10 @@ class MathVerifyRequest(BaseModel):
     expression: str = Field(..., min_length=1, description="Mathematical expression")
 
 
+class RenameConversationRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=120, description="New title for conversation session")
+
+
 
 def get_current_user(authorization: str | None = Header(None)) -> dict[str, Any]:
     """Optional bearer auth helper - falls back to default researcher if omitted for local UI."""
@@ -1510,18 +1514,22 @@ def create_app(
                 "engine": meta.get("engine", "foundation"),
             }
 
+            custom_title = meta.get("title")
+            initial_title = custom_title or (user_query or "Conversation")[:60]
             if sid not in sessions_map:
                 sessions_map[sid] = {
                     "id": sid,
                     "session_id": sid,
-                    "title": (user_query or "Conversation")[:60],
-                    "content": f"User: {user_query or 'Conversation'}",
+                    "title": initial_title,
+                    "content": f"User: {initial_title}",
                     "created_at": r["created_at"],
                     "updated_at": r["created_at"],
                     "turns_count": 0,
                     "turns": [],
                     "user_scope": r["user_scope"] if "user_scope" in r.keys() else "default_user",
                 }
+            elif custom_title:
+                sessions_map[sid]["title"] = custom_title
 
             sessions_map[sid]["turns"].append(turn_obj)
             sessions_map[sid]["turns_count"] += 1
@@ -1552,10 +1560,13 @@ def create_app(
             rows = cursor.fetchall()
 
         matched_turns = []
+        session_custom_title = None
         for r in rows:
             meta = json.loads(r["metadata_json"]) if r["metadata_json"] else {}
             sid = meta.get("session_id") or f"session_{r['id']}"
             if sid == session_id or str(r["id"]) == session_id:
+                if meta.get("title") and not session_custom_title:
+                    session_custom_title = meta.get("title")
                 content = r["content"] or ""
                 user_query = meta.get("user_query")
                 assistant_response = meta.get("assistant_response")
@@ -1578,7 +1589,7 @@ def create_app(
         if not matched_turns:
             raise HTTPException(status_code=404, detail=f"Conversation session '{session_id}' not found")
 
-        title = matched_turns[0]["user"][:60]
+        title = session_custom_title or matched_turns[0]["user"][:60]
         return {
             "id": session_id,
             "session_id": session_id,
@@ -1588,6 +1599,44 @@ def create_app(
             "updated_at": matched_turns[-1]["created_at"],
             "turns": matched_turns,
         }
+
+    @app.patch("/api/conversations/{session_id}")
+    def rename_conversation_session(
+        session_id: str,
+        req: RenameConversationRequest,
+        user: dict[str, Any] = Depends(get_current_user),
+    ) -> dict[str, Any]:
+        user_scope = user.get("username", "default_user")
+        new_title = req.title.strip()
+        if not new_title:
+            raise HTTPException(status_code=400, detail="Title cannot be empty")
+
+        updated_count = 0
+        with store._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, metadata_json
+                FROM memories
+                WHERE memory_type = 'episodic' AND source = 'user_conversation'
+                  AND (user_scope = ? OR user_scope = 'default_user' OR user_scope IS NULL)
+                  AND (id = ? OR metadata_json LIKE ? OR metadata_json LIKE ?)
+                """,
+                (user_scope, session_id, f'%"session_id": "{session_id}"%', f'%"session_id":"{session_id}"%'),
+            )
+            rows = cursor.fetchall()
+            for r in rows:
+                meta = json.loads(r["metadata_json"]) if r["metadata_json"] else {}
+                meta["title"] = new_title
+                cursor.execute(
+                    "UPDATE memories SET metadata_json = ? WHERE id = ?",
+                    (json.dumps(meta), r["id"]),
+                )
+                updated_count += 1
+            conn.commit()
+
+        audit.log("conversation_renamed", actor=user["username"], target="memories", details={"session_id": session_id, "title": new_title})
+        return {"session_id": session_id, "title": new_title, "updated_count": updated_count}
 
     @app.delete("/api/conversations/{session_id}")
     def delete_conversation_session(session_id: str, user: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
