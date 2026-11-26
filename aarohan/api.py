@@ -893,10 +893,9 @@ def get_dashboard_html() -> str:
     };
   </script>
   <style>
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
-    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    ::-webkit-scrollbar-track { background: #000000; }
+    ::-webkit-scrollbar-thumb { background: #222222; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #333333; }
 
     /* Ultra-clean markdown body typography */
     .markdown-body { color: #e2e8f0; font-size: 0.875rem; line-height: 1.65; }
@@ -911,26 +910,26 @@ def get_dashboard_html() -> str:
     .markdown-body strong { color: #ffffff; font-weight: 600; }
     .markdown-body em { color: #93c5fd; }
     .markdown-body blockquote { border-left: 3px solid #3b82f6; padding-left: 0.85rem; color: #94a3b8; margin: 0.75rem 0; font-style: italic; }
-    .markdown-body code:not(pre code) { background: rgba(30, 41, 59, 0.8); color: #93c5fd; padding: 0.15rem 0.4rem; border-radius: 0.375rem; font-size: 0.8125rem; font-family: monospace; border: 1px solid rgba(51, 65, 85, 0.6); }
+    .markdown-body code:not(pre code) { background: #141414; color: #93c5fd; padding: 0.15rem 0.4rem; border-radius: 0.375rem; font-size: 0.8125rem; font-family: monospace; border: 1px solid #262626; }
     .markdown-body table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.8rem; }
-    .markdown-body th, .markdown-body td { border: 1px solid #334155; padding: 0.5rem 0.75rem; text-align: left; }
-    .markdown-body th { background: #1e293b; color: #ffffff; font-weight: 600; }
-    .markdown-body tr:nth-child(even) { background: rgba(15, 23, 42, 0.5); }
+    .markdown-body th, .markdown-body td { border: 1px solid #262626; padding: 0.5rem 0.75rem; text-align: left; }
+    .markdown-body th { background: #0f0f0f; color: #ffffff; font-weight: 600; }
+    .markdown-body tr:nth-child(even) { background: #080808; }
 
     .badge { display: inline-flex; align-items: center; padding: 0.125rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
     @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .pulse-dot { animation: pulseDot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
   </style>
 </head>
-<body class="bg-[#07090e] text-slate-100 h-screen w-screen overflow-hidden flex font-sans antialiased selection:bg-blue-600 selection:text-white">
+<body class="bg-[#000000] text-slate-100 h-screen w-screen overflow-hidden flex font-sans antialiased selection:bg-blue-600 selection:text-white">
 
   <!-- ========================================================================= -->
   <!-- LEFT SIDEBAR: Ultra-Premium Sleek Studio Navigation                      -->
   <!-- ========================================================================= -->
-  <aside class="w-64 md:w-72 bg-[#0c101c] border-r border-slate-800/80 flex flex-col h-full z-20 select-none flex-shrink-0">
+  <aside class="w-64 md:w-72 bg-[#000000] border-r border-[#1a1a1a] flex flex-col h-full z-20 select-none flex-shrink-0">
 
     <!-- Workspace Brand Header -->
-    <div class="p-4 border-b border-slate-800/60 flex items-center justify-between">
+    <div class="p-4 border-b border-[#1a1a1a] flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/25">
           <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
@@ -955,24 +954,24 @@ def get_dashboard_html() -> str:
 
     <!-- Navigation Tabs / Modules -->
     <div class="px-3 py-1 space-y-0.5">
-      <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1">Workspace</p>
-      <button onclick="switchTab('chat')" id="nav-chat" class="tab-btn w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition flex items-center space-x-2.5 bg-blue-600/15 text-blue-400 border border-blue-500/30">
+      <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1">Workspace</p>
+      <button onclick="switchTab('chat')" id="nav-chat" class="tab-btn w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition flex items-center space-x-2.5 bg-blue-600/20 text-blue-400 border border-blue-500/40">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
         <span>AI Inference & Chat</span>
       </button>
-      <button onclick="switchTab('memory')" id="nav-memory" class="tab-btn w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition flex items-center space-x-2.5 text-slate-400 hover:text-white hover:bg-slate-800/60">
+      <button onclick="switchTab('memory')" id="nav-memory" class="tab-btn w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition flex items-center space-x-2.5 text-slate-400 hover:text-white hover:bg-[#111111]">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
         <span>Memory Explorer</span>
       </button>
-      <button onclick="switchTab('graph')" id="nav-graph" class="tab-btn w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition flex items-center space-x-2.5 text-slate-400 hover:text-white hover:bg-slate-800/60">
+      <button onclick="switchTab('graph')" id="nav-graph" class="tab-btn w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition flex items-center space-x-2.5 text-slate-400 hover:text-white hover:bg-[#111111]">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
         <span>Knowledge Graph</span>
       </button>
-      <button onclick="switchTab('queue')" id="nav-queue" class="tab-btn w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition flex items-center space-x-2.5 text-slate-400 hover:text-white hover:bg-slate-800/60">
+      <button onclick="switchTab('queue')" id="nav-queue" class="tab-btn w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition flex items-center space-x-2.5 text-slate-400 hover:text-white hover:bg-[#111111]">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
         <span>Learning Queue</span>
       </button>
-      <button onclick="switchTab('settings')" id="nav-settings" class="tab-btn w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition flex items-center space-x-2.5 text-slate-400 hover:text-white hover:bg-slate-800/60">
+      <button onclick="switchTab('settings')" id="nav-settings" class="tab-btn w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition flex items-center space-x-2.5 text-slate-400 hover:text-white hover:bg-[#111111]">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
         <span>Settings & Audits</span>
       </button>
@@ -980,17 +979,17 @@ def get_dashboard_html() -> str:
 
     <!-- Recent Conversations List -->
     <div class="px-3 pt-3 flex-1 flex flex-col min-h-0">
-      <div class="flex items-center justify-between px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+      <div class="flex items-center justify-between px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
         <span>Recent History</span>
         <button onclick="loadRecentHistory()" class="hover:text-slate-300">↻</button>
       </div>
       <div id="recent-history-list" class="flex-1 overflow-y-auto space-y-1 pr-1 text-xs">
-        <div class="text-[11px] text-slate-400 px-3 py-2">Loading recent history...</div>
+        <div class="text-[11px] text-slate-500 px-3 py-2">Loading recent history...</div>
       </div>
     </div>
 
     <!-- Bottom Telemetry Card -->
-    <div class="p-3 border-t border-slate-800/80 bg-[#090d18] text-[11px] space-y-2">
+    <div class="p-3 border-t border-[#1a1a1a] bg-[#000000] text-[11px] space-y-2">
       <div class="flex items-center justify-between">
         <span class="flex items-center space-x-1.5 text-slate-300 font-medium">
           <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
@@ -1002,7 +1001,7 @@ def get_dashboard_html() -> str:
         <span>RAM: <strong id="side-ram-usage" class="text-slate-200">...</strong></span>
         <span>Memories: <strong id="side-mem-count" class="text-slate-200">...</strong></span>
       </div>
-      <div class="text-[10px] text-slate-400 pt-1 border-t border-slate-800/60 flex items-center justify-between">
+      <div class="text-[10px] text-slate-500 pt-1 border-t border-[#1a1a1a] flex items-center justify-between">
         <span>Zero Commercial APIs</span>
         <span class="text-emerald-400 font-medium">100% Free Local</span>
       </div>
@@ -1012,18 +1011,18 @@ def get_dashboard_html() -> str:
   <!-- ========================================================================= -->
   <!-- MAIN WORKSPACE: Focused Chat Studio & Auxiliary Modules                  -->
   <!-- ========================================================================= -->
-  <main class="flex-1 flex flex-col h-full bg-[#07090e] overflow-hidden relative">
+  <main class="flex-1 flex flex-col h-full bg-[#000000] overflow-hidden relative">
 
     <!-- --------------------------------------------------------------------- -->
     <!-- TAB 1: PURE CHAT STUDIO                                               -->
     <!-- --------------------------------------------------------------------- -->
-    <section id="pane-chat" class="flex-1 flex flex-col h-full overflow-hidden">
+    <section id="pane-chat" class="flex-1 flex flex-col h-full overflow-hidden bg-[#000000]">
 
       <!-- Sleek Chat Top Bar -->
-      <div class="h-14 border-b border-slate-800/70 px-6 flex items-center justify-between bg-[#090d18]/70 backdrop-blur-md z-10">
+      <div class="h-14 border-b border-[#1a1a1a] px-6 flex items-center justify-between bg-[#000000]/95 backdrop-blur-md z-10">
         <div class="flex items-center space-x-3">
           <!-- Engine Selector Dropdown -->
-          <div class="flex items-center space-x-1.5 bg-slate-900/90 border border-slate-700/80 rounded-xl px-2.5 py-1 text-xs">
+          <div class="flex items-center space-x-1.5 bg-[#0d0d0d] border border-[#262626] rounded-xl px-2.5 py-1 text-xs">
             <span class="text-amber-400">⚡</span>
             <select id="chat-engine" class="bg-transparent text-slate-200 font-semibold focus:outline-none cursor-pointer">
               <option value="foundation" selected>AAROHAN Foundation (Qwen2.5 - Fluent)</option>
@@ -1032,7 +1031,7 @@ def get_dashboard_html() -> str:
           </div>
 
           <!-- Memory Retrieval Mode -->
-          <div class="hidden sm:flex items-center space-x-1.5 bg-slate-900/60 border border-slate-800 rounded-xl px-2.5 py-1 text-xs text-slate-400">
+          <div class="hidden sm:flex items-center space-x-1.5 bg-[#0d0d0d] border border-[#262626] rounded-xl px-2.5 py-1 text-xs text-slate-400">
             <span>🧠</span>
             <select id="chat-mode" class="bg-transparent text-slate-300 focus:outline-none cursor-pointer">
               <option value="hybrid" selected>Hybrid Memory (Vector + BM25)</option>
@@ -1044,10 +1043,10 @@ def get_dashboard_html() -> str:
 
         <div class="flex items-center space-x-3 text-xs">
           <label class="flex items-center space-x-1.5 text-slate-400 cursor-pointer">
-            <input type="checkbox" id="chat-stream-toggle" checked class="rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
+            <input type="checkbox" id="chat-stream-toggle" checked class="rounded bg-[#141414] border-[#262626] text-blue-600 focus:ring-0">
             <span class="text-[11px]">Stream</span>
           </label>
-          <button onclick="startNewChat()" class="px-2.5 py-1 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-lg text-slate-300 text-xs transition flex items-center space-x-1">
+          <button onclick="startNewChat()" class="px-2.5 py-1 bg-[#111111] hover:bg-[#1a1a1a] border border-[#262626] rounded-lg text-slate-300 text-xs transition flex items-center space-x-1">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
             <span>Clear</span>
           </button>
@@ -1055,7 +1054,7 @@ def get_dashboard_html() -> str:
       </div>
 
       <!-- Messages Scroll Area -->
-      <div id="chat-messages-container" class="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-6 scroll-smooth">
+      <div id="chat-messages-container" class="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-6 scroll-smooth bg-[#000000]">
         <div id="chat-messages" class="max-w-3xl w-full mx-auto space-y-6">
           <!-- Default Welcome Hero Screen -->
           <div id="welcome-hero" class="text-center py-12 md:py-16 space-y-4">
@@ -1069,25 +1068,25 @@ def get_dashboard_html() -> str:
 
             <!-- Quick Start Prompt Chips -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-6 max-w-xl mx-auto text-left">
-              <button onclick="usePrompt('Can you help me in data analysis with Python?')" class="p-3.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 transition text-left group">
+              <button onclick="usePrompt('Can you help me in data analysis with Python?')" class="p-3.5 rounded-xl bg-[#0a0a0a] hover:bg-[#141414] border border-[#1f1f1f] hover:border-[#333333] text-xs text-slate-300 transition text-left group">
                 <div class="font-semibold text-white group-hover:text-blue-400 flex items-center space-x-1.5">
                   <span>📊</span> <span>Data Analysis in Python</span>
                 </div>
                 <div class="text-[11px] text-slate-400 mt-1">Pandas, NumPy, and exploratory data workflows</div>
               </button>
-              <button onclick="usePrompt('Write a Python function to compute moving averages with numpy')" class="p-3.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 transition text-left group">
+              <button onclick="usePrompt('Write a Python function to compute moving averages with numpy')" class="p-3.5 rounded-xl bg-[#0a0a0a] hover:bg-[#141414] border border-[#1f1f1f] hover:border-[#333333] text-xs text-slate-300 transition text-left group">
                 <div class="font-semibold text-white group-hover:text-blue-400 flex items-center space-x-1.5">
                   <span>📈</span> <span>Moving Averages Algorithm</span>
                 </div>
                 <div class="text-[11px] text-slate-400 mt-1">Vectorized simple & exponential moving averages</div>
               </button>
-              <button onclick="usePrompt('Explain how RoPE and SwiGLU work in modern transformers')" class="p-3.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 transition text-left group">
+              <button onclick="usePrompt('Explain how RoPE and SwiGLU work in modern transformers')" class="p-3.5 rounded-xl bg-[#0a0a0a] hover:bg-[#141414] border border-[#1f1f1f] hover:border-[#333333] text-xs text-slate-300 transition text-left group">
                 <div class="font-semibold text-white group-hover:text-blue-400 flex items-center space-x-1.5">
                   <span>🧬</span> <span>Transformer Architecture</span>
                 </div>
                 <div class="text-[11px] text-slate-400 mt-1">Rotary Positional Embeddings & SwiGLU activations</div>
               </button>
-              <button onclick="usePrompt('What knowledge and entities are stored in your cognitive memory?')" class="p-3.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 transition text-left group">
+              <button onclick="usePrompt('What knowledge and entities are stored in your cognitive memory?')" class="p-3.5 rounded-xl bg-[#0a0a0a] hover:bg-[#141414] border border-[#1f1f1f] hover:border-[#333333] text-xs text-slate-300 transition text-left group">
                 <div class="font-semibold text-white group-hover:text-blue-400 flex items-center space-x-1.5">
                   <span>🧠</span> <span>6-Layer Memory Inspection</span>
                 </div>
@@ -1099,11 +1098,11 @@ def get_dashboard_html() -> str:
       </div>
 
       <!-- Floating Bottom Prompt Input Container -->
-      <div class="p-4 bg-gradient-to-t from-[#07090e] via-[#07090e]/95 to-transparent z-10">
+      <div class="p-4 bg-gradient-to-t from-black via-black/95 to-transparent z-10">
         <form id="chat-form" onsubmit="handleChatSubmit(event)" class="max-w-3xl w-full mx-auto">
-          <div class="relative bg-slate-900/90 border border-slate-700/80 focus-within:border-blue-500/80 rounded-2xl shadow-2xl backdrop-blur-md transition-all">
+          <div class="relative bg-[#0d0d0d] border border-[#222222] focus-within:border-blue-500/80 rounded-2xl shadow-2xl backdrop-blur-md transition-all">
             <textarea id="chat-input" rows="1" placeholder="Message AAROHAN or query your persistent knowledge..."
-                      class="w-full bg-transparent text-sm text-slate-100 placeholder-slate-400 focus:outline-none px-4 pt-3.5 pb-2 resize-none max-h-36 font-sans leading-relaxed"></textarea>
+                      class="w-full bg-transparent text-sm text-slate-100 placeholder-slate-500 focus:outline-none px-4 pt-3.5 pb-2 resize-none max-h-36 font-sans leading-relaxed"></textarea>
 
             <div class="flex items-center justify-between px-3 pb-2.5 pt-1 text-[11px] text-slate-400 select-none">
               <div class="flex items-center space-x-2">
@@ -1118,7 +1117,7 @@ def get_dashboard_html() -> str:
               </button>
             </div>
           </div>
-          <div class="text-center pt-2 text-[10px] text-slate-400">
+          <div class="text-center pt-2 text-[10px] text-slate-500">
             AAROHAN operates 100% locally on your GPU. Long-term memory evidence and neural completions are decoupled.
           </div>
         </form>
@@ -1129,8 +1128,8 @@ def get_dashboard_html() -> str:
     <!-- --------------------------------------------------------------------- -->
     <!-- AUXILIARY TABS: Memory Explorer, Knowledge Graph, Queue, Settings     -->
     <!-- --------------------------------------------------------------------- -->
-    <section id="pane-memory" class="hidden flex-1 overflow-y-auto p-6 space-y-4">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+    <section id="pane-memory" class="hidden flex-1 overflow-y-auto p-6 space-y-4 bg-[#000000]">
+      <div class="flex items-center justify-between pb-2 border-b border-[#1a1a1a]">
         <div>
           <h2 class="text-lg font-semibold text-white">6-Layer Cognitive Memory Explorer</h2>
           <p class="text-xs text-slate-400">Working, Episodic, Semantic, Procedural, Knowledge Graph, and Learning memories.</p>
@@ -1138,8 +1137,8 @@ def get_dashboard_html() -> str:
       </div>
       <div class="flex items-center space-x-2">
         <input type="text" id="mem-search-input" placeholder="Search memory across all 6 cognitive layers..."
-               class="flex-1 bg-slate-900 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs text-white">
-        <select id="mem-layer-filter" class="bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-xl px-3 py-2.5">
+               class="flex-1 bg-[#0d0d0d] border border-[#222222] focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs text-white">
+        <select id="mem-layer-filter" class="bg-[#0d0d0d] border border-[#222222] text-xs text-slate-200 rounded-xl px-3 py-2.5">
           <option value="">All Layers</option>
           <option value="working">Layer 1: Working</option>
           <option value="episodic">Layer 2: Episodic</option>
@@ -1153,8 +1152,8 @@ def get_dashboard_html() -> str:
       <div id="memory-items-list" class="space-y-2 pt-2"><div class="text-xs text-slate-400">Loading memory items...</div></div>
     </section>
 
-    <section id="pane-graph" class="hidden flex-1 overflow-y-auto p-6 space-y-4">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+    <section id="pane-graph" class="hidden flex-1 overflow-y-auto p-6 space-y-4 bg-[#000000]">
+      <div class="flex items-center justify-between pb-2 border-b border-[#1a1a1a]">
         <div>
           <h2 class="text-lg font-semibold text-white">Knowledge Graph Explorer & Contradiction Detector</h2>
           <p class="text-xs text-slate-400">Explicit entity relationships, graph path traversals, and automated contradiction detection.</p>
@@ -1162,11 +1161,11 @@ def get_dashboard_html() -> str:
         <button onclick="checkGraphContradictions()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-xs font-semibold rounded-xl text-white">Scan Contradictions</button>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="p-4 rounded-xl bg-slate-900/50 border border-slate-800 space-y-3">
+        <div class="p-4 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a] space-y-3">
           <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Knowledge Entities</h3>
           <div id="graph-entities-list" class="space-y-2 max-h-96 overflow-y-auto"></div>
         </div>
-        <div class="p-4 rounded-xl bg-slate-900/50 border border-slate-800 space-y-3">
+        <div class="p-4 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a] space-y-3">
           <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Explicit Relations</h3>
           <div id="graph-relations-list" class="space-y-2 max-h-96 overflow-y-auto"></div>
         </div>
@@ -1177,8 +1176,8 @@ def get_dashboard_html() -> str:
       </div>
     </section>
 
-    <section id="pane-queue" class="hidden flex-1 overflow-y-auto p-6 space-y-4">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+    <section id="pane-queue" class="hidden flex-1 overflow-y-auto p-6 space-y-4 bg-[#000000]">
+      <div class="flex items-center justify-between pb-2 border-b border-[#1a1a1a]">
         <div>
           <h2 class="text-lg font-semibold text-white">Autonomous Learning Queue</h2>
           <p class="text-xs text-slate-400">Prioritized tasks generated from user feedback, knowledge gaps, and curriculum goals.</p>
@@ -1187,12 +1186,12 @@ def get_dashboard_html() -> str:
       <div id="learning-tasks-list" class="space-y-2"><div class="text-xs text-slate-400">Loading learning queue...</div></div>
     </section>
 
-    <section id="pane-settings" class="hidden flex-1 overflow-y-auto p-6 space-y-4">
-      <div class="pb-2 border-b border-slate-800">
+    <section id="pane-settings" class="hidden flex-1 overflow-y-auto p-6 space-y-4 bg-[#000000]">
+      <div class="pb-2 border-b border-[#1a1a1a]">
         <h2 class="text-lg font-semibold text-white">System Settings & Resource Telemetry</h2>
         <p class="text-xs text-slate-400">Hardware utilization and governance constraints.</p>
       </div>
-      <div id="settings-details" class="p-4 rounded-xl bg-slate-900/50 border border-slate-800 space-y-2 text-xs text-slate-300">
+      <div id="settings-details" class="p-4 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a] space-y-2 text-xs text-slate-300">
         <div>Loading system configuration...</div>
       </div>
     </section>
